@@ -134,7 +134,7 @@ function TopBar({ nav, problemId, busy, onSubmit, examMinutes, left, user }) {
       <div className="flex items-center gap-1">
         <button
           onClick={onSubmit} disabled={busy}
-          className="flex h-8 items-center gap-1.5 rounded-md bg-[var(--chip)] px-3 text-sm font-medium text-[#01b328] transition-colors hover:brightness-95 disabled:opacity-60"
+          className="flex h-8 items-center gap-1.5 rounded-md bg-[var(--chip)] px-3 text-sm font-medium text-[color:var(--submit)] transition-colors hover:brightness-95 disabled:opacity-60"
         >
           {busy ? <Loader2 className="size-4 animate-spin" /> : <CloudUpload className="size-4" />}
           {busy ? "Đang chấm…" : "Nộp bài"}
@@ -164,11 +164,14 @@ function TopBar({ nav, problemId, busy, onSubmit, examMinutes, left, user }) {
 
 /* ---------- khung trái ---------- */
 
-function Description({ problem, html }) {
+function Description({ problem, html, solved }) {
   const [showTopics, setShowTopics] = useState(false);
   return (
     <div className="px-4 py-5">
-      <h1 className="text-2xl font-semibold leading-8">{problem.number}. {problem.title}</h1>
+      <div className="flex items-start justify-between gap-4">
+        <h1 className="text-2xl font-semibold leading-8">{problem.number}. {problem.title}</h1>
+        {solved && <span className="mt-1.5 flex shrink-0 items-center gap-1 text-sm text-muted-foreground">Đã giải <Check className="size-4 text-[var(--green)]" /></span>}
+      </div>
       <div className="mb-4 flex flex-wrap items-center gap-1">
         <Pill className={cn("font-medium", DIFF_COLOR[problem.difficulty])}>{problem.diffLabel}</Pill>
         <Pill>Chương {problem.chapter}</Pill>
@@ -493,12 +496,16 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
               <Tab active={leftTab === "subs"} onClick={() => setLeftTab("subs")} icon={History} iconClass="text-[var(--accent)]">Lịch sử nộp</Tab>
             </TabBar>
             <div className="min-h-0 flex-1 overflow-y-auto">
-              {leftTab === "desc" && <Description problem={problem} html={html} />}
+              {leftTab === "desc" && <Description problem={problem} html={html} solved={past.some((s) => s.verdict === "AC")} />}
               {leftTab === "subs" && <SubmissionList past={past} onOpen={openSubmission} />}
               {leftTab === "detail" && (
                 <SubmissionDetail sub={detail?.code != null ? detail : null} user={user}
                   onBack={() => setLeftTab("subs")} onLoad={loadIntoEditor} />
               )}
+            </div>
+            <div className="flex h-9 shrink-0 items-center justify-between px-4 text-xs text-muted-foreground">
+              <span>Bài {nav.all.indexOf(problemId) + 1} / {nav.all.length} · Chương {problem.chapter}</span>
+              <span>Đã nộp {past.length} lần · <span className="text-[var(--green)]">AC {past.filter((s) => s.verdict === "AC").length}</span></span>
             </div>
           </Panel>
 

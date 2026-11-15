@@ -20,11 +20,26 @@ export default async function Problems({ searchParams }) {
       (!d || p.difficulty === d) && (!t || p.topics.includes(t)) && (!c || String(p.chapter) === c)
   );
   const solved = all.filter((p) => status[p.id] === "solved").length;
+  const count = (x) => all.filter((p) => p.topics.includes(x)).length;
+  // Chỉ hiện 8 chủ đề nhiều bài nhất như LeetCode; chủ đề đang lọc luôn được giữ lại.
+  const topTopics = [...topics].sort((a, b) => count(b) - count(a)).slice(0, 8);
+  if (t && !topTopics.includes(t)) topTopics.push(t);
+  const href = (next) => {
+    const s = new URLSearchParams({ ...(sp.q ? { q: sp.q } : {}), ...(d ? { d } : {}), ...(c ? { c } : {}), ...next });
+    for (const [k, v] of [...s]) if (!v) s.delete(k);
+    return s.size ? `/?${s}` : "/";
+  };
 
   return (
     <>
       <h1>Bài tập</h1>
-      <p className="sub">Đã giải {solved}/{all.length} bài. Bài ghi “cần làm trước” chỉ là gợi ý thứ tự, vẫn nộp bình thường.</p>
+      <p className="sub">Bài ghi “cần làm trước” chỉ là gợi ý thứ tự, vẫn nộp bình thường.</p>
+      <div className="tabs-pill">
+        <Link href={href({ t: "" })} className={t ? "" : "on"}>Tất cả chủ đề</Link>
+        {topTopics.map((x) => (
+          <Link key={x} href={href({ t: x })} className={t === x ? "on" : ""}>{x} <span className="chip">{count(x)}</span></Link>
+        ))}
+      </div>
       <form className="filters">
         <input type="search" name="q" placeholder="Tìm bài…" defaultValue={sp.q || ""} />
         <select name="d" defaultValue={d}>
@@ -40,6 +55,7 @@ export default async function Problems({ searchParams }) {
           {topics.map((x) => <option key={x}>{x}</option>)}
         </select>
         <button className="btn ghost">Lọc</button>
+        <span className="solved-count"><b style={{ color: "var(--green)" }}>{solved}</b>/{all.length} Đã giải</span>
       </form>
       <div className="card">
         <table className="list">
