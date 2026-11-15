@@ -58,6 +58,8 @@ decorator `@args("{port}", "3")`, `@expects_exit`, `@sample`.
 
 **Quy tắc:** mỗi bài mới phải có `solution.c` và ít nhất một `wrong/*.c`, và `selftest` phải xanh.
 
+Hướng dẫn chạy đầy đủ: [docs/HUONG-DAN.md](docs/HUONG-DAN.md).
+
 ## Web (thư mục `web/`)
 
 Next.js + SQLite (`node:sqlite` có sẵn trong Node 24, dữ liệu ở `data/netjudge.db`). Bài và plan đọc thẳng từ
