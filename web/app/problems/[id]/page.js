@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { marked } from "marked";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { statusMap } from "@/lib/progress";
 import { getProblem, getSamples, listProblems, DIFF_LABEL } from "@/lib/content";
 import Workspace from "./Workspace";
 
@@ -14,7 +15,11 @@ export default async function ProblemPage({ params }) {
   const p = getProblem(id);
   if (!p) notFound();
 
-  const all = listProblems().map((x) => x.id);
+  const problems = listProblems();
+  const all = problems.map((x) => x.id);
+  const status = statusMap(user.id);
+  // Dữ liệu gọn cho thanh bên "Danh sách bài" (mở ngay trong trang làm bài).
+  const list = problems.map((x, i) => ({ id: x.id, n: i + 1, title: x.title, difficulty: x.difficulty, status: status[x.id] || "todo" }));
   const idx = all.indexOf(id);
 
   const history = db
@@ -42,7 +47,7 @@ export default async function ProblemPage({ params }) {
         prerequisites: p.prerequisites,
         exam: !!p.exam,
       }}
-      nav={{ prev: all[idx - 1] ?? null, next: all[idx + 1] ?? null, all }}
+      nav={{ prev: all[idx - 1] ?? null, next: all[idx + 1] ?? null, all, list, diffLabel: DIFF_LABEL }}
       user={{ name: user.display || user.username }}
       samples={getSamples(id)}
       html={html}

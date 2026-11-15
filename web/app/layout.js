@@ -6,12 +6,12 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NavLink } from "@/components/nav-link";
-import { Code2 } from "lucide-react";
+import { Logo } from "@/components/logo";
 
 const inter = Inter({ subsets: ["latin", "vietnamese"], axes: ["opsz"], variable: "--font-inter", display: "swap" });
 const mono = JetBrains_Mono({ subsets: ["latin", "vietnamese"], variable: "--font-jetbrains", display: "swap" });
 
-export const metadata = { title: "NetJudge IT4062", description: "Luyện lập trình mạng với bộ chấm tự động" };
+export const metadata = { title: "SurfNeP IT4062", description: "Luyện lập trình mạng với bộ chấm tự động" };
 
 async function doLogout() {
   "use server";
@@ -27,7 +27,7 @@ export default async function RootLayout({ children }) {
         <ThemeProvider attribute="data-theme" defaultTheme="dark" enableSystem disableTransitionOnChange>
         <header className="top">
           <div className="container">
-            <Link href="/" className="brand"><Code2 size={20} color="var(--text)" />NetJudge</Link>
+            <Link href="/" className="brand"><span className="logo"><Logo size={14} strokeWidth={2} /></span>SurfNeP</Link>
             {!user && <span style={{ flex: 1 }} />}
             {user && (
               <>
@@ -44,7 +44,7 @@ export default async function RootLayout({ children }) {
             <ThemeToggle />
           </div>
         </header>
-        <main className="container">{children}</main>
+        <main className="container" style={{ paddingTop: 8 }}>{children}</main>
         </ThemeProvider>
       </body>
     </html>

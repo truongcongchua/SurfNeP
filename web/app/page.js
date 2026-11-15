@@ -1,86 +1,278 @@
 import Link from "next/link";
+import { Check, CircleDashed, LayoutGrid, BookOpen, List, GraduationCap, Flame, Trophy, Search, ArrowRight, Timer, Target } from "lucide-react";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
-import { listProblems, DIFF_LABEL } from "@/lib/content";
-import { statusMap, unmetPrereqs } from "@/lib/progress";
+import { db } from "@/lib/db";
+import { listProblems, listPlans, planProblemIds, DIFF_LABEL, DIFF_ORDER } from "@/lib/content";
+import { statusMap, unmetPrereqs, leaderboard } from "@/lib/progress";
+import { FilterForm } from "@/components/filter-form";
+import { TopicRow } from "@/components/topic-row";
+import { RandomButton } from "@/components/random-button";
 
 export const dynamic = "force-dynamic";
+const RING = 2 * Math.PI * 16;
+const WEEK = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+const ymd = (d) => d.toLocaleDateString("sv-SE"); // YYYY-MM-DD theo giờ máy
+
+const SORTS = {
+  "diff-asc": (a, b) => DIFF_ORDER[a.difficulty] - DIFF_ORDER[b.difficulty],
+  "diff-desc": (a, b) => DIFF_ORDER[b.difficulty] - DIFF_ORDER[a.difficulty],
+  "ac-desc": (a, b) => b.acRate - a.acRate,
+  "ac-asc": (a, b) => a.acRate - b.acRate,
+  title: (a, b) => a.title.localeCompare(b.title),
+};
+const SORT_LABEL = { "": "Sắp xếp", "diff-asc": "Dễ → Khó", "diff-desc": "Khó → Dễ", "ac-desc": "Tỉ lệ AC cao", "ac-asc": "Tỉ lệ AC thấp", title: "Theo tên A–Z" };
+// Màu icon tab chương và màu avatar bảng xếp hạng (xoay vòng).
+const CH_COLOR = ["#5b8def", "#e2793a", "#12a46b", "#c25bd6", "#d4a40e"];
+const AV = [["#6d4fe0", "#3b3bb3"], ["#12a46b", "#0b6b4a"], ["#e2793a", "#8a3b0a"], ["#5b8def", "#2b4fa8"]];
+const ST_LABEL = { solved: "Đã giải", attempted: "Đang thử", todo: "Chưa làm" };
 
 export default async function Problems({ searchParams }) {
   const user = await currentUser();
   if (!user) redirect("/login");
   const sp = await searchParams;
-  const q = (sp.q || "").toLowerCase(), d = sp.d || "", t = sp.t || "", c = sp.c || "";
-  const all = listProblems();
-  const topics = [...new Set(all.flatMap((p) => p.topics))].sort();
+  const q = (sp.q || "").toLowerCase(), d = sp.d || "", t = sp.t || "", c = sp.c || "", st = sp.st || "", sort = sp.s || "";
+
   const status = statusMap(user.id);
-  const list = all.filter(
-    (p) =>
-      (!q || p.title.toLowerCase().includes(q) || p.id.includes(q)) &&
-      (!d || p.difficulty === d) && (!t || p.topics.includes(t)) && (!c || String(p.chapter) === c)
-  );
+  // Tỉ lệ AC = số lần AC / số lần nộp đã chấm của mọi người dùng.
+  const accRows = db.prepare("SELECT problem_id, SUM(verdict='AC') AS ac, COUNT(*) AS n FROM submissions WHERE status='done' GROUP BY problem_id").all();
+  const acc = Object.fromEntries(accRows.map((r) => [r.problem_id, r]));
+  const all = listProblems().map((p, i) => ({ ...p, n: i + 1, acRate: acc[p.id]?.n ? acc[p.id].ac / acc[p.id].n : -1 }));
+
+  const list = all
+    .filter(
+      (p) =>
+        (!q || p.title.toLowerCase().includes(q) || p.id.includes(q) || String(p.n) === q) &&
+        (!d || p.difficulty === d) && (!t || p.topics.includes(t)) && (!c || String(p.chapter) === c) &&
+        (!st || (status[p.id] || "todo") === st)
+    )
+    .sort(SORTS[sort] || (() => 0));
+
   const solved = all.filter((p) => status[p.id] === "solved").length;
+  const stCount = (k) => all.filter((p) => (status[p.id] || "todo") === k).length;
+  const topicNames = [...new Set(all.flatMap((p) => p.topics))];
   const count = (x) => all.filter((p) => p.topics.includes(x)).length;
-  // Chỉ hiện 8 chủ đề nhiều bài nhất như LeetCode; chủ đề đang lọc luôn được giữ lại.
-  const topTopics = [...topics].sort((a, b) => count(b) - count(a)).slice(0, 8);
-  if (t && !topTopics.includes(t)) topTopics.push(t);
+  const chapters = [...new Set(all.map((p) => p.chapter))].sort((a, b) => a - b);
+
   const href = (next) => {
-    const s = new URLSearchParams({ ...(sp.q ? { q: sp.q } : {}), ...(d ? { d } : {}), ...(c ? { c } : {}), ...next });
-    for (const [k, v] of [...s]) if (!v) s.delete(k);
-    return s.size ? `/?${s}` : "/";
+    const o = { q: sp.q, d, c, t, st, s: sort, ...next };
+    const qs = new URLSearchParams(Object.entries(o).filter(([, v]) => v)).toString();
+    return qs ? `/?${qs}` : "/";
   };
 
+  /* ----- dữ liệu cho cột phải & banner ----- */
+  const plans = listPlans();
+  const planProg = (p) => {
+    const ids = planProblemIds(p);
+    return { done: ids.filter((i) => status[i] === "solved").length, total: ids.length };
+  };
+  const nextProblem = all.find((p) => status[p.id] !== "solved" && !p.exam && unmetPrereqs(p, status).length === 0);
+  const exams = all.filter((p) => p.exam);
+  const nextExam = exams.find((p) => status[p.id] !== "solved") || exams[0];
+  const mainPlan = plans[0];
+
+  const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth();
+  const monthStart = Math.floor(new Date(y, m, 1).getTime() / 1000), monthEnd = Math.floor(new Date(y, m + 1, 1).getTime() / 1000);
+  const monthRows = db.prepare("SELECT created, verdict FROM submissions WHERE user_id=? AND status='done' AND created>=? AND created<?").all(user.id, monthStart, monthEnd);
+  const active = new Map();
+  for (const r of monthRows) {
+    const day = new Date(r.created * 1000).getDate();
+    active.set(day, active.get(day) || r.verdict === "AC");
+  }
+  const daysSet = new Set(db.prepare("SELECT created FROM submissions WHERE user_id=? AND status='done'").all(user.id).map((r) => ymd(new Date(r.created * 1000))));
+  let streak = 0;
+  for (let k = daysSet.has(ymd(now)) ? 0 : 1; daysSet.has(ymd(new Date(y, m, now.getDate() - k))); k++) streak++;
+  const lead = (new Date(y, m, 1).getDay() + 6) % 7, dim = new Date(y, m + 1, 0).getDate();
+  const today0 = new Date(y, m, now.getDate());
+  const examDate = plans
+    .map((p) => p.exam_date).filter(Boolean)
+    .map((v) => new Date((v instanceof Date ? v.toISOString() : String(v)).slice(0, 10) + "T00:00:00"))
+    .filter((v) => v >= today0).sort((a, b) => a - b)[0];
+  const examDays = examDate ? Math.round((examDate - today0) / 86400000) : null;
+  const board = leaderboard(all.map((p) => p.id)).sort((a, b) => b.solved - a.solved);
+  const me = user.display || user.username;
+  const byDiff = Object.keys(DIFF_LABEL).map((k) => ({
+    k, label: DIFF_LABEL[k],
+    total: all.filter((p) => p.difficulty === k).length,
+    done: all.filter((p) => p.difficulty === k && status[p.id] === "solved").length,
+  }));
+
   return (
-    <>
-      <h1>Bài tập</h1>
-      <p className="sub">Bài ghi “cần làm trước” chỉ là gợi ý thứ tự, vẫn nộp bình thường.</p>
-      <div className="tabs-pill">
-        <Link href={href({ t: "" })} className={t ? "" : "on"}>Tất cả chủ đề</Link>
-        {topTopics.map((x) => (
-          <Link key={x} href={href({ t: x })} className={t === x ? "on" : ""}>{x} <span className="chip">{count(x)}</span></Link>
+    <div className="home">
+      <h1 className="sr-only">Bài tập</h1>
+
+      {/* ===== cột trái: menu ===== */}
+      <nav className="side-l" aria-label="Thư viện">
+        <Link href="/" className="on"><List className="size-4" /> Bài tập</Link>
+        <Link href="/plans"><GraduationCap className="size-4" /> Study Plan</Link>
+        <div className="grp">Danh sách của tôi</div>
+        {Object.entries(ST_LABEL).map(([k, v]) => (
+          <Link key={k} href={st === k ? href({ st: "" }) : href({ st: k })} className={st === k ? "on" : undefined}>
+            {k === "solved" ? <Check className="size-4" style={{ color: "var(--green)" }} strokeWidth={2.2} /> : k === "attempted" ? <CircleDashed className="size-4" style={{ color: "var(--medium)" }} /> : <CircleDashed className="size-4" style={{ color: "var(--faint)" }} />}
+            {v} <span className="n">{stCount(k)}</span>
+          </Link>
         ))}
-      </div>
-      <form className="filters">
-        <input type="search" name="q" placeholder="Tìm bài…" defaultValue={sp.q || ""} />
-        <select name="d" defaultValue={d}>
-          <option value="">Mọi mức</option>
-          {Object.entries(DIFF_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
-        <select name="c" defaultValue={c}>
-          <option value="">Mọi chương</option>
-          {[1, 2, 3, 4].map((n) => <option key={n} value={n}>Chương {n}</option>)}
-        </select>
-        <select name="t" defaultValue={t}>
-          <option value="">Mọi chủ đề</option>
-          {topics.map((x) => <option key={x}>{x}</option>)}
-        </select>
-        <button className="btn ghost">Lọc</button>
-        <span className="solved-count"><b style={{ color: "var(--green)" }}>{solved}</b>/{all.length} Đã giải</span>
-      </form>
-      <div className="card">
-        <table className="list">
-          <tbody>
-            {list.length === 0 && <tr><td className="empty">Không có bài nào khớp.</td></tr>}
-            {list.map((p) => {
-              const st = status[p.id] || "todo";
-              const unmet = unmetPrereqs(p, status);
+      </nav>
+
+      {/* ===== cột giữa ===== */}
+      <section className="center">
+        <div className="promo">
+          {mainPlan && (() => { const { done, total } = planProg(mainPlan); return (
+            <Link href={`/plans/${mainPlan.id}`}>
+              <span className="k">Study Plan</span>
+              <span className="t">{mainPlan.title}</span>
+              <span className="bar" style={{ marginTop: "auto" }}><i style={{ width: `${total ? (100 * done) / total : 0}%` }} /></span>
+              <span className="m">{done} / {total} bài · {mainPlan.sections.length} chủ đề</span>
+              <GraduationCap className="big" />
+            </Link>); })()}
+          {nextProblem && (
+            <Link href={`/problems/${nextProblem.id}`}>
+              <span className="k">Bài tiếp theo</span>
+              <span className="t">{nextProblem.title}</span>
+              <span className="m"><b className={`diff-${nextProblem.difficulty}`}>{DIFF_LABEL[nextProblem.difficulty]}</b> · Chương {nextProblem.chapter} <ArrowRight className="size-3.5" style={{ display: "inline", verticalAlign: "-2px" }} /></span>
+              <Target className="big" />
+            </Link>)}
+          {nextExam && (
+            <Link href={`/problems/${nextExam.id}`}>
+              <span className="k">Thi thử</span>
+              <span className="t">{nextExam.title}</span>
+              <span className="m"><Timer className="size-3.5" style={{ display: "inline", verticalAlign: "-2px" }} /> {nextExam.examMinutes ? `${nextExam.examMinutes} phút` : "Tính giờ"} · {exams.length} đề</span>
+              <Timer className="big" />
+            </Link>)}
+        </div>
+
+        <TopicRow
+          items={[...topicNames].sort((a, b) => count(b) - count(a)).map((x) => ({ name: x, count: count(x), on: t === x, href: t === x ? href({ t: "" }) : href({ t: x }) }))}
+        />
+
+        <div className="cat-tabs">
+          <Link href={href({ c: "" })} className={c ? undefined : "on"}><LayoutGrid className="size-4" /> Tất cả</Link>
+          {chapters.map((n, i) => (
+            <Link key={n} style={{ "--ic": CH_COLOR[i % CH_COLOR.length] }} href={c === String(n) ? href({ c: "" }) : href({ c: String(n) })} className={c === String(n) ? "on" : undefined}>
+              <BookOpen className="size-4" /> Chương {n}
+            </Link>
+          ))}
+        </div>
+
+        {/* key: bấm chip/tab/danh sách bên cạnh thì các ô chọn hiện lại đúng giá trị trên URL. */}
+        <FilterForm key={`${d}|${c}|${t}|${st}|${sort}`} className="filters">
+          <label className="search">
+            <Search className="size-4" />
+            <input type="search" name="q" placeholder="Tìm bài theo tên hoặc số…" defaultValue={sp.q || ""} />
+          </label>
+          <select name="s" defaultValue={sort} aria-label="Sắp xếp">
+            {Object.entries(SORT_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+          <select name="d" defaultValue={d} aria-label="Mức độ">
+            <option value="">Mọi mức</option>
+            {Object.entries(DIFF_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+          <select name="st" defaultValue={st} aria-label="Trạng thái">
+            <option value="">Mọi trạng thái</option>
+            {Object.entries(ST_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+          <span className="solved-count">
+            <svg width="20" height="20" viewBox="0 0 40 40" aria-hidden="true">
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--raised)" strokeWidth="5" />
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--green)" strokeWidth="5" strokeLinecap="round"
+                strokeDasharray={RING} strokeDashoffset={RING * (1 - (all.length ? solved / all.length : 0))} transform="rotate(-90 20 20)" />
+            </svg>
+            <span className="num">{solved}/{all.length} đã giải</span>
+          </span>
+          <RandomButton ids={(list.length ? list : all).map((p) => p.id)} />
+        </FilterForm>
+
+        <div className="card">
+          <table className="list">
+            <thead>
+              <tr>
+                <th className="st"></th>
+                <th>Tên bài</th>
+                <th>Chương</th>
+                <th>Tỉ lệ AC</th>
+                <th>Mức độ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {list.length === 0 && <tr><td colSpan={5} className="empty">Không có bài nào khớp.</td></tr>}
+              {list.map((p) => {
+                const s = status[p.id] || "todo";
+                const unmet = unmetPrereqs(p, status);
+                return (
+                  <tr key={p.id}>
+                    <td className={`st ${s}`} title={ST_LABEL[s]}>
+                      {s === "solved" ? <Check className="size-4" strokeWidth={2.2} /> : s === "attempted" ? <CircleDashed className="size-4" strokeWidth={2} /> : null}
+                    </td>
+                    <td>
+                      <Link href={`/problems/${p.id}`} className="row-link"><span className="pn">{p.n}.</span>{p.title}</Link>
+                      {p.exam && <span className="chip accent" style={{ marginLeft: 8 }}>Thi thử</span>}
+                      {unmet.length > 0 && <div className="lock">Cần làm trước: {unmet.join(", ")}</div>}
+                    </td>
+                    <td className="num mut">Chương {p.chapter}</td>
+                    <td className="num mut">{p.acRate < 0 ? "—" : `${Math.round(p.acRate * 100)}%`}</td>
+                    <td className={`diff-${p.difficulty}`}>{DIFF_LABEL[p.difficulty]}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* ===== cột phải: lịch, tiến độ, xếp hạng ===== */}
+      <aside className="side-r">
+        <div className="rcard">
+          <div className="rhead">
+            <b>Tháng {m + 1} / {y}</b>
+            {streak > 0 && <span className="streak"><Flame className="size-3.5" /> {streak} ngày</span>}
+          </div>
+          <div className="cal">
+            {WEEK.map((w) => <span key={w} className="dow">{w}</span>)}
+            {Array.from({ length: lead }, (_, i) => <span key={`e${i}`} />)}
+            {Array.from({ length: dim }, (_, i) => {
+              const day = i + 1;
               return (
-                <tr key={p.id}>
-                  <td className={`st ${st}`} title={st}>{st === "solved" ? "✓" : st === "attempted" ? "•" : "○"}</td>
-                  <td>
-                    <Link href={`/problems/${p.id}`}>{p.title}</Link>
-                    {p.exam && <span className="chip" style={{ marginLeft: 8 }}>Thi thử</span>}
-                    {unmet.length > 0 && <div className="lock">Cần làm trước: {unmet.join(", ")}</div>}
-                  </td>
-                  <td><div className="topics">{p.topics.slice(0, 3).map((x) => <span key={x} className="chip">{x}</span>)}</div></td>
-                  <td>Chương {p.chapter}</td>
-                  <td className={`diff-${p.difficulty}`}>{DIFF_LABEL[p.difficulty]}</td>
-                </tr>
+                <span key={day} className={`day${day === now.getDate() ? " today" : ""}`}>
+                  {day}
+                  {active.has(day) && <i style={{ background: active.get(day) ? "var(--green)" : "var(--medium)" }} />}
+                </span>
               );
             })}
-          </tbody>
-        </table>
-      </div>
-    </>
+          </div>
+          <div className="legend"><span><i style={{ background: "var(--green)" }} />Có AC</span><span><i style={{ background: "var(--medium)" }} />Có nộp bài</span></div>
+          {examDays != null && (
+            <div className="exam"><Timer className="size-4" /> {examDays === 0 ? "Thi giữa kỳ hôm nay" : <>Còn <b className="num">{examDays}</b> ngày đến kỳ thi ({examDate.toLocaleDateString("vi-VN")})</>}</div>
+          )}
+        </div>
+
+        <div className="rcard">
+          <div className="rhead"><b>Tiến độ theo mức độ</b></div>
+          <div className="diffrows">
+            {byDiff.map((r) => (
+              <div key={r.k} className="drow">
+                <span className={`diff-${r.k}`}>{r.label}</span>
+                <span className="bar"><i style={{ width: `${r.total ? (100 * r.done) / r.total : 0}%`, background: `var(--${r.k})`, "--glow-c": `var(--${r.k})` }} /></span>
+                <span className="num mut">{r.done}/{r.total}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rcard">
+          <div className="rhead"><b>Bảng xếp hạng</b><Trophy className="size-4" style={{ color: "var(--faint)" }} /></div>
+          <ol className="board-l">
+            {board.map((u, i) => (
+              <li key={u.name} className={u.name === me ? "me" : undefined}>
+                <span className="rank num">{i + 1}</span>
+                <span className="av" style={{ "--a1": AV[i % AV.length][0], "--a2": AV[i % AV.length][1] }}>{u.name.slice(0, 1).toUpperCase()}</span>
+                <span className="who-n">{u.name}{u.name === me && <span className="chip" style={{ marginLeft: 6 }}>Bạn</span>}</span>
+                <span className="num mut">{u.solved} bài</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </aside>
+    </div>
   );
 }

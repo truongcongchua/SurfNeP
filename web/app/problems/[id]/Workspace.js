@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import {
   ArrowLeft, Check, ChevronLeft, ChevronRight, ChevronsLeft, CloudUpload, Code2, FileText, History,
@@ -15,6 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { ProblemDrawer } from "@/components/problem-drawer";
+import { Logo } from "@/components/logo";
 import { logoutAction } from "@/app/actions";
 import { cn } from "@/lib/utils";
 
@@ -54,7 +56,7 @@ function Handle({ vertical }) {
 
 function TabBar({ children, right }) {
   return (
-    <div className="flex h-9 shrink-0 items-center bg-[var(--panel-head)] px-1">
+    <div className="flex h-10 shrink-0 items-center border-b border-[var(--line)] px-1.5">
       <div className="flex min-w-0 flex-1 items-center overflow-x-auto">{children}</div>
       {right && <div className="flex items-center gap-0.5 pr-1">{right}</div>}
     </div>
@@ -67,11 +69,11 @@ function Tab({ active, onClick, icon: Icon, iconClass, children, onClose }) {
       <button
         onClick={onClick}
         className={cn(
-          "flex h-7 items-center gap-1.5 whitespace-nowrap rounded-[5px] px-2.5 text-sm transition-colors hover:bg-[var(--chip)]",
-          active ? "font-medium text-foreground" : "text-[color:var(--tab-idle)]"
+          "flex h-7 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 text-sm font-medium transition-colors hover:text-foreground",
+          active ? "bg-[var(--raised)] text-foreground" : "text-[color:var(--faint)]"
         )}
       >
-        <Icon className={cn("size-3.5", iconClass)} />
+        <Icon className={cn("size-3.5", active ? iconClass : "")} />
         {children}
       </button>
       {onClose && (
@@ -110,6 +112,8 @@ function Box({ label, children }) {
 
 function TopBar({ nav, problemId, busy, running, onRun, onSubmit, examMinutes, left, user }) {
   const router = useRouter();
+  const [drawer, setDrawer] = useState(false);
+  const closeDrawer = useCallback(() => setDrawer(false), []);
   const mm = left == null ? null : `${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`;
   const shuffle = () => {
     const others = nav.all.filter((x) => x !== problemId);
@@ -119,29 +123,31 @@ function TopBar({ nav, problemId, busy, running, onRun, onSubmit, examMinutes, l
     <div className="grid h-12 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 px-3">
       <div className="flex min-w-0 items-center gap-1">
         <Link href="/" className="mr-1 flex items-center gap-1.5 font-semibold text-foreground hover:no-underline">
-          <Code2 className="size-5 text-foreground" />
-          <span className="hidden sm:inline">NetJudge</span>
+          <Logo size={20} className="text-foreground" />
+          <span className="hidden sm:inline">SurfNeP</span>
         </Link>
         <Sep />
-        <Link href="/" className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-foreground hover:bg-[var(--chip)] hover:no-underline">
+        <button onClick={() => setDrawer(true)} className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-foreground hover:bg-[var(--chip)]">
           <List className="size-4" /> <span className="hidden md:inline">Danh sách bài</span>
-        </Link>
+        </button>
+        <ProblemDrawer open={drawer} onClose={closeDrawer} list={nav.list} diffLabel={nav.diffLabel} currentId={problemId} />
         <IconBtn label="Bài trước" disabled={!nav.prev} onClick={() => router.push(`/problems/${nav.prev}`)}><ChevronLeft className="size-4" /></IconBtn>
         <IconBtn label="Bài sau" disabled={!nav.next} onClick={() => router.push(`/problems/${nav.next}`)}><ChevronRight className="size-4" /></IconBtn>
         <IconBtn label="Bài ngẫu nhiên" onClick={shuffle}><Shuffle className="size-4" /></IconBtn>
       </div>
 
       <div className="flex items-center gap-1">
-        <div className="flex items-center rounded-md bg-[var(--chip)]">
+        <div className="flex items-center gap-1.5">
         <button
           onClick={onRun} disabled={busy || running} title="Chạy thử với test mẫu" aria-label="Chạy thử"
-          className="flex size-8 items-center justify-center rounded-md text-foreground transition-colors hover:bg-[var(--pill)] disabled:opacity-60"
+          className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--line-strong)] bg-[var(--panel)] px-3 text-sm font-medium text-foreground transition-colors hover:bg-[var(--raised)] disabled:opacity-60"
         >
           {running ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-3.5 fill-current" />}
+          <span className="hidden md:inline">Chạy thử</span>
         </button>
         <button
           onClick={onSubmit} disabled={busy || running}
-          className="flex h-8 items-center gap-1.5 rounded-md px-3 text-sm font-medium text-[color:var(--submit)] transition-colors hover:bg-[var(--pill)] disabled:opacity-60"
+          className="flex h-8 items-center gap-1.5 rounded-lg bg-[var(--solid)] px-3.5 text-sm font-medium text-[var(--solid-text)] transition-opacity hover:opacity-90 disabled:opacity-60"
         >
           {busy ? <Loader2 className="size-4 animate-spin" /> : <CloudUpload className="size-4" />}
           {busy ? "Đang chấm…" : "Nộp bài"}
@@ -258,7 +264,7 @@ function SubmissionDetail({ sub, user, onBack, onLoad }) {
             <div className="mt-1 text-xs text-muted-foreground"><b className="text-foreground">{user.name}</b> nộp lúc {fmt(sub.created)}</div>
           </div>
           <button onClick={onLoad} title="Nạp code này vào editor"
-            className="flex items-center gap-1.5 rounded-md bg-[var(--green)] px-3 py-1.5 text-sm font-medium text-white hover:brightness-95">
+            className="flex items-center gap-1.5 rounded-lg bg-[var(--solid)] px-3 py-1.5 text-sm font-medium text-[var(--solid-text)] hover:opacity-90">
             <SquarePen className="size-4" /> Sửa code
           </button>
         </div>
@@ -289,7 +295,7 @@ function Testcases({ samples }) {
     return (
       <div className="p-5 text-sm text-muted-foreground">
         Bài này chấm bằng kịch bản đóng vai client/server nên không có input dạng văn bản.
-        Xem phần ví dụ trong đề bài, rồi bấm <b className="text-[var(--green)]">Nộp bài</b> để chạy toàn bộ test.
+        Xem phần ví dụ trong đề bài, rồi bấm <b className="text-foreground">Nộp bài</b> để chạy toàn bộ test.
       </div>
     );
   const s = samples[Math.min(i, samples.length - 1)];
