@@ -2,6 +2,7 @@
 
     python judge/judge.py build                       # dựng image chấm (1 lần)
     python judge/judge.py run <thư-mục-bài> <file.c>  # chấm một bài nộp
+    python judge/judge.py runsample <thư-mục-bài> <file.c>  # như runjson nhưng chỉ chạy test mẫu (nút "Chạy thử")
     python judge/judge.py selftest [thư-mục-bài...]   # solution.c phải AC, wrong_*.c phải trượt
     python judge/judge.py genout <thư-mục-bài>        # sinh tests/*.out từ solution.c (bài stdio/function)
 
@@ -41,14 +42,16 @@ def extra_hosts(problem_dir):
     return args
 
 
-def judge(problem_dir, source_path, wall_timeout=180, genout=False):
-    """Chấm `source_path` theo bài `problem_dir`. Trả về dict kết quả."""
+def judge(problem_dir, source_path, wall_timeout=180, genout=False, samples_only=False):
+    """Chấm `source_path` theo bài `problem_dir`. Trả về dict kết quả.
+    samples_only: chỉ chạy test mẫu (nút "Chạy thử" của web)."""
     problem_dir = os.path.abspath(problem_dir)
     with tempfile.TemporaryDirectory(prefix="nj-") as sub:
         shutil.copy(source_path, os.path.join(sub, "main.c"))
         cmd = [
             "docker", "run", "--rm", "-i", *extra_hosts(problem_dir),
             *(["-e", "NJ_GENOUT=1"] if genout else []),
+            *(["-e", "NJ_SAMPLES_ONLY=1"] if samples_only else []),
             "--network", "none",            # không ra Internet, chỉ có loopback
             "--pids-limit", "128",          # chặn fork bomb
             "--memory", "512m", "--cpus", "1",
@@ -117,6 +120,8 @@ def main():
         build()
     elif cmd == "runjson" and len(sys.argv) == 4:  # dùng cho web: in đúng một dòng JSON
         print(json.dumps(judge(sys.argv[2], sys.argv[3]), ensure_ascii=False))
+    elif cmd == "runsample" and len(sys.argv) == 4:  # như runjson nhưng chỉ chạy test mẫu
+        print(json.dumps(judge(sys.argv[2], sys.argv[3], samples_only=True), ensure_ascii=False))
     elif cmd == "run" and len(sys.argv) == 4:
         r = judge(sys.argv[2], sys.argv[3])
         show(r)

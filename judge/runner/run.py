@@ -34,6 +34,15 @@ SOURCE = "/sub/main.c"
 BINARY = "/tmp/sol"
 CFLAGS = ["-std=gnu11", "-O2", "-Wall", "-Wextra", "-pthread"]
 GENOUT = os.environ.get("NJ_GENOUT") == "1"
+# Nút "Chạy thử" trên web: chỉ chạy test mẫu (không có mẫu thì chạy đúng test đầu tiên), không phải chấm đầy đủ.
+SAMPLES_ONLY = os.environ.get("NJ_SAMPLES_ONLY") == "1"
+
+
+def pick_samples(items, is_sample):
+    if not SAMPLES_ONLY:
+        return items
+    chosen = [x for x in items if is_sample(x)]
+    return chosen or items[:1]
 
 
 def emit(result):
@@ -185,7 +194,7 @@ def run_scripted_tests(meta):
     results = []
     per_test = float(meta.get("test_timeout", 5))
     signal.signal(signal.SIGALRM, _alarm)
-    for i, fn in enumerate(load_tests(), 1):
+    for i, fn in enumerate(pick_samples(load_tests(), lambda f: getattr(f, "nj_sample", False)), 1):
         title = (fn.__doc__ or fn.__name__).strip().splitlines()[0]
         wd = prepare_workdir(i)
         procs = []
@@ -248,7 +257,9 @@ def normalize(text):
 def run_stdio_tests(meta):
     results = []
     limit = float(meta.get("test_timeout", 2))
-    for i, inp in enumerate(sorted(glob.glob(os.path.join(PROBLEM, "tests", "*.in"))), 1):
+    inputs = pick_samples(sorted(glob.glob(os.path.join(PROBLEM, "tests", "*.in"))),
+                          lambda p: os.path.basename(p).startswith("sample"))
+    for i, inp in enumerate(inputs, 1):
         name = os.path.splitext(os.path.basename(inp))[0]
         with open(inp, "rb") as fh:
             data = fh.read()
