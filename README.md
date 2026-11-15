@@ -1,4 +1,4 @@
-# netjudge — Online judge cho IT4062 (Thực hành Lập trình mạng)
+# SurfNeP — Online judge cho IT4062 (Thực hành Lập trình mạng)
 
 Bộ chấm tự động kiểu LeetCode/HUSTack cho bài **server/client socket bằng C**.
 Bài nộp được biên dịch và chạy trong container Docker cô lập (Ubuntu 22.04, không có mạng ngoài,

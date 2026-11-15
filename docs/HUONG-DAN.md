@@ -1,6 +1,6 @@
-# Hướng dẫn chạy NetJudge
+# Hướng dẫn chạy SurfNeP
 
-NetJudge là web luyện lập trình mạng IT4062 (Chương 1–3) có chấm bài tự động. Tài liệu này gồm: cài đặt lần đầu,
+SurfNeP là web luyện lập trình mạng IT4062 (Chương 1–3) có chấm bài tự động. Tài liệu này gồm: cài đặt lần đầu,
 dùng hằng ngày, cho người thứ hai vào, thêm bài, sửa giao diện, và xử lý lỗi thường gặp.
 
 ## 1. Cần có
