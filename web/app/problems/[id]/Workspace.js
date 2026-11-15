@@ -118,7 +118,7 @@ function TopBar({ nav, problemId, busy, running, onRun, onSubmit, examMinutes, l
   return (
     <div className="grid h-12 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 px-3">
       <div className="flex min-w-0 items-center gap-1">
-        <Link href="/" className="mr-1 flex items-center gap-1.5 font-bold text-foreground hover:no-underline">
+        <Link href="/" className="mr-1 flex items-center gap-1.5 font-semibold text-foreground hover:no-underline">
           <Code2 className="size-5 text-[var(--brand)]" />
           <span className="hidden sm:inline">NetJudge</span>
         </Link>
@@ -155,7 +155,7 @@ function TopBar({ nav, problemId, busy, running, onRun, onSubmit, examMinutes, l
         <ThemeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex size-8 items-center justify-center rounded-full bg-[var(--brand)] text-sm font-bold text-white" aria-label="Tài khoản">
+            <button className="flex size-8 items-center justify-center rounded-full bg-[var(--brand)] text-sm font-semibold text-white" aria-label="Tài khoản">
               {user.name.slice(0, 1).toUpperCase()}
             </button>
           </DropdownMenuTrigger>
@@ -176,7 +176,7 @@ function Description({ problem, html, solved }) {
   return (
     <div className="px-4 py-5">
       <div className="flex items-start justify-between gap-4">
-        <h1 className="text-2xl font-semibold leading-8">{problem.number}. {problem.title}</h1>
+        <h1 className="text-2xl font-semibold leading-7">{problem.number}. {problem.title}</h1>
         {solved && <span className="mt-1.5 flex shrink-0 items-center gap-1 text-sm text-muted-foreground">Đã giải <Check className="size-4 text-[var(--green)]" /></span>}
       </div>
       <div className="mb-4 flex flex-wrap items-center gap-1">
@@ -274,7 +274,7 @@ function SubmissionDetail({ sub, user, onBack, onLoad }) {
         {firstBad && <div className="mt-4"><Box label={`Test sai đầu tiên: ${firstBad.name}`}>{firstBad.message}</Box></div>}
 
         <div className="mt-5 mb-2 flex items-center gap-2 text-sm text-muted-foreground">Code <Sep /> C</div>
-        <pre className="m-0 overflow-x-auto rounded-lg bg-[var(--chip)] p-3 font-mono text-[13px] leading-relaxed">{sub.code}</pre>
+        <pre className="m-0 overflow-x-auto rounded-lg bg-[var(--chip)] p-3 font-mono text-sm leading-relaxed">{sub.code}</pre>
       </div>
     </div>
   );
@@ -566,7 +566,7 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
                     onMount={(editor) => editor.onDidChangeCursorPosition((e) => setPos({ ln: e.position.lineNumber, col: e.position.column }))}
                     onChange={(v) => setCode(v ?? "")}
                     options={{
-                      minimap: { enabled: false }, fontSize: 14, fontFamily: "var(--font-jetbrains), Consolas, monospace",
+                      minimap: { enabled: false }, fontSize: 13, lineHeight: 20, fontFamily: "var(--font-jetbrains), Consolas, monospace",
                       scrollBeyondLastLine: false, tabSize: 4, automaticLayout: true, padding: { top: 8 },
                       lineNumbersMinChars: 3, renderLineHighlight: "line", scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8 },
                     }}

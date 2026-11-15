@@ -15,8 +15,8 @@ function Ring({ done, total }) {
       <circle cx="50" cy="50" r={r} fill="none" stroke="var(--chip)" strokeWidth="9" />
       <circle cx="50" cy="50" r={r} fill="none" stroke="var(--accent)" strokeWidth="9" strokeLinecap="round"
         strokeDasharray={`${c * f} ${c}`} transform="rotate(-90 50 50)" />
-      <text x="50" y="50" textAnchor="middle" dominantBaseline="central" fontSize="22">{done}</text>
-      <text x="50" y="68" textAnchor="middle" fontSize="10" style={{ fill: "var(--muted)", fontWeight: 400 }}>/ {total}</text>
+      <text x="50" y="50" textAnchor="middle" dominantBaseline="central" fontSize="20">{done}</text>
+      <text x="50" y="68" textAnchor="middle" fontSize="12" style={{ fill: "var(--muted)", fontWeight: 400 }}>/ {total}</text>
     </svg>
   );
 }
