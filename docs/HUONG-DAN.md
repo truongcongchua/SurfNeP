@@ -21,13 +21,15 @@ cd c:\SurfNeP\netjudge
 
 # 1) Tạo 2 tài khoản (đổi tên và mật khẩu, mật khẩu từ 6 ký tự)
 cd web
-npm install
 node scripts/seed.mjs ban:matkhau_cua_ban nguoikia:matkhau_cua_nguoikia
 cd ..
 
 # 2) Chạy
 powershell -ExecutionPolicy Bypass -File .\start.ps1
 ```
+
+Không cần tự gõ `npm install`: thư viện của dự án (Next.js, React…) nằm trong `web\node_modules`, và `start.ps1` tự tải nếu
+thư mục này chưa có (ví dụ khi chép dự án sang máy khác). Node.js cài sẵn trên máy chỉ là chương trình chạy, không chứa các thư viện này.
 
 `start.ps1` tự làm các việc sau, bạn không phải gõ riêng:
 1. bật Docker Desktop nếu chưa chạy (đợi tối đa ~3 phút);
