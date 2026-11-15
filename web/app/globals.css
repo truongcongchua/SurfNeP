@@ -1,20 +1,47 @@
-:root {
-  --bg: #f6f6f7; --panel: #ffffff; --line: #e4e4e7; --text: #18181b; --muted: #71717a;
-  --accent: #2563eb; --easy: #059669; --medium: #d97706; --hard: #dc2626;
-  --chip: #efeff1; --ok-bg: #dcfce7; --bad-bg: #fee2e2; --warn-bg: #fef3c7;
-  --code-bg: #f1f1f3; --shadow: 0 1px 2px rgba(0,0,0,.05);
+@layer theme, base, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "tw-animate-css";
+
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+@theme inline {
+  --font-sans: var(--font-inter), system-ui, "Segoe UI", sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, Consolas, monospace;
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-card: var(--panel);
+  --color-popover: var(--panel);
+  --color-popover-foreground: var(--text);
+  --color-primary: var(--accent);
+  --color-primary-foreground: #fff;
+  --color-accent: var(--chip);
+  --color-accent-foreground: var(--text);
+  --color-muted-foreground: var(--muted);
+  --color-border: var(--line);
+  --color-ring: var(--accent);
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #131316; --panel: #1c1c21; --line: #2e2e35; --text: #ececf0; --muted: #9a9aa5;
-    --accent: #6ea0ff; --easy: #34d399; --medium: #fbbf24; --hard: #f87171;
-    --chip: #2a2a31; --ok-bg: #123524; --bad-bg: #3b1818; --warn-bg: #3a2f10; --code-bg: #25252b;
-    --shadow: none;
-  }
+
+/* Bảng màu theo LeetCode. --green: Accepted; --brand: cam thương hiệu; --panel-head: thanh tab của khung. */
+:root {
+  color-scheme: light;
+  --bg: #f0f0f0; --panel: #ffffff; --panel-head: #fafafa; --line: #e8e8e8; --text: #262626; --muted: #8c8c8c;
+  --accent: #007aff; --brand: #ffa116; --green: #2cbb5d;
+  --easy: #1cb8b8; --medium: #f0a000; --hard: #ff375f; --pill: rgba(0,0,0,.06);
+  --chip: #f2f3f4; --zebra: #fafafa; --ok-bg: #e7f8ee; --bad-bg: #ffebef; --warn-bg: #fff6e0;
+  --code-bg: #f2f3f4; --shadow: none;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #1a1a1a; --panel: #262626; --panel-head: #333333; --line: #3e3e3e; --text: #eff1f6; --muted: #9e9e9e;
+  --accent: #4a9eff; --brand: #ffa116; --green: #2cbb5d;
+  --easy: #1cb8b8; --medium: #ffc01e; --hard: #ff375f; --pill: rgba(255,255,255,.1);
+  --chip: #3a3a3a; --zebra: #2b2b2b; --ok-bg: #1f3a2a; --bad-bg: #3d1f26; --warn-bg: #3d3216;
+  --code-bg: #333333; --shadow: none;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
-body { background: var(--bg); color: var(--text); font: 15px/1.55 system-ui, "Segoe UI", sans-serif; }
+body { background: var(--bg); color: var(--text); font: 15px/1.55 var(--font-inter), system-ui, "Segoe UI", sans-serif; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 .container { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
@@ -110,3 +137,33 @@ table.list tr:hover td { background: var(--chip); }
 .login input { width: 100%; margin: 6px 0 14px; }
 .err { color: var(--hard); margin-bottom: 10px; }
 .board td { padding: 6px 12px; }
+code, pre, .prose code, .prose pre { font-family: var(--font-jetbrains), ui-monospace, Consolas, monospace; }
+header.top .container { }
+
+/* trang bài kiểu LeetCode: toàn chiều rộng, vừa khít màn hình dưới header */
+/* Trang bài có thanh trên riêng: ẩn header chung, phủ toàn màn hình. */
+body:has(.lc-shell) > header.top { display: none; }
+body:has(.lc-shell) { overflow: hidden; }
+.lc-shell { position: fixed; inset: 0; display: flex; flex-direction: column; background: var(--bg); }
+/* Số đo lấy từ leetcode.com: font hệ thống 14px, tab cao 28px bo 5px, màu tab nhạt 55%. */
+.lc-shell { font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; --tab-idle: rgba(0,0,0,.55); }
+:root[data-theme="dark"] .lc-shell { --tab-idle: rgba(255,255,255,.55); }
+@layer base {
+  .lc-shell button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; }
+  .lc-shell button:disabled { cursor: default; }
+}
+.lc-panel { display: flex; flex-direction: column; overflow: hidden; border-radius: 8px; background: var(--panel); }
+.lc-shell h1 { margin: 0 0 12px; }
+.lc-prose { font-size: 14px; line-height: 1.5; }
+.lc-prose h1, .lc-prose h2, .lc-prose h3 { font-size: 14px; font-weight: 700; margin: 24px 0 16px; }
+.lc-prose p, .lc-prose ul, .lc-prose ol { margin: 0 0 16px; }
+.lc-prose ul, .lc-prose ol { padding-left: 24px; }
+.lc-prose li { margin: 0 0 4px; }
+.lc-prose strong { font-weight: 700; }
+.lc-prose code { background: rgba(0,10,32,.03); border: 0; padding: 2px 4px; border-radius: 5px; font-size: 12px; color: rgba(38,38,38,.75); }
+:root[data-theme="dark"] .lc-prose code { background: rgba(255,255,255,.1); color: rgba(239,241,246,.75); }
+.lc-prose pre { background: none; border-left: 2px solid var(--line); border-radius: 0; padding: 4px 0 4px 16px; margin: 0 0 14px; }
+.lc-prose pre code { border: 0; background: none; padding: 0; font-size: 13px; }
+.lc-prose table { font-size: 13.5px; }
+.lc-prose th { background: var(--panel-head); }
+.lc-prose a { color: var(--accent); }

@@ -43,6 +43,25 @@ export function getProblem(id) {
   return { ...meta, statement: read("statement.md"), starter: read("starter.c") };
 }
 
+// Test mẫu công khai (tests/sample*.in + .out) để hiện ở tab Testcase. Bài dạng server không có, trả về [].
+export function getSamples(id) {
+  if (!safeId(id)) return [];
+  const dir = path.join(PROBLEMS, id, "tests");
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((f) => /^sample.*\.in$/.test(f))
+    .sort()
+    .map((f) => {
+      const out = path.join(dir, f.replace(/\.in$/, ".out"));
+      return {
+        name: f.replace(/\.in$/, ""),
+        input: fs.readFileSync(path.join(dir, f), "utf8"),
+        output: fs.existsSync(out) ? fs.readFileSync(out, "utf8") : "",
+      };
+    });
+}
+
 export function problemDir(id) {
   return safeId(id) ? path.join(PROBLEMS, id) : null;
 }
