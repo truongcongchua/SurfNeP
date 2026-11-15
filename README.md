@@ -68,7 +68,11 @@ Next.js + SQLite (`node:sqlite` có sẵn trong Node 24, dữ liệu ở `data/n
 ```powershell
 .\start.ps1                                              # bật Docker, build nếu cần, chạy http://localhost:3000
 cd web; node scripts/seed.mjs ten1:matkhau1 ten2:matkhau2   # tạo / đổi mật khẩu 2 tài khoản (mật khẩu ≥ 6 ký tự)
+cd web; npm run dev                                          # khi sửa giao diện: tự cập nhật, không cần build
 ```
+
+`start.ps1` chạy bản production đã build sẵn: sau khi sửa code trong `web/`, **dừng server rồi mới** `npx next build`
+(xem mục "Sửa giao diện web" trong [docs/HUONG-DAN.md](docs/HUONG-DAN.md)).
 
 **Cho người thứ hai truy cập:** cài [Tailscale](https://tailscale.com/download) trên cả hai máy, đăng nhập cùng một
 tài khoản, rồi mở `http://<tên-máy-hoặc-IP-tailscale>:3000`. Không cần mở cổng ra Internet. Máy chạy server phải bật.

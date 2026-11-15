@@ -1,7 +1,7 @@
 # Hướng dẫn chạy NetJudge
 
 NetJudge là web luyện lập trình mạng IT4062 (Chương 1–3) có chấm bài tự động. Tài liệu này gồm: cài đặt lần đầu,
-dùng hằng ngày, cho người thứ hai vào, thêm bài, và xử lý lỗi thường gặp.
+dùng hằng ngày, cho người thứ hai vào, thêm bài, sửa giao diện, và xử lý lỗi thường gặp.
 
 ## 1. Cần có
 
@@ -51,8 +51,11 @@ thẳng `start.bat` (gõ `start`, hoặc bấm đúp trong Explorer) thay cho l�
 1. Chạy `powershell -ExecutionPolicy Bypass -File .\start.ps1` (giữ cửa sổ này mở).
 2. Mở http://localhost:3000 và đăng nhập.
 3. Vào **Study Plan → Giữa kỳ IT4062 → Bắt đầu**. Trang sẽ tính số bài mỗi ngày đến ngày thi 15/12.
-4. Bấm một bài, đọc đề (có mục "Kiến thức nền" trỏ về lecture notes), viết code ở khung bên phải, bấm **Nộp bài**.
-5. Kết quả hiện sau khoảng 5–30 giây, kèm từng test. Bấm "Xem" ở Lịch sử để nạp lại code cũ.
+4. Bấm một bài, đọc đề ở khung trái (có mục "Kiến thức nền" trỏ về lecture notes), viết code ở khung phải, bấm **Nộp bài**.
+   Kéo các thanh chia giữa các khung để đổi kích thước (trang tự nhớ lại).
+5. Kết quả hiện ở khung **Kết quả** dưới editor sau khoảng 5–30 giây, kèm từng test. Mở tab **Lịch sử nộp** ở khung trái
+   và bấm "Xem" để nạp lại code cũ.
+6. Nút mặt trời/mặt trăng ở góc phải header để chuyển **Sáng / Tối / Theo hệ thống**.
 
 ### Ý nghĩa kết quả
 
@@ -107,11 +110,53 @@ Quy tắc: mỗi bài mới phải có `solution.c` và ít nhất một `wrong/
 
 Khi sửa file trong `judge/runner/` (thư viện test hoặc runner), nhớ chạy `python judge/judge.py build` rồi mới chấm lại.
 
-## 7. Xử lý lỗi thường gặp
+## 7. Sửa giao diện web
+
+`start.ps1` chạy web ở **chế độ production** (`next start`): nó dùng bản đã build sẵn trong `web\.next`. Vì vậy sửa code
+trong `web\` (giao diện, trang, component) **không tự hiện ra**. Có hai cách làm việc:
+
+### Cách A: chế độ dev (khi đang sửa giao diện liên tục)
+
+```powershell
+# Dừng start.ps1 trước (Ctrl+C), rồi:
+cd c:\SurfNeP\netjudge\web
+npm run dev
+```
+
+Mở http://localhost:3000. Mỗi lần lưu file, trang tự cập nhật, không cần build. Chế độ dev chậm hơn một chút ở lần mở
+đầu mỗi trang, và **không** tự bật Docker: nếu muốn nộp bài, mở Docker Desktop trước.
+
+### Cách B: build lại rồi chạy production (khi sửa xong, dùng hằng ngày)
+
+```powershell
+# 1) Dừng server đang chạy: Ctrl+C trong cửa sổ start.ps1
+# 2) Build lại
+cd c:\SurfNeP\netjudge\web
+npx next build
+# 3) Chạy lại
+cd ..
+powershell -ExecutionPolicy Bypass -File .\start.ps1
+```
+
+> **Luôn dừng server trước khi build.** Build trong lúc server đang chạy sẽ ghi đè `web\.next` dưới chân server cũ, làm
+> trang báo *"Application error: a server-side exception"*, và có thể làm build lỗi *"database is locked"*.
+
+Ghi chú về giao diện:
+- Dùng **Tailwind CSS v4 + shadcn/ui** (component trong `web\components\ui\`), icon **lucide-react**, chế độ sáng/tối bằng
+  **next-themes**. Màu sắc định nghĩa một chỗ ở đầu `web\app\globals.css` (khối `:root` và `:root[data-theme="dark"]`).
+- Thêm component shadcn mới: `cd web; npx shadcn@latest add <tên>` (ví dụ `tabs`, `table`, `tooltip`).
+- Dữ liệu đọc từ SQLite là object đặc biệt; trước khi truyền cho Client Component (file có `"use client"`), chép thành
+  object thường: `rows.map((r) => ({ ...r }))`.
+
+## 8. Xử lý lỗi thường gặp
 
 | Hiện tượng | Cách xử lý |
 |---|---|
 | `start.ps1` báo "running scripts is disabled" | Chạy bằng `powershell -ExecutionPolicy Bypass -File .\start.ps1` |
+| `The argument '.\start.ps1' ... does not exist` | Đang đứng sai thư mục (thường là `web\`). `start.ps1` nằm ở `c:\SurfNeP\netjudge`: chạy `cd c:\SurfNeP\netjudge` trước |
+| Trang báo *"Application error: a server-side exception"* | Thường do đã build lại trong lúc server đang chạy: dừng server (`Ctrl+C`), `cd web; npx next build`, rồi chạy lại `start.ps1` (mục 7). Nếu vẫn lỗi, đọc dòng `Error:` trong cửa sổ server |
+| Sửa code giao diện mà trang không đổi | `start.ps1` chạy bản đã build: build lại (mục 7, cách B) hoặc dùng `npm run dev` (cách A) |
+| `next build` báo "database is locked" | Server đang chạy giữ file `data\netjudge.db`. Dừng server rồi build lại |
 | Nộp bài mãi ở "Chờ chấm" hoặc ra **IE** | Docker chưa chạy: mở Docker Desktop, đợi biểu tượng xanh rồi nộp lại. Xem log ở cửa sổ `start.ps1` |
 | `failed to connect to the docker API` | Docker Desktop chưa khởi động xong. Đợi 1–2 phút hoặc mở lại Docker Desktop |
 | "Bạn còn bài đang chờ chấm" | Mỗi người tối đa 2 bài đang chờ. Đợi kết quả rồi nộp tiếp |
@@ -122,7 +167,7 @@ Khi sửa file trong `judge/runner/` (thư viện test hoặc runner), nhớ ch�
 | Test chập chờn lúc đúng lúc sai | Máy đang quá tải (ví dụ đang build): đóng bớt ứng dụng nặng rồi nộp lại, và báo tôi nếu vẫn lặp lại |
 | Muốn dừng hẳn | `Ctrl+C` trong cửa sổ `start.ps1`; Docker Desktop có thể để chạy hoặc thoát tuỳ bạn |
 
-## 8. Dữ liệu nằm ở đâu
+## 9. Dữ liệu nằm ở đâu
 
 | Thứ | Vị trí |
 |---|---|
