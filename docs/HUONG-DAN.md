@@ -53,6 +53,8 @@ thẳng `start.bat` (gõ `start`, hoặc bấm đúp trong Explorer) thay cho l�
 3. Vào **Study Plan → Giữa kỳ IT4062 → Bắt đầu**. Trang sẽ tính số bài mỗi ngày đến ngày thi 15/12.
 4. Bấm một bài, đọc đề ở khung trái (có mục "Kiến thức nền" trỏ về lecture notes), viết code ở khung phải, bấm **Nộp bài**.
    Kéo các thanh chia giữa các khung để đổi kích thước (trang tự nhớ lại).
+   Nút **Chạy thử** (cạnh Nộp bài) chỉ biên dịch và chạy test mẫu, trả kết quả nhanh và **không** tính là một lần nộp.
+   Bài không có test mẫu thì chạy thử test đầu tiên. Sau khi sửa `judge/runner/`, nhớ `python judge/judge.py build`.
 5. Kết quả hiện ở khung **Kết quả** dưới editor sau khoảng 5–30 giây, kèm từng test. Mở tab **Lịch sử nộp** ở khung trái
    và bấm "Xem" để nạp lại code cũ.
 6. Nút mặt trời/mặt trăng ở góc phải header để chuyển **Sáng / Tối / Theo hệ thống**.

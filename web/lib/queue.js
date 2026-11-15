@@ -11,7 +11,7 @@ if (!g.__nj_queue) g.__nj_queue = { busy: false };
 const state = g.__nj_queue;
 
 export function enqueue() {
-  if (!state.busy) pump();
+  if (!state.busy && !state.running) pump();
 }
 
 async function pump() {
@@ -35,7 +35,22 @@ async function pump() {
   }
 }
 
-function runJudge(problemId, code) {
+// "Chạy thử": chỉ chạy test mẫu, không lưu vào Lịch sử nộp. Dùng chung khóa với hàng đợi để Docker vẫn chạy tuần tự.
+// Trả về null nếu đang bận (hàng đợi đang chấm hoặc đã có lượt chạy thử khác).
+export async function runSample(problemId, code) {
+  if (state.busy || state.running) return null;
+  state.running = true;
+  try {
+    return await runJudge(problemId, code, "runsample");
+  } catch (e) {
+    return { verdict: "IE", message: String(e), tests: [] };
+  } finally {
+    state.running = false;
+    enqueue(); // bài nộp xếp hàng trong lúc chạy thử thì chấm tiếp
+  }
+}
+
+function runJudge(problemId, code, cmd = "runjson") {
   return new Promise((resolve, reject) => {
     const dir = problemDir(problemId);
     if (!dir) return reject(new Error("bài không tồn tại"));
@@ -43,7 +58,7 @@ function runJudge(problemId, code) {
     const file = path.join(tmp, "main.c");
     fs.writeFileSync(file, code);
     const py = process.env.PYTHON || "python";
-    const child = spawn(py, [path.join(ROOT, "judge", "judge.py"), "runjson", dir, file], { cwd: ROOT });
+    const child = spawn(py, [path.join(ROOT, "judge", "judge.py"), cmd, dir, file], { cwd: ROOT });
     let out = "", err = "";
     child.stdout.on("data", (d) => (out += d));
     child.stderr.on("data", (d) => (err += d));

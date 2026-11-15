@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import {
   ArrowLeft, Check, ChevronLeft, ChevronRight, ChevronsLeft, CloudUpload, Code2, FileText, History,
-  List, Loader2, Lock, LogOut, Maximize2, Minimize2, PanelLeftOpen, RotateCcw, Shuffle, SquareCheck,
+  List, Loader2, Lock, LogOut, Maximize2, Minimize2, PanelLeftOpen, Play, RotateCcw, Shuffle, SquareCheck,
   SquarePen, Tag, Terminal, Timer, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -108,7 +108,7 @@ function Box({ label, children }) {
 
 /* ---------- thanh trên ---------- */
 
-function TopBar({ nav, problemId, busy, onSubmit, examMinutes, left, user }) {
+function TopBar({ nav, problemId, busy, running, onRun, onSubmit, examMinutes, left, user }) {
   const router = useRouter();
   const mm = left == null ? null : `${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`;
   const shuffle = () => {
@@ -133,7 +133,14 @@ function TopBar({ nav, problemId, busy, onSubmit, examMinutes, left, user }) {
 
       <div className="flex items-center gap-1">
         <button
-          onClick={onSubmit} disabled={busy}
+          onClick={onRun} disabled={busy || running} title="Chạy thử với test mẫu" aria-label="Chạy thử"
+          className="flex h-8 items-center gap-1.5 rounded-md bg-[var(--chip)] px-2.5 text-sm font-medium transition-colors hover:brightness-95 disabled:opacity-60"
+        >
+          {running ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-4 fill-current" />}
+          <span className="hidden lg:inline">{running ? "Đang chạy…" : "Chạy thử"}</span>
+        </button>
+        <button
+          onClick={onSubmit} disabled={busy || running}
           className="flex h-8 items-center gap-1.5 rounded-md bg-[var(--chip)] px-3 text-sm font-medium text-[color:var(--submit)] transition-colors hover:brightness-95 disabled:opacity-60"
         >
           {busy ? <Loader2 className="size-4 animate-spin" /> : <CloudUpload className="size-4" />}
@@ -323,6 +330,7 @@ function TestResult({ r, error, busy }) {
         <span className={cn("text-xl font-semibold", vColor(r.verdict))}>{LABEL[r.verdict] || r.verdict}</span>
         {r.total ? <span className="text-sm text-muted-foreground">{r.passed}/{r.total} test đạt</span> : null}
         {tests.length > 0 && <span className="text-sm text-muted-foreground">Thời gian: {maxTime(r)} ms</span>}
+        {r.sampleRun && <Pill>Chạy thử · chỉ test mẫu, chưa tính là nộp bài</Pill>}
       </div>
 
       {r.verdict === "CE" && <Box>{r.compile_log}</Box>}
@@ -370,6 +378,7 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
   const [saved, setSaved] = useState(true);
   const [pos, setPos] = useState({ ln: 1, col: 1 });
   const [busy, setBusy] = useState(false);
+  const [running, setRunning] = useState(false); // đang "Chạy thử" (chỉ test mẫu, không lưu lịch sử)
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
   const [past, setPast] = useState(history);
@@ -441,6 +450,21 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
     setBusy(false);
   }
 
+  // Chạy thử: biên dịch + chạy test mẫu, kết quả hiện ngay ở tab Test Result, không tính là một lần nộp.
+  async function run() {
+    setRunning(true); setError(""); setResult(null); setBottomTab("result");
+    if (bottomRef.current?.isCollapsed()) bottomRef.current.expand();
+    try {
+      const res = await fetch("/api/run", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ problemId, code }) });
+      const data = await res.json();
+      if (!res.ok) setError(data.error || "Lỗi khi chạy thử");
+      else setResult({ ...data.result, sampleRun: true });
+    } catch {
+      setError("Không kết nối được máy chủ");
+    }
+    setRunning(false);
+  }
+
   async function openSubmission(id) {
     setDetail({ id }); setLeftTab("detail");
     const s = await (await fetch(`/api/submissions/${id}`)).json();
@@ -472,7 +496,7 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
 
   return (
     <div className="lc-shell">
-      <TopBar nav={nav} problemId={problemId} busy={busy} onSubmit={submit} examMinutes={examMinutes} left={left} user={user} />
+      <TopBar nav={nav} problemId={problemId} busy={busy} running={running} onRun={run} onSubmit={submit} examMinutes={examMinutes} left={left} user={user} />
 
       <div className="min-h-0 flex-1 px-2 pb-2">
         <PanelGroup direction="horizontal" autoSaveId="nj-lc-h">
@@ -569,7 +593,7 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
                   </Tab>
                 </TabBar>
                 <div className="min-h-0 flex-1 overflow-y-auto">
-                  {bottomTab === "cases" ? <Testcases samples={samples} /> : <TestResult r={result} error={error} busy={busy} />}
+                  {bottomTab === "cases" ? <Testcases samples={samples} /> : <TestResult r={result} error={error} busy={busy || running} />}
                 </div>
               </Panel>
             </PanelGroup>
