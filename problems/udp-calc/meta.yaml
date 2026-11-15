@@ -1,0 +1,11 @@
+id: udp-calc
+title: Máy tính qua UDP
+difficulty: medium
+chapter: 2
+topics: [UDP, Protocol Design]
+prerequisites: [udp-boundary]
+ref: "Lecture notes §2.4"
+type: server
+protocol: udp
+args: ["{port}"]
+test_timeout: 5

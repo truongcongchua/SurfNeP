@@ -1,0 +1,75 @@
+# Study plan "Giữa kỳ IT4062", mô phỏng cấu trúc Top Interview 150 của LeetCode:
+# phần đầu (subtitle, title, tiến độ X/Y) -> các section theo chủ đề -> mỗi dòng: bài, lời giải, độ khó.
+# Bài có `ready: true` đã có trong problems/ và đã qua selftest.
+id: giua-ky
+title: Giữa kỳ IT4062
+subtitle: Server/client TCP/UDP phục vụ tối đa N client
+description: >
+  26 bài, 9 chủ đề, đi từ địa chỉ socket đến server phục vụ đồng thời tối đa N client,
+  kết thúc bằng 2 đề thi thử tính giờ. Bám lecture notes Chương 2–3.
+exam_date: 2026-12-15
+suggested_days: 14
+award: Huy hiệu "Sẵn sàng giữa kỳ"
+
+sections:
+  - title: Địa chỉ socket & byte order
+    intro: sockaddr_in, htons/ntohs, inet_pton/inet_ntop, getaddrinfo. (§2.2)
+    problems:
+      - {id: byte-order, title: Đổi thứ tự byte, difficulty: easy, ready: true}
+      - {id: inet-addr, title: Kiểm tra và chuẩn hoá địa chỉ IPv4, difficulty: easy, ready: true}
+      - {id: domain2ip, title: Phân giải tên miền, difficulty: easy, ready: true}
+
+  - title: TCP cơ bản
+    intro: Vòng đời socket → bind → listen → accept → recv/send → close. (§2.3)
+    problems:
+      - {id: tcp-echo, title: TCP echo server, difficulty: easy, ready: true}
+      - {id: tcp-client-stdin, title: tcp_client gửi dữ liệu từ bàn phím (BT 2.2), difficulty: easy, ready: true}
+      - {id: tcp-greeting-log, title: tcp_server chào và ghi log (BT 2.3), difficulty: medium, ready: true}
+
+  - title: TCP là luồng byte
+    intro: Một send() ≠ một recv(). Ghép dòng, độ dài tiền tố, đóng gói struct. (§2.3–2.4)
+    problems:
+      - {id: tcp-recv-line, title: Hàm recv_line, difficulty: medium, ready: true}
+      - {id: tcp-stop-phrase, title: Chuỗi dừng bị cắt vụn (BT 2.1), difficulty: medium, ready: true}
+      - {id: length-prefix, title: Thông điệp có độ dài tiền tố, difficulty: medium, ready: true}
+      - {id: sv-struct, title: sv_client / sv_server (BT 2.4–2.5), difficulty: hard, ready: true}
+
+  - title: UDP
+    intro: Hướng thông điệp, không kết nối, sendto/recvfrom. (§2.4)
+    problems:
+      - {id: udp-echo, title: UDP echo, difficulty: easy, ready: true}
+      - {id: udp-boundary, title: Ranh giới datagram, difficulty: medium, ready: true}
+      - {id: udp-calc, title: Máy tính qua UDP nhiều client, difficulty: medium, ready: true}
+
+  - title: Blocking, non-blocking & server lặp
+    intro: fcntl O_NONBLOCK, EWOULDBLOCK, server lặp và giới hạn của nó. (§3.1–3.2)
+    problems:
+      - {id: nonblock-accept, title: accept không chặn, difficulty: medium, ready: true}
+      - {id: looping-server, title: Server lặp phục vụ HTML, difficulty: medium, ready: true}
+
+  - title: Đa tiến trình
+    intro: fork mỗi client, đóng fd đúng phía, dọn zombie bằng SIGCHLD/waitpid. (§3.3)
+    problems:
+      - {id: fork-echo, title: Forking echo server, difficulty: medium, ready: true}
+      - {id: telnet-fork, title: telnet_server đa tiến trình (BT 3.4), difficulty: hard, ready: true}
+
+  - title: Đa luồng
+    intro: pthread_create/detach, trạng thái dùng chung, mutex. (§3.4)
+    problems:
+      - {id: thread-echo, title: Pthread echo server, difficulty: medium, ready: true}
+      - {id: thread-chat, title: chat_server đa luồng (BT 3.5), difficulty: hard, ready: true}
+
+  - title: Ghép kênh select / poll
+    intro: fd_set, dựng lại tập fd mỗi vòng, bộ đệm riêng mỗi client. (§3.5)
+    problems:
+      - {id: select-echo, title: select echo server, difficulty: medium, ready: true}
+      - {id: chat-select, title: Phòng chat với select() (BT 3.1), difficulty: hard, ready: true}
+      - {id: telnet-select, title: telnet_server đăng nhập + lệnh (BT 3.2), difficulty: hard, ready: true}
+      - {id: chat-poll, title: chat_server với poll() (BT 3.3), difficulty: hard, ready: true}
+
+  - title: Tối đa N client & thi thử
+    intro: Đúng dạng đề giữa kỳ. Đề thi thử ẩn test, tính giờ 90 phút.
+    problems:
+      - {id: kv-max-n, title: Key-Value server tối đa N client, difficulty: hard, ready: true}
+      - {id: mock-booking-tcp, title: "Thi thử 1: Đặt chỗ qua TCP", difficulty: hard, exam: true, ready: true}
+      - {id: mock-quiz-udp, title: "Thi thử 2: Quiz server UDP", difficulty: hard, exam: true, ready: true}

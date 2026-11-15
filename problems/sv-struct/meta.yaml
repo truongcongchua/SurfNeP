@@ -1,0 +1,10 @@
+id: sv-struct
+title: sv_server nhận hồ sơ sinh viên nhị phân
+difficulty: hard
+chapter: 2
+topics: [TCP, Stream Framing, Serialization, Byte Order, File I/O]
+prerequisites: [length-prefix]
+ref: "Lecture notes §2.5 Bài tập 2.4–2.5; lab10 (padding của struct)"
+type: server
+args: ["{port}", "sv_log.txt"]
+test_timeout: 6

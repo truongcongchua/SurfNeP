@@ -1,0 +1,9 @@
+id: domain2ip
+title: Phân giải tên miền
+difficulty: easy
+chapter: 2
+topics: [DNS, Socket Address]
+prerequisites: [inet-addr]
+ref: "Lecture notes §2.2 — getaddrinfo; code mẫu 2-Chap2/domain2ip.c"
+type: stdio
+test_timeout: 3

@@ -1,0 +1,13 @@
+id: nonblock-accept
+title: Server non-blocking không dùng select
+difficulty: medium
+chapter: 3
+topics: [TCP, Blocking/Non-blocking]
+prerequisites: [tcp-echo]
+ref: "Lecture notes §3.1 (tr.48); code mẫu 3-Chap3/L1-NonBlocking"
+type: server
+args: ["{port}"]
+test_timeout: 8
+constraints:
+  require_any: [fcntl, ioctl]
+  forbid: [select, poll, epoll_wait, fork, pthread_create]

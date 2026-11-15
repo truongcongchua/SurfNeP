@@ -1,0 +1,11 @@
+id: udp-boundary
+title: Ranh giới datagram
+difficulty: medium
+chapter: 2
+topics: [UDP, Stream Framing]
+prerequisites: [udp-echo, tcp-stop-phrase]
+ref: "Lecture notes §2.4 — kịch bản thử nghiệm giao thức hướng thông điệp UDP (tr.47)"
+type: server
+protocol: udp
+args: ["{port}"]
+test_timeout: 5

@@ -1,0 +1,3 @@
+Xin chào! Đây là server IT4062.
+Gõ nội dung bạn muốn gửi, server sẽ lưu lại.
+====

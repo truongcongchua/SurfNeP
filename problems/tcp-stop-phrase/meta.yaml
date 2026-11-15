@@ -1,0 +1,10 @@
+id: tcp-stop-phrase
+title: Chuỗi dừng bị cắt vụn
+difficulty: medium
+chapter: 2
+topics: [TCP, Stream Framing]
+prerequisites: [tcp-echo]
+ref: "Lecture notes §2.3 (tr.22), §2.5 Bài tập 2.1"
+type: server
+args: ["{port}"]
+test_timeout: 5

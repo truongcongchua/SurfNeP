@@ -1,0 +1,9 @@
+id: byte-order
+title: Đổi thứ tự byte
+difficulty: easy
+chapter: 2
+topics: [Byte Order, C Pointers]
+prerequisites: []
+ref: "Lecture notes §2.2 (tr.16) — hàm htons/htonl/ntohs/ntohl"
+type: stdio
+test_timeout: 2

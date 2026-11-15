@@ -1,0 +1,6 @@
+# Mã nguồn và tài liệu dùng LF trên mọi hệ điều hành.
+* text=auto eol=lf
+# Dữ liệu test có thể chứa \r, \0 có chủ đích: không bao giờ chuyển đổi.
+problems/*/tests/*.in binary
+problems/*/tests/*.out binary
+problems/*/files/** binary

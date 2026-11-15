@@ -1,0 +1,13 @@
+id: mock-quiz-udp
+title: "Thi thử 2: Quiz server UDP"
+difficulty: hard
+chapter: 2
+topics: [UDP, Protocol Design, Client Limit, File I/O]
+prerequisites: [udp-calc, kv-max-n]
+ref: "Đề thi thử giữa kỳ — làm trong 90 phút, test ẩn"
+type: server
+protocol: udp
+args: ["{port}", "questions.txt", "3"]
+test_timeout: 6
+hide_details: true
+exam_minutes: 90

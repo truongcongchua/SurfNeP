@@ -1,0 +1,13 @@
+id: telnet-select
+title: telnet_server đăng nhập và chạy lệnh
+difficulty: hard
+chapter: 3
+topics: [TCP, Stream Framing, select, Authentication, Process]
+prerequisites: [chat-select, tcp-greeting-log]
+ref: "Lecture notes §3.5, §3.6 Bài tập 3.2; code mẫu 2-Chap2/telnet_server.c"
+type: server
+args: ["{port}"]
+test_timeout: 8
+constraints:
+  require_any: [select]
+  forbid: [poll, epoll_wait, fork, pthread_create]

@@ -1,0 +1,11 @@
+id: udp-echo
+title: UDP echo server
+difficulty: easy
+chapter: 2
+topics: [UDP]
+prerequisites: [tcp-echo]
+ref: "Lecture notes §2.4 (tr.41); code mẫu 2-Chap2/udp_receiver.c, udp_sender.c"
+type: server
+protocol: udp
+args: ["{port}"]
+test_timeout: 5

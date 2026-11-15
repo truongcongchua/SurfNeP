@@ -1,0 +1,13 @@
+id: fork-echo
+title: Forking echo server
+difficulty: medium
+chapter: 3
+topics: [TCP, Multiprocessing]
+prerequisites: [tcp-echo]
+ref: "Lecture notes §3.3 (tr.55); code mẫu 3-Chap3/L3-MultiProcessing"
+type: server
+args: ["{port}"]
+test_timeout: 8
+constraints:
+  require_any: [fork]
+  forbid: [select, poll, epoll_wait, pthread_create]

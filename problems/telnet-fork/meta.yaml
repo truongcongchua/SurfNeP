@@ -1,0 +1,13 @@
+id: telnet-fork
+title: telnet_server đa tiến trình
+difficulty: hard
+chapter: 3
+topics: [TCP, Stream Framing, Multiprocessing, Authentication, Process]
+prerequisites: [fork-echo, telnet-select]
+ref: "Lecture notes §3.3, §3.6 Bài tập 3.4; code mẫu 2-Chap2/telnet_server.c"
+type: server
+args: ["{port}"]
+test_timeout: 8
+constraints:
+  require_any: [fork]
+  forbid: [select, poll, epoll_wait, pthread_create]

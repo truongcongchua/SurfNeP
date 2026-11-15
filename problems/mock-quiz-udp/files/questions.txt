@@ -1,0 +1,5 @@
+Giao thức nào hướng luồng byte?|UDP|TCP|ICMP|ARP|B
+Hàm nào chuyển cổng sang thứ tự mạng?|ntohs|htonl|htons|inet_pton|C
+select() nhận tham số đầu tiên là gì?|số fd lớn nhất|maxfd + 1|FD_SETSIZE|số client|B
+recvfrom() trả về 0 với UDP nghĩa là?|đối phương đóng|lỗi|nhận datagram rỗng|hết thời gian|C
+Tiến trình con kết thúc mà cha chưa waitpid gọi là?|orphan|daemon|zombie|thread|C

@@ -1,0 +1,7 @@
+# tên miền giả cho máy chấm (không có Internet)
+may.soict.test 10.0.0.5
+web.hust.test 203.162.1.2
+multi.lab.test 10.1.1.1
+multi.lab.test 10.1.1.2
+multi.lab.test 10.1.1.3
+v6only.lab.test fd00::1

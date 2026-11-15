@@ -1,0 +1,13 @@
+id: thread-chat
+title: chat_server đa luồng
+difficulty: hard
+chapter: 3
+topics: [TCP, Stream Framing, Multithreading, Mutex, Broadcast]
+prerequisites: [thread-echo, chat-select]
+ref: "Lecture notes §3.4 (tr.71), §3.6 Bài tập 3.5; code mẫu pthread_chatroom.c"
+type: server
+args: ["{port}"]
+test_timeout: 6
+constraints:
+  require_any: [pthread_create]
+  forbid: [select, poll, epoll_wait, fork]

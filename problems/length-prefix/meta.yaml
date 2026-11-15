@@ -1,0 +1,10 @@
+id: length-prefix
+title: Thông điệp có độ dài tiền tố
+difficulty: medium
+chapter: 2
+topics: [TCP, Stream Framing, Byte Order]
+prerequisites: [tcp-recv-line, byte-order]
+ref: "Lecture notes §2.3; §4.3 (thiết kế giao thức tự định nghĩa)"
+type: server
+args: ["{port}"]
+test_timeout: 6

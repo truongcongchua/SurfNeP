@@ -1,0 +1,13 @@
+id: chat-select
+title: Phòng chat với select()
+difficulty: hard
+chapter: 3
+topics: [TCP, Stream Framing, select, Broadcast]
+prerequisites: [select-echo, tcp-recv-line]
+ref: "Lecture notes §3.5 (tr.84), §3.6 Bài tập 3.1"
+type: server
+args: ["{port}"]
+test_timeout: 6
+constraints:
+  require_any: [select]
+  forbid: [fork, pthread_create, poll, epoll_wait]

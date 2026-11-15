@@ -1,0 +1,9 @@
+id: inet-addr
+title: Kiểm tra và phân loại địa chỉ IPv4
+difficulty: easy
+chapter: 2
+topics: [Socket Address, Byte Order]
+prerequisites: [byte-order]
+ref: "Lecture notes §2.2 (tr.16) — struct in_addr, inet_pton/inet_ntop"
+type: stdio
+test_timeout: 2
