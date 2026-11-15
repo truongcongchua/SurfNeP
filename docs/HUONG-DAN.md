@@ -31,6 +31,10 @@ powershell -ExecutionPolicy Bypass -File .\start.ps1
 Không cần tự gõ `npm install`: thư viện của dự án (Next.js, React…) nằm trong `web\node_modules`, và `start.ps1` tự tải nếu
 thư mục này chưa có (ví dụ khi chép dự án sang máy khác). Node.js cài sẵn trên máy chỉ là chương trình chạy, không chứa các thư viện này.
 
+**Dùng cmd thay cho PowerShell:** các lệnh trên chạy được y nguyên, chỉ cần bỏ các dòng chú thích bắt đầu bằng `#`, và dùng
+`cd /d c:\SurfNeP\netjudge` nếu đang ở ổ đĩa khác. Mật khẩu có ký tự `& | ^ %` phải đặt trong ngoặc kép. Ngoài ra có thể chạy
+thẳng `start.bat` (gõ `start`, hoặc bấm đúp trong Explorer) thay cho lệnh `powershell -ExecutionPolicy Bypass ...`.
+
 `start.ps1` tự làm các việc sau, bạn không phải gõ riêng:
 1. bật Docker Desktop nếu chưa chạy (đợi tối đa ~3 phút);
 2. dựng image chấm bài `netjudge-runner:1` nếu chưa có (lần đầu mất vài phút);
