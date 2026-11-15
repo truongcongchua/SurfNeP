@@ -119,7 +119,7 @@ function TopBar({ nav, problemId, busy, running, onRun, onSubmit, examMinutes, l
     <div className="grid h-12 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 px-3">
       <div className="flex min-w-0 items-center gap-1">
         <Link href="/" className="mr-1 flex items-center gap-1.5 font-semibold text-foreground hover:no-underline">
-          <Code2 className="size-5 text-[var(--brand)]" />
+          <Code2 className="size-5 text-foreground" />
           <span className="hidden sm:inline">NetJudge</span>
         </Link>
         <Sep />
@@ -132,19 +132,21 @@ function TopBar({ nav, problemId, busy, running, onRun, onSubmit, examMinutes, l
       </div>
 
       <div className="flex items-center gap-1">
+        <div className="flex items-center rounded-md bg-[var(--chip)]">
         <button
           onClick={onRun} disabled={busy || running} title="Chạy thử với test mẫu" aria-label="Chạy thử"
-          className="flex size-8 items-center justify-center rounded-md bg-[var(--chip)] transition-colors hover:brightness-95 disabled:opacity-60"
+          className="flex size-8 items-center justify-center rounded-md text-foreground transition-colors hover:bg-[var(--pill)] disabled:opacity-60"
         >
           {running ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-3.5 fill-current" />}
         </button>
         <button
           onClick={onSubmit} disabled={busy || running}
-          className="flex h-8 items-center gap-1.5 rounded-md bg-[var(--chip)] px-3 text-sm font-medium text-[color:var(--submit)] transition-colors hover:brightness-95 disabled:opacity-60"
+          className="flex h-8 items-center gap-1.5 rounded-md px-3 text-sm font-medium text-[color:var(--submit)] transition-colors hover:bg-[var(--pill)] disabled:opacity-60"
         >
           {busy ? <Loader2 className="size-4 animate-spin" /> : <CloudUpload className="size-4" />}
           {busy ? "Đang chấm…" : "Nộp bài"}
         </button>
+        </div>
         {examMinutes && (left == null
           ? <button onClick={() => window.__njStartExam()} className="flex items-center gap-1.5 rounded-md bg-[var(--chip)] px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"><Timer className="size-4" />{examMinutes}′</button>
           : <span className={cn("flex items-center gap-1.5 rounded-md bg-[var(--chip)] px-3 py-1.5 font-mono text-sm tabular-nums", left === 0 ? "text-[var(--hard)]" : "text-[var(--accent)]")}><Timer className="size-4" />{mm}</span>)}
@@ -154,7 +156,7 @@ function TopBar({ nav, problemId, busy, running, onRun, onSubmit, examMinutes, l
         <ThemeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex size-7 items-center justify-center rounded-full bg-[var(--brand)] text-xs font-semibold text-white" aria-label="Tài khoản">
+            <button className="flex size-7 items-center justify-center rounded-full bg-[var(--chip)] text-xs font-semibold text-foreground hover:bg-[var(--pill)]" aria-label="Tài khoản">
               {user.name.slice(0, 1).toUpperCase()}
             </button>
           </DropdownMenuTrigger>

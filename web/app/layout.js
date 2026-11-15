@@ -27,7 +27,7 @@ export default async function RootLayout({ children }) {
         <ThemeProvider attribute="data-theme" defaultTheme="dark" enableSystem disableTransitionOnChange>
         <header className="top">
           <div className="container">
-            <Link href="/" className="brand"><Code2 size={20} color="var(--brand)" />NetJudge</Link>
+            <Link href="/" className="brand"><Code2 size={20} color="var(--text)" />NetJudge</Link>
             {!user && <span style={{ flex: 1 }} />}
             {user && (
               <>
