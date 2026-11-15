@@ -8,7 +8,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { NavLink } from "@/components/nav-link";
 import { Code2 } from "lucide-react";
 
-const inter = Inter({ subsets: ["latin", "vietnamese"], variable: "--font-inter", display: "swap" });
+const inter = Inter({ subsets: ["latin", "vietnamese"], axes: ["opsz"], variable: "--font-inter", display: "swap" });
 const mono = JetBrains_Mono({ subsets: ["latin", "vietnamese"], variable: "--font-jetbrains", display: "swap" });
 
 export const metadata = { title: "NetJudge IT4062", description: "Luyện lập trình mạng với bộ chấm tự động" };

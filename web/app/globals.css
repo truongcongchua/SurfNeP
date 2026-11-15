@@ -36,7 +36,7 @@
 /* Giao diện Graphite: nền gần đen, khung bo 12px với đường viền mảnh, chữ Inter, một màu nhấn tím.
    --green: Accepted; --brand: màu nhấn; --panel-head: thanh tab của khung. */
 :root {
-  --ui-font: var(--font-inter), system-ui, "Segoe UI", sans-serif; --ui-size: 13px; --tracking: -0.006em;
+  --ui-font: var(--font-inter), system-ui, "Segoe UI", sans-serif; --ui-size: 13px; --tracking: 0;
   --radius: 12px; --title-tracking: -0.02em;
 }
 :root, :root[data-theme="light"] {
@@ -58,7 +58,7 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 body { background: var(--bg); color: var(--text); font: var(--ui-size, 13px)/1.5 var(--ui-font, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif);
-  letter-spacing: var(--tracking, normal); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  letter-spacing: var(--tracking, normal); font-optical-sizing: auto; font-synthesis: none; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 b, strong { font-weight: 600; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
