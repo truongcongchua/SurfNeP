@@ -71,7 +71,7 @@ function Tab({ active, onClick, icon: Icon, iconClass, children, onClose }) {
           active ? "font-medium text-foreground" : "text-[color:var(--tab-idle)]"
         )}
       >
-        <Icon className={cn("size-4", iconClass)} />
+        <Icon className={cn("size-3.5", iconClass)} />
         {children}
       </button>
       {onClose && (
@@ -88,7 +88,7 @@ function IconBtn({ label, onClick, children, disabled }) {
   return (
     <button
       title={label} aria-label={label} onClick={onClick} disabled={disabled}
-      className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-[var(--chip)] hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+      className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-[var(--chip)] hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
     >{children}</button>
   );
 }
@@ -134,10 +134,9 @@ function TopBar({ nav, problemId, busy, running, onRun, onSubmit, examMinutes, l
       <div className="flex items-center gap-1">
         <button
           onClick={onRun} disabled={busy || running} title="Chạy thử với test mẫu" aria-label="Chạy thử"
-          className="flex h-8 items-center gap-1.5 rounded-md bg-[var(--chip)] px-2.5 text-sm font-medium transition-colors hover:brightness-95 disabled:opacity-60"
+          className="flex size-8 items-center justify-center rounded-md bg-[var(--chip)] transition-colors hover:brightness-95 disabled:opacity-60"
         >
-          {running ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-4 fill-current" />}
-          <span className="hidden lg:inline">{running ? "Đang chạy…" : "Chạy thử"}</span>
+          {running ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-3.5 fill-current" />}
         </button>
         <button
           onClick={onSubmit} disabled={busy || running}
@@ -155,7 +154,7 @@ function TopBar({ nav, problemId, busy, running, onRun, onSubmit, examMinutes, l
         <ThemeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex size-8 items-center justify-center rounded-full bg-[var(--brand)] text-sm font-semibold text-white" aria-label="Tài khoản">
+            <button className="flex size-7 items-center justify-center rounded-full bg-[var(--brand)] text-xs font-semibold text-white" aria-label="Tài khoản">
               {user.name.slice(0, 1).toUpperCase()}
             </button>
           </DropdownMenuTrigger>
@@ -572,7 +571,7 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
                     }}
                   />
                 </div>
-                <div className="flex h-8 shrink-0 items-center justify-between border-t border-[var(--line)] px-3 text-xs text-muted-foreground">
+                <div className="flex h-6 shrink-0 items-center justify-between px-3 text-xs text-muted-foreground">
                   <span>{saved ? "Đã lưu" : "Đang lưu…"}</span>
                   <span>Ln {pos.ln}, Col {pos.col}</span>
                 </div>
