@@ -488,8 +488,9 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
   }
 
   function defineThemes(monaco) {
-    monaco.editor.defineTheme("nj-light", { base: "vs", inherit: true, rules: [], colors: { "editor.background": "#ffffff", "editorLineNumber.foreground": "#a3a3a3" } });
-    monaco.editor.defineTheme("nj-dark", { base: "vs-dark", inherit: true, rules: [], colors: { "editor.background": "#262626", "editorLineNumber.foreground": "#6b6b6b" } });
+    // Nền trong suốt để editor lấy màu của khung (--panel) theo từng hướng thiết kế.
+    monaco.editor.defineTheme("nj-light", { base: "vs", inherit: true, rules: [], colors: { "editor.background": "#00000000", "editorLineNumber.foreground": "#a3a3a3" } });
+    monaco.editor.defineTheme("nj-dark", { base: "vs-dark", inherit: true, rules: [], colors: { "editor.background": "#00000000", "editorLineNumber.foreground": "#6b6b6b" } });
   }
 
   const verdictTab = detail?.verdict ? LABEL[detail.verdict] || detail.verdict : "Bài nộp";

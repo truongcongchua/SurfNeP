@@ -24,7 +24,7 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="vi" suppressHydrationWarning className={`${inter.variable} ${mono.variable}`}>
       <body>
-        <ThemeProvider attribute="data-theme" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <ThemeProvider attribute="data-theme" defaultTheme="dark" enableSystem disableTransitionOnChange>
         <header className="top">
           <div className="container">
             <Link href="/" className="brand"><Code2 size={20} color="var(--brand)" />NetJudge</Link>
