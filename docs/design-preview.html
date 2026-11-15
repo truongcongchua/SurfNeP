@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="vi" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NetJudge — Graphite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ====== DESIGN TOKENS — "Graphite" ======
+   Nguyên tắc: nền trung tính (không ám xanh/tím), 3 lớp xám tạo chiều sâu,
+   viền mảnh thay cho bóng, đúng 1 màu nhấn (iris), xanh/vàng/đỏ chỉ dùng cho ý nghĩa (AC, độ khó, lỗi). */
+:root[data-theme="dark"] {
+  --bg: #0b0b0d;          /* lớp 0: nền trang */
+  --panel: #131316;       /* lớp 1: khung, thẻ */
+  --raised: #1b1b1f;      /* lớp 2: hover, input, tab đang mở */
+  --line: rgba(255,255,255,.07);
+  --line-strong: rgba(255,255,255,.12);
+  --text: #ededef; --text-2: #a1a1aa; --text-3: #63636e;
+  --accent: #8b8cf8; --accent-soft: rgba(139,140,248,.14);
+  --ok: #3ecf8e; --ok-soft: rgba(62,207,142,.12);
+  --warn: #f5a524; --bad: #f2555a; --bad-soft: rgba(242,85,90,.12);
+  --solid: #ededef; --solid-text: #0b0b0d;   /* nút chính: trắng trên nền tối */
+  --code: #0e0e10;
+}
+:root[data-theme="light"] {
+  --bg: #fafafa; --panel: #ffffff; --raised: #f4f4f5;
+  --line: rgba(0,0,0,.07); --line-strong: rgba(0,0,0,.12);
+  --text: #18181b; --text-2: #52525b; --text-3: #a1a1aa;
+  --accent: #5b5bd6; --accent-soft: rgba(91,91,214,.10);
+  --ok: #12a46b; --ok-soft: rgba(18,164,107,.10);
+  --warn: #c27c0e; --bad: #dc3a3f; --bad-soft: rgba(220,58,63,.08);
+  --solid: #18181b; --solid-text: #fff; --code: #fafafa;
+}
+:root { --r: 8px; --r-lg: 12px; }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 13px/1.5 Inter, system-ui, sans-serif; font-feature-settings: "cv11", "ss01"; -webkit-font-smoothing: antialiased; }
+svg { stroke-width: 1.5; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---- header ---- */
+header { position: sticky; top: 0; z-index: 10; height: 48px; display: flex; align-items: center; gap: 28px; padding: 0 20px;
+  background: color-mix(in srgb, var(--bg) 80%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 600; letter-spacing: -.01em; }
+.logo { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 40%, #000)); color: #fff; font: 600 11px JetBrains Mono, monospace; }
+nav { display: flex; gap: 4px; flex: 1; }
+nav a { color: var(--text-2); text-decoration: none; padding: 5px 10px; border-radius: 6px; font-weight: 500; }
+nav a:hover { color: var(--text); background: var(--raised); }
+nav a.on { color: var(--text); background: var(--raised); }
+.right { display: flex; align-items: center; gap: 10px; color: var(--text-2); }
+.avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--raised); border: 1px solid var(--line-strong); display: grid; place-items: center; font-size: 11px; font-weight: 600; color: var(--text); }
+
+/* ---- controls ---- */
+.btn { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: var(--r);
+  font: 500 13px Inter, sans-serif; cursor: pointer; border: 1px solid var(--line-strong); background: var(--panel); color: var(--text); transition: background .15s; }
+.btn:hover { background: var(--raised); }
+.btn.solid { background: var(--solid); color: var(--solid-text); border-color: transparent; }
+.btn.solid:hover { opacity: .9; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--text-2); }
+.btn.ghost:hover { background: var(--raised); color: var(--text); }
+.kbd { font: 11px JetBrains Mono, monospace; color: var(--text-3); border: 1px solid var(--line-strong); border-radius: 4px; padding: 0 4px; }
+.input { height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border-radius: var(--r);
+  background: var(--panel); border: 1px solid var(--line-strong); color: var(--text-3); min-width: 260px; }
+.input:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.input input { all: unset; flex: 1; color: var(--text); }
+.select { height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; border-radius: var(--r); border: 1px solid var(--line-strong); background: var(--panel); color: var(--text-2); font-weight: 500; cursor: pointer; }
+
+/* ---- page: problem list ---- */
+main { max-width: 1080px; margin: 0 auto; padding: 32px 20px 64px; }
+.head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 20px; }
+h1 { font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -.02em; margin: 0 0 4px; }
+.sub { color: var(--text-2); margin: 0; }
+.progress { display: flex; align-items: center; gap: 14px; padding: 10px 14px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--panel); }
+.progress .big { font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
+.progress .big span { color: var(--text-3); font-weight: 500; font-size: 14px; }
+.segs { display: flex; gap: 10px; font-size: 12px; color: var(--text-2); }
+.segs i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+
+.topics { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.topic { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 999px;
+  color: var(--text-2); border: 1px solid var(--line); font-weight: 500; cursor: pointer; }
+.topic:hover { color: var(--text); border-color: var(--line-strong); }
+.topic.on { background: var(--text); color: var(--bg); border-color: transparent; }
+.topic .n { color: var(--text-3); font-size: 11px; }
+.topic.on .n { color: color-mix(in srgb, var(--bg) 60%, transparent); }
+.toolbar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+.toolbar .sp { flex: 1; }
+
+.table { border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--panel); overflow: hidden; }
+.row { display: grid; grid-template-columns: 40px minmax(0, 1fr) 220px 90px 90px; align-items: center; height: 44px; padding: 0 12px;
+  border-top: 1px solid var(--line); transition: background .12s; }
+.row:first-child { border-top: 0; }
+.row.th { height: 36px; color: var(--text-3); font-size: 12px; font-weight: 500; background: transparent; }
+.row:not(.th):hover { background: var(--raised); cursor: pointer; }
+.row:not(.th):hover .title { color: var(--accent); }
+.title { font-weight: 500; transition: color .12s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.title .id { color: var(--text-3); font: 12px JetBrains Mono, monospace; margin-right: 8px; }
+.tag { display: inline-block; font-size: 11px; line-height: 18px; padding: 0 7px; border-radius: 5px; background: var(--raised); color: var(--text-2); margin-right: 4px; }
+.tag.exam { background: var(--accent-soft); color: var(--accent); }
+.diff { font-weight: 500; font-size: 12px; }
+.diff.e { color: var(--ok); } .diff.m { color: var(--warn); } .diff.h { color: var(--bad); }
+.st { display: grid; place-items: center; }
+.dot { width: 16px; height: 16px; border-radius: 50%; border: 1.5px dashed var(--line-strong); }
+.lockhint { display: block; font-size: 11px; color: var(--text-3); font-weight: 400; }
+
+/* ---- page: workspace ---- */
+.ws-wrap { padding: 0 8px 8px; height: 640px; display: grid; grid-template-columns: 1fr 1.15fr; gap: 6px; background: var(--bg); }
+.ws-top { height: 44px; display: flex; align-items: center; gap: 10px; padding: 0 12px; }
+.ws-top .mid { flex: 1; display: flex; justify-content: center; gap: 6px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); display: flex; flex-direction: column; overflow: hidden; }
+.tabs { height: 38px; display: flex; align-items: center; gap: 2px; padding: 0 6px; border-bottom: 1px solid var(--line); }
+.tab { height: 28px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; border-radius: 6px; color: var(--text-3); font-weight: 500; }
+.tab.on { color: var(--text); background: var(--raised); }
+.body { padding: 20px 22px; overflow: auto; font-size: 14px; line-height: 1.7; }
+.body h2 { font-size: 18px; letter-spacing: -.02em; margin: 0 0 10px; }
+.meta { display: flex; gap: 6px; margin-bottom: 18px; }
+.body p { margin: 0 0 14px; color: color-mix(in srgb, var(--text) 88%, transparent); }
+.body code { font: 12.5px JetBrains Mono, monospace; background: var(--raised); border: 1px solid var(--line); padding: 1px 5px; border-radius: 5px; }
+.example { border: 1px solid var(--line); border-radius: var(--r); background: var(--code); padding: 12px 14px; font: 12.5px/1.7 JetBrains Mono, monospace; }
+.example b { color: var(--text-3); font-weight: 500; }
+.editor { flex: 1; background: var(--code); font: 13px/22px JetBrains Mono, monospace; padding: 12px 0; overflow: hidden; }
+.ln { display: flex; } .ln span:first-child { width: 44px; text-align: right; padding-right: 16px; color: var(--text-3); user-select: none; }
+.k { color: #c678dd; } .t { color: #61afef; } .s { color: #98c379; } .c { color: var(--text-3); font-style: italic; } .f { color: #e5c07b; }
+:root[data-theme="light"] .k { color: #a626a4; } :root[data-theme="light"] .t { color: #4078f2; } :root[data-theme="light"] .s { color: #50a14f; } :root[data-theme="light"] .f { color: #986801; }
+.result { border-top: 1px solid var(--line); padding: 14px 16px; }
+.verdict { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+.verdict b { font-size: 16px; color: var(--ok); letter-spacing: -.01em; }
+.verdict span { color: var(--text-3); font-size: 12px; }
+.cases { display: flex; gap: 6px; }
+.case { height: 26px; padding: 0 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; font-weight: 500; font-size: 12px; background: var(--raised); color: var(--text-2); }
+.case i { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); }
+.case.bad i { background: var(--bad); }
+
+/* ---- preview chrome ---- */
+.label { max-width: 1080px; margin: 0 auto; padding: 28px 20px 10px; color: var(--text-3); font: 500 11px JetBrains Mono, monospace; letter-spacing: .08em; text-transform: uppercase; }
+.frame { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.toggle { position: fixed; right: 16px; bottom: 16px; z-index: 20; }
+@media (max-width: 760px) { .row { grid-template-columns: 32px 1fr 70px; } .row > :nth-child(3), .row > :nth-child(4) { display: none; } .ws-wrap { grid-template-columns: 1fr; height: auto; } .head { flex-direction: column; align-items: stretch; } .input { min-width: 0; flex: 1; } }
+</style>
+</head>
+<body>
+<button class="btn toggle" onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'">◐ Đổi sáng / tối</button>
+
+<header>
+  <div class="brand"><div class="logo">nj</div>NetJudge</div>
+  <nav><a class="on" href="#">Bài tập</a><a href="#">Study Plan</a><a href="#">Bảng xếp hạng</a></nav>
+  <div class="right"><span class="kbd">Ctrl K</span><div class="avatar">HL</div></div>
+</header>
+
+<div class="label">01 · Danh sách bài</div>
+<main style="padding-top: 8px">
+  <div class="head">
+    <div><h1>Bài tập</h1><p class="sub">Bài ghi “cần làm trước” chỉ là gợi ý thứ tự, vẫn nộp bình thường.</p></div>
+    <div class="progress">
+      <svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="var(--raised)" stroke-width="4"/><circle cx="20" cy="20" r="16" fill="none" stroke="var(--ok)" stroke-width="4" stroke-linecap="round" stroke-dasharray="100.5" stroke-dashoffset="62" transform="rotate(-90 20 20)"/></svg>
+      <div><div class="big num">14 <span>/ 37 đã giải</span></div>
+        <div class="segs num"><span><i style="background:var(--ok)"></i>Dễ 8</span><span><i style="background:var(--warn)"></i>Vừa 5</span><span><i style="background:var(--bad)"></i>Khó 1</span></div></div>
+    </div>
+  </div>
+
+  <div class="topics">
+    <span class="topic on">Tất cả</span>
+    <span class="topic">Socket TCP <span class="n">9</span></span><span class="topic">UDP <span class="n">6</span></span>
+    <span class="topic">I/O multiplexing <span class="n">5</span></span><span class="topic">Thread <span class="n">4</span></span>
+    <span class="topic">Giao thức <span class="n">7</span></span><span class="topic">DNS <span class="n">3</span></span>
+  </div>
+  <div class="toolbar">
+    <label class="input">⌕ <input placeholder="Tìm bài theo tên hoặc mã…"></label>
+    <span class="select">Mức độ ▾</span><span class="select">Chương ▾</span>
+    <span class="sp"></span><button class="btn ghost">Ngẫu nhiên</button>
+  </div>
+
+  <div class="table">
+    <div class="row th"><span></span><span>Tên bài</span><span>Chủ đề</span><span>Chương</span><span>Mức độ</span></div>
+    <div class="row"><span class="st"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="2.2"><path d="M20 6 9 17l-5-5"/></svg></span><span class="title"><span class="id">101</span>Echo server TCP</span><span><span class="tag">Socket TCP</span></span><span class="num">Chương 1</span><span class="diff e">Dễ</span></div>
+    <div class="row"><span class="st"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="2.2"><path d="M20 6 9 17l-5-5"/></svg></span><span class="title"><span class="id">102</span>Đọc dòng có giới hạn độ dài</span><span><span class="tag">Socket TCP</span><span class="tag">Giao thức</span></span><span class="num">Chương 1</span><span class="diff e">Dễ</span></div>
+    <div class="row"><span class="st"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2 2"/></svg></span><span class="title"><span class="id">115</span>Chat nhiều client với select()</span><span><span class="tag">I/O multiplexing</span></span><span class="num">Chương 2</span><span class="diff m">Vừa</span></div>
+    <div class="row"><span class="st"><span class="dot"></span></span><span class="title"><span class="id">121</span>Truyền file qua UDP có ACK <span class="lockhint">Cần làm trước: 115</span></span><span><span class="tag">UDP</span><span class="tag">Giao thức</span></span><span class="num">Chương 2</span><span class="diff h">Khó</span></div>
+    <div class="row"><span class="st"><span class="dot"></span></span><span class="title"><span class="id">130</span>Phân giải tên miền <span class="tag exam" style="margin-left:6px">Thi thử</span></span><span><span class="tag">DNS</span></span><span class="num">Chương 3</span><span class="diff m">Vừa</span></div>
+    <div class="row"><span class="st"><span class="dot"></span></span><span class="title"><span class="id">134</span>Thread pool cho server</span><span><span class="tag">Thread</span></span><span class="num">Chương 3</span><span class="diff h">Khó</span></div>
+  </div>
+</main>
+
+<div class="label">02 · Trang làm bài</div>
+<div class="frame">
+  <div class="ws-top">
+    <div class="brand"><div class="logo">nj</div></div>
+    <button class="btn ghost">☰ Danh sách</button>
+    <div class="mid"><button class="btn">▶ Chạy thử</button><button class="btn solid">Nộp bài</button></div>
+    <span class="num" style="color:var(--text-2)">⏱ 12:48</span><div class="avatar">HL</div>
+  </div>
+  <div class="ws-wrap">
+    <div class="panel">
+      <div class="tabs"><span class="tab on">Đề bài</span><span class="tab">Lời giải</span><span class="tab">Lịch sử nộp</span></div>
+      <div class="body">
+        <h2>115. Chat nhiều client với select()</h2>
+        <div class="meta"><span class="diff m tag">Vừa</span><span class="tag">I/O multiplexing</span><span class="tag">Chương 2</span></div>
+        <p>Viết server lắng nghe cổng <code>PORT</code>, nhận nhiều client cùng lúc bằng <code>select()</code>. Mỗi dòng một client gửi lên phải được chuyển tiếp tới mọi client khác, kèm tiền tố <code>[id]</code>.</p>
+        <p>Server không được dùng thread. Khi một client ngắt kết nối, các client còn lại nhận dòng <code>* id left</code>.</p>
+        <div class="example"><b>Input</b>&nbsp; c1: hello<br><b>Output</b> c2: [1] hello<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;c3: [1] hello</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="tabs"><span class="tab on">main.c</span><span class="sp" style="flex:1"></span><span class="tab">C · gcc 13</span></div>
+      <div class="editor">
+        <div class="ln"><span>1</span><span><span class="k">#include</span> <span class="s">&lt;sys/select.h&gt;</span></span></div>
+        <div class="ln"><span>2</span><span><span class="k">#include</span> <span class="s">&lt;sys/socket.h&gt;</span></span></div>
+        <div class="ln"><span>3</span><span></span></div>
+        <div class="ln"><span>4</span><span><span class="t">int</span> <span class="f">main</span>(<span class="t">void</span>) {</span></div>
+        <div class="ln"><span>5</span><span>&nbsp;&nbsp;<span class="t">fd_set</span> all, rd;</span></div>
+        <div class="ln"><span>6</span><span>&nbsp;&nbsp;<span class="t">int</span> lfd = <span class="f">listen_on</span>(PORT);</span></div>
+        <div class="ln"><span>7</span><span>&nbsp;&nbsp;<span class="c">// thêm lfd vào tập theo dõi</span></span></div>
+        <div class="ln"><span>8</span><span>&nbsp;&nbsp;<span class="f">FD_SET</span>(lfd, &amp;all);</span></div>
+        <div class="ln"><span>9</span><span>&nbsp;&nbsp;<span class="k">for</span> (;;) {</span></div>
+        <div class="ln"><span>10</span><span>&nbsp;&nbsp;&nbsp;&nbsp;rd = all;</span></div>
+        <div class="ln"><span>11</span><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="f">select</span>(maxfd + <span class="s">1</span>, &amp;rd, NULL, NULL, NULL);</span></div>
+      </div>
+      <div class="result">
+        <div class="verdict"><b>Accepted</b><span class="num">12/12 test · 38 ms · 2.1 MB</span></div>
+        <div class="cases"><span class="case"><i></i>Test 1</span><span class="case"><i></i>Test 2</span><span class="case"><i></i>Test 3</span><span class="case"><i></i>+9</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div style="height:60px"></div>
+</body>
+</html>
