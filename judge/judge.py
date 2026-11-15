@@ -115,6 +115,8 @@ def main():
     cmd = sys.argv[1]
     if cmd == "build":
         build()
+    elif cmd == "runjson" and len(sys.argv) == 4:  # dùng cho web: in đúng một dòng JSON
+        print(json.dumps(judge(sys.argv[2], sys.argv[3]), ensure_ascii=False))
     elif cmd == "run" and len(sys.argv) == 4:
         r = judge(sys.argv[2], sys.argv[3])
         show(r)

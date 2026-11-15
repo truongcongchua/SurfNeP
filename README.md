@@ -57,3 +57,18 @@ Viết test bằng `judge/runner/njlib.py`: `ctx.connect()`, `send_line`, `send_
 decorator `@args("{port}", "3")`, `@expects_exit`, `@sample`.
 
 **Quy tắc:** mỗi bài mới phải có `solution.c` và ít nhất một `wrong/*.c`, và `selftest` phải xanh.
+
+## Web (thư mục `web/`)
+
+Next.js + SQLite (`node:sqlite` có sẵn trong Node 24, dữ liệu ở `data/netjudge.db`). Bài và plan đọc thẳng từ
+`problems/` và `plans/`, nên thêm bài chỉ cần thêm thư mục rồi tải lại trang.
+
+```powershell
+.\start.ps1                                              # bật Docker, build nếu cần, chạy http://localhost:3000
+cd web; node scripts/seed.mjs ten1:matkhau1 ten2:matkhau2   # tạo / đổi mật khẩu 2 tài khoản (mật khẩu ≥ 6 ký tự)
+```
+
+**Cho người thứ hai truy cập:** cài [Tailscale](https://tailscale.com/download) trên cả hai máy, đăng nhập cùng một
+tài khoản, rồi mở `http://<tên-máy-hoặc-IP-tailscale>:3000`. Không cần mở cổng ra Internet. Máy chạy server phải bật.
+
+Mỗi người tối đa 2 bài đang chờ chấm; hàng đợi chấm tuần tự để kết quả ổn định.
