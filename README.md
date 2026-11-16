@@ -49,15 +49,20 @@ problems/<id>/
   starter.c       # code khung
   solution.c      # lời giải mẫu — selftest yêu cầu AC
   wrong/*.c       # lời giải sai có chủ đích — selftest yêu cầu KHÔNG AC
-  tests/test_*.py # kịch bản chấm (type: server) hoặc tests/*.in + *.out (type: stdio)
+  mutants.yaml    # bản sai sinh tự động từ solution.c (thay chuỗi) — selftest yêu cầu KHÔNG AC
+  tests/test_*.py # kịch bản chấm (type: server/client) hoặc tests/*.in + *.out (type: stdio)
+  tests/gen.py    # (stdio) sinh tests/g_*.in + oracle Python đối chiếu với solution.c
   files/          # tệp được chép vào thư mục chạy (ví dụ accounts.txt)
 ```
 
-Viết test bằng `judge/runner/njlib.py`: `ctx.connect()`, `send_line`, `send_slowly`,
-`expect_line`, `expect_silence`, `expect_closed`, `with ctx.verdict(BLOCKED): ...`,
-decorator `@args("{port}", "3")`, `@expects_exit`, `@sample`.
+Viết test bằng `judge/runner/njlib.py`: `ctx.connect()`, `send_line`, `send_slowly`, `send_chunks`, `reset()` (RST),
+`shutdown_write()`, `expect_line`, `expect_silence`, `expect_closed`, `ctx.rng` (ngẫu nhiên có seed), `ctx.zombies()`,
+`with ctx.verdict(BLOCKED): ...`, decorator `@sample`, `@group("edge")`, `@cases(...)`, `@timeout(15)`,
+`@args("{port}", "3")`, `@expects_exit`. Bộ test dùng chung: `judge/runner/suites.py`, `suite_telnet.py`, `suite_chat.py`.
+Bài nộp chạy với giới hạn 256 file descriptor, 128 tiến trình, 512 MB.
 
-**Quy tắc:** mỗi bài mới phải có `solution.c` và ít nhất một `wrong/*.c`, và `selftest` phải xanh.
+**Quy tắc:** thiết kế test theo [docs/TEST-DESIGN.md](docs/TEST-DESIGN.md); mỗi bài mới phải có `solution.c`, ít nhất
+một `wrong/*.c` và `mutants.yaml`, và `selftest` phải xanh (không bản sai nào sống sót).
 
 Hướng dẫn chạy đầy đủ: [docs/HUONG-DAN.md](docs/HUONG-DAN.md).
 

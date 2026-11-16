@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
-  ArrowLeft, BookOpen, Check, ChevronDown, CircleDashed, CircleHelp, Clock, Code2, Lightbulb, Link2, ListTree, Loader2, Plus,
+  ArrowLeft, BookOpen, Check, ChevronDown, ClipboardPlus, CircleDashed, CircleHelp, Clock, Code2, Lightbulb, Link2, ListTree, Loader2, Plus,
   SquareArrowOutUpRight, SquareCheckBig, SquarePen, SquareX, Star, Tag, ThumbsDown, ThumbsUp, Timer, X,
 } from "lucide-react";
 import { marked } from "marked";
 import { VERDICT_HELP } from "@/lib/verdicts";
+import { CodeBlock } from "./code-block";
 import { cn } from "@/lib/utils";
 
 export const LABEL = {
@@ -30,12 +31,18 @@ export function Pill({ className, children, ...props }) {
   return <span className={cn("inline-flex items-center gap-1 rounded-full bg-[var(--pill)] px-2.5 py-1 text-xs leading-4 text-[var(--text)]", className)} {...props}>{children}</span>;
 }
 
-export function Box({ label, children, tone }) {
+// tone: "bad" = nền đỏ (lỗi biên dịch...), "wrong" = chữ đỏ (output sai), "good" = chữ xanh (output/expected đúng).
+export function Box({ label, children, tone, action }) {
   return (
-    <div className="mb-3">
-      {label && <div className="mb-1.5 text-xs text-[var(--text2)]">{label}</div>}
-      <pre className={cn("m-0 overflow-x-auto whitespace-pre-wrap rounded-lg px-3 py-2.5 font-mono text-sm leading-5",
-        tone === "bad" ? "bg-[var(--bad-bg)] text-[var(--hard)]" : "bg-[var(--fill-3)] text-[var(--text)]")}>{children}</pre>
+    <div className="mb-4">
+      {(label || action) && (
+        <div className="mb-1.5 flex min-h-7 items-center justify-between text-sm font-medium text-[var(--text2)]">
+          <span>{label}</span>{action}
+        </div>
+      )}
+      <pre className={cn("m-0 overflow-x-auto whitespace-pre-wrap rounded-xl px-4 py-3 font-mono text-[13px] leading-[1.6]",
+        tone === "bad" ? "bg-[var(--bad-bg)] text-[var(--hard)]" : "bg-[var(--fill-3)]",
+        tone === "wrong" ? "text-[var(--hard)]" : tone === "good" ? "text-[var(--green)]" : tone !== "bad" && "text-[var(--text)]")}>{children}</pre>
     </div>
   );
 }
@@ -150,7 +157,7 @@ export function DescFooter({ likes, mine, favorite, onLike, onFavorite, onShare,
             className={cn(ic, "hover:bg-[var(--fill-3)]", favorite && "text-[var(--title)]")}><Star className={cn(favorite && "fill-current")} /></button>
           {menu && (
             <div className="absolute bottom-9 left-0 z-50 w-60 rounded-lg bg-[var(--panel)] p-2 text-sm shadow-[var(--pop-shadow)]">
-              <Link href="/?st=fav" className="mb-1 flex items-center justify-between rounded px-2 py-1.5 text-[var(--title)] hover:bg-[var(--raised)]">Danh sách của tôi <span aria-hidden>→</span></Link>
+              <Link href="/problems?st=fav" className="mb-1 flex items-center justify-between rounded px-2 py-1.5 text-[var(--title)] hover:bg-[var(--raised)]">Danh sách của tôi <span aria-hidden>→</span></Link>
               <button onClick={() => onFavorite(!favorite)} className="flex h-9 w-full items-center gap-2 rounded px-2 text-left text-[var(--title)] hover:bg-[var(--raised)]">
                 <span className={cn("grid size-4 place-items-center rounded-[3px] border", favorite ? "border-[var(--title)] bg-[var(--title)] text-[var(--panel)]" : "border-[var(--line-strong)]")}>{favorite && <Check className="size-3" strokeWidth={3} />}</span>
                 Yêu thích
@@ -230,10 +237,21 @@ function VerdictHelp({ verdict, bugs = [] }) {
   );
 }
 
-export function SubmissionDetail({ sub, user, onBack, onLoad, bugs }) {
+export function SubmissionDetail({ sub, user, onBack, onLoad, onUseCase, bugs, note }) {
   if (!sub) return <div className="flex items-center gap-2 p-5 text-sm text-[var(--muted)]"><Loader2 className="size-4 animate-spin" />Đang tải…</div>;
+  if (sub.status !== "done")
+    return (
+      <div>
+        <div className="flex h-9 items-center border-b border-[var(--line)] pl-3 pr-2">
+          <button onClick={onBack} className="flex items-center gap-2 text-sm text-[var(--text2)] hover:text-[var(--title)]"><ArrowLeft className="size-4" /> Tất cả bài nộp</button>
+        </div>
+        <div className="flex flex-col items-center gap-2 p-10 text-center text-sm text-[var(--muted)]">
+          <Loader2 className="size-6 animate-spin" />
+          {note || (sub.status === "running" ? "Đang chấm… (biên dịch + chạy trong Docker, thường 5–30 giây)" : "Đang chờ chấm…")}
+        </div>
+      </div>
+    );
   const r = sub.result || {};
-  const firstBad = (r.tests || []).find((t) => t.verdict !== "AC" && t.message);
   return (
     <div>
       <div className="flex h-9 items-center justify-between border-b border-[var(--line)] pl-3 pr-2">
@@ -267,10 +285,10 @@ export function SubmissionDetail({ sub, user, onBack, onLoad, bugs }) {
           </div>
         )}
         {sub.verdict === "CE" && <div className="mt-4"><Box tone="bad">{r.compile_log}</Box></div>}
-        {r.message && <div className="mt-4"><Box>{r.message}</Box></div>}
-        {firstBad && <div className="mt-4"><Box label={firstBad.name}>{firstBad.message}</Box></div>}
+        {r.message && <div className="mt-4"><Box tone={sub.verdict === "AC" ? undefined : "bad"}>{r.message}</Box></div>}
+        {r.tests?.length > 0 && <div className="mt-4"><TestBreakdown r={r} onUseCase={onUseCase} /></div>}
         <div className="mb-2 mt-5 flex items-center gap-2 text-sm text-[var(--text2)]"><Code2 className="size-4" />Code <span className="h-3.5 w-px bg-[var(--line-strong)]" /> C</div>
-        <pre className="m-0 overflow-x-auto rounded-lg bg-[var(--fill-3)] p-3 font-mono text-sm leading-relaxed">{sub.code}</pre>
+        <CodeBlock code={sub.code} onLoad={onLoad} />
       </div>
     </div>
   );
@@ -362,12 +380,67 @@ export function Testcases({ editable, cases, setCases, defaults, sel, setSel, ma
 
 /* ---------- Test Result ---------- */
 
-export function TestResult({ r, error, busy, note, bugs }) {
+// Danh sách test (tên test) + chi tiết từng test — dùng cho Test Result (chạy thử) và tab kết quả của lượt nộp.
+// Lượt nộp (stdio/function) lưu input / mong đợi / nhận được trong `message`; tách ra để hiện như khung Input/Output/Expected.
+// Nội dung bị cắt ở 600 ký tự nên `cut` = true nghĩa là input có thể không còn nguyên vẹn.
+function ioOf(t) {
+  if (t.io) return t.io;
+  const m = /^input:\n([\s\S]*?)\n--- mong đợi:\n([\s\S]*?)\n--- nhận được:\n([\s\S]*)$/.exec(t.message || "");
+  return m ? { input: m[1], expected: m[2], output: m[3], cut: m[1].length >= 600 } : null;
+}
+
+export function TestBreakdown({ r, onUseCase }) {
   const tests = r?.tests || [];
   const firstBad = Math.max(0, tests.findIndex((t) => t.verdict !== "AC"));
   const [sel, setSel] = useState(firstBad);
   useEffect(() => setSel(firstBad), [r]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!tests.length) return null;
+  const t = tests[Math.min(sel, tests.length - 1)];
+  const io = t && ioOf(t);
+  return (
+    <>
+      <div className="mb-4 flex flex-wrap gap-2">
+        {tests.map((x, k) => (
+          <button key={k} onClick={() => setSel(k)}
+            className={cn("flex items-center gap-2 rounded-lg px-3 py-1 text-sm font-medium", k === sel ? "bg-[var(--case-sel)] text-[var(--title)]" : "text-[color:var(--text2)] hover:bg-[var(--fill-3)]")}>
+            {x.verdict === "AC" ? <SquareCheckBig className="size-3.5 text-[var(--green)]" /> : <SquareX className="size-3.5 text-[var(--hard)]" />}
+            {x.name}
+          </button>
+        ))}
+      </div>
+      {t && (io ? (
+        <>
+          {t.verdict !== "AC" && t.verdict !== "WA" && <div className={cn("mb-3 text-sm font-medium", vColor(t.verdict))}>{LABEL[t.verdict] || t.verdict}{t.message ? ` — ${t.message}` : ""}</div>}
+          {t.debug_log && <Box label={t.sanitizer ? "Báo cáo Sanitizer (stderr)" : "stderr"} tone={t.sanitizer ? "bad" : undefined}>{t.debug_log}</Box>}
+          <Box label="Input" action={onUseCase && (
+            <button onClick={() => onUseCase(io.input)} disabled={io.cut}
+              title={io.cut ? "Input dài hơn 600 ký tự nên bị cắt, không thể thêm nguyên vẹn" : "Thêm input này vào khung Testcase để chạy thử"}
+              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-[var(--text2)] hover:bg-[var(--fill-3)] hover:text-[var(--title)] disabled:cursor-not-allowed disabled:opacity-40">
+              <ClipboardPlus className="size-4" />Use Testcase
+            </button>
+          )}>{io.input}</Box>
+          <Box label="Output" tone={t.verdict === "AC" ? "good" : "wrong"}>{io.output || " "}</Box>
+          <Box label="Expected" tone="good">{io.expected || " "}</Box>
+        </>
+      ) : (
+        <>
+          <div className="mb-3 flex items-center gap-3 text-sm">
+            <span className={cn("font-medium", vColor(t.verdict))}>{LABEL[t.verdict] || t.verdict}</span>
+            <span className="text-[var(--muted)]">{t.time_ms} ms</span>
+          </div>
+          {t.debug_log && <Box label={t.sanitizer ? "Báo cáo Sanitizer (stderr)" : "Output / stderr của chương trình"} tone={t.sanitizer ? "bad" : undefined}>{t.debug_log}</Box>}
+          {t.message
+            ? <Box label="Chi tiết">{t.message}</Box>
+            : <div className="text-sm text-[var(--muted)]">{t.verdict === "AC" ? "Test này đạt." : "Không có chi tiết (test ẩn)."}</div>}
+        </>
+      ))}
+    </>
+  );
+}
 
+// Chỉ dành cho "Chạy thử" / "Gỡ lỗi". Kết quả "Nộp bài" hiện ở tab bài nộp (SubmissionDetail), không hiện ở đây.
+export function TestResult({ r, error, busy, note }) {
+  const tests = r?.tests || [];
   if (error) return <div className="p-5 text-sm text-[var(--hard)]">{error}</div>;
   if (busy && !r)
     return (
@@ -377,7 +450,6 @@ export function TestResult({ r, error, busy, note, bugs }) {
     );
   if (!r) return <div className="flex h-full items-center justify-center p-5 text-sm text-[var(--faint)]">Bạn cần chạy code trước</div>;
 
-  const t = tests[sel];
   return (
     <div className="p-4">
       <div className="mb-4 flex flex-wrap items-baseline gap-3">
@@ -389,41 +461,7 @@ export function TestResult({ r, error, busy, note, bugs }) {
 
       {r.verdict === "CE" && <Box tone="bad">{r.compile_log}</Box>}
       {r.message && <Box tone={r.verdict === "AC" ? undefined : "bad"}>{r.message}</Box>}
-      <VerdictHelp verdict={r.verdict} bugs={bugs} />
-
-      {tests.length > 0 && (
-        <>
-          <div className="mb-4 flex flex-wrap gap-2">
-            {tests.map((x, k) => (
-              <button key={k} onClick={() => setSel(k)}
-                className={cn("flex items-center gap-2 rounded-lg px-3 py-1 text-sm font-medium", k === sel ? "bg-[var(--case-sel)] text-[var(--title)]" : "text-[color:var(--text2)] hover:bg-[var(--fill-3)]")}>
-                {x.verdict === "AC" ? <SquareCheckBig className="size-3.5 text-[var(--green)]" /> : <SquareX className="size-3.5 text-[var(--hard)]" />}
-                {x.name}
-              </button>
-            ))}
-          </div>
-          {t && (t.io ? (
-            <>
-              {t.verdict !== "AC" && t.verdict !== "WA" && <div className={cn("mb-3 text-sm font-medium", vColor(t.verdict))}>{LABEL[t.verdict] || t.verdict}{t.message ? ` — ${t.message}` : ""}</div>}
-              {t.debug_log && <Box label={t.sanitizer ? "Báo cáo Sanitizer (stderr)" : "stderr"} tone={t.sanitizer ? "bad" : undefined}>{t.debug_log}</Box>}
-              <Box label="Input">{t.io.input}</Box>
-              <Box label="Output">{t.io.output || " "}</Box>
-              <Box label="Expected">{t.io.expected || " "}</Box>
-            </>
-          ) : (
-            <>
-              <div className="mb-3 flex items-center gap-3 text-sm">
-                <span className={cn("font-medium", vColor(t.verdict))}>{LABEL[t.verdict] || t.verdict}</span>
-                <span className="text-[var(--muted)]">{t.time_ms} ms</span>
-              </div>
-              {t.debug_log && <Box label={t.sanitizer ? "Báo cáo Sanitizer (stderr)" : "Output / stderr của chương trình"} tone={t.sanitizer ? "bad" : undefined}>{t.debug_log}</Box>}
-              {t.message
-                ? <Box label="Chi tiết">{t.message}</Box>
-                : <div className="text-sm text-[var(--muted)]">{t.verdict === "AC" ? "Test này đạt." : "Không có chi tiết (test ẩn)."}</div>}
-            </>
-          ))}
-        </>
-      )}
+      <TestBreakdown r={r} />
 
       {r.compile_log && r.verdict !== "CE" && r.compile_log.trim() && (
         <details className="mt-2 text-sm">

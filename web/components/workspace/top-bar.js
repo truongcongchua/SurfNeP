@@ -65,7 +65,7 @@ function UserMenu({ name }) {
           </DropdownMenuItem>
         ))}
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild><Link href="/" className="!text-[var(--text)] hover:no-underline">Danh sách bài</Link></DropdownMenuItem>
+        <DropdownMenuItem asChild><Link href="/problems" className="!text-[var(--text)] hover:no-underline">Danh sách bài</Link></DropdownMenuItem>
         <DropdownMenuItem asChild><Link href="/plans" className="!text-[var(--text)] hover:no-underline">Study Plan</Link></DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => logoutAction()}><LogOut /> Đăng xuất</DropdownMenuItem>

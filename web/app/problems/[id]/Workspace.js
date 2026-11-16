@@ -8,7 +8,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import {
   BookOpen, Bookmark, Lightbulb, Braces, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Code2, Expand, FileText, History,
@@ -46,8 +46,10 @@ function Handle({ vertical }) {
 }
 
 // Thanh tab cuộn ngang (ẩn thanh cuộn), con lăn cuộn ngang, mép bị che thì mờ dần, tab vừa chọn tự cuộn vào.
-function TabBar({ children, right, activeKey }) {
+function TabBar({ children, right, activeKey, onDropTab, dragging }) {
   const ref = useRef(null);
+  const [over, setOver] = useState(false);
+  useEffect(() => { if (!dragging) setOver(false); }, [dragging]);
   const [edge, setEdge] = useState({ l: false, r: false });
   const measure = useCallback(() => {
     const el = ref.current;
@@ -82,7 +84,10 @@ function TabBar({ children, right, activeKey }) {
   }, [activeKey, measure]);
   const mask = `linear-gradient(to right, ${edge.l ? "transparent 0, #000 32px" : "#000 0"}, ${edge.r ? "#000 calc(100% - 32px), transparent 100%" : "#000 100%"})`;
   return (
-    <div className="group/bar flex h-9 shrink-0 items-center bg-[var(--panel-head)] pl-1.5 pr-1">
+    <div className={cn("group/bar flex h-9 shrink-0 items-center bg-[var(--panel-head)] pl-1.5 pr-1", over && "ring-2 ring-inset ring-[var(--accent)]")}
+      onDragOver={dragging ? (e) => { e.preventDefault(); setOver(true); } : undefined}
+      onDragLeave={dragging ? () => setOver(false) : undefined}
+      onDrop={dragging ? (e) => { e.preventDefault(); setOver(false); onDropTab?.(); } : undefined}>
       <div ref={ref} style={{ maskImage: mask, WebkitMaskImage: mask }} className="tab-scroll relative flex min-w-0 flex-1 items-center overflow-x-auto">
         {children}
       </div>
@@ -92,10 +97,13 @@ function TabBar({ children, right, activeKey }) {
   );
 }
 
-function Tab({ active, onClick, icon: Icon, iconClass, children, onClose, onDragStart, onDragEnd }) {
+// Tab kéo thả được (như LeetCode): kéo sang khung khác, hoặc thả lên một tab / thanh tab để chèn vào đúng chỗ.
+function Tab({ active, onClick, icon: Icon, iconClass, children, onClose, onDragStart, onDragEnd, onDropBefore }) {
   return (
     <div className={cn("flex shrink-0 items-center", onDragStart && "cursor-grab active:cursor-grabbing")}
-      draggable={!!onDragStart} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+      draggable={!!onDragStart} onDragStart={onDragStart} onDragEnd={onDragEnd}
+      onDragOver={onDropBefore ? (e) => e.preventDefault() : undefined}
+      onDrop={onDropBefore ? (e) => { e.preventDefault(); e.stopPropagation(); onDropBefore(); } : undefined}>
       <button
         onClick={onClick} data-active={active ? "true" : "false"}
         className={cn(
@@ -136,7 +144,7 @@ function DropOverlay({ show, label, onDrop }) {
     <div
       onDragOver={(e) => { e.preventDefault(); setZone(dropZone(e)); }} onDragLeave={() => setZone(null)}
       onDrop={(e) => { e.preventDefault(); const z = dropZone(e); setZone(null); onDrop(z); }}
-      className="absolute inset-0 z-30 rounded-[inherit] bg-[color-mix(in_srgb,var(--panel)_55%,transparent)]"
+      className="absolute inset-x-0 bottom-0 top-9 z-30 rounded-b-[inherit] bg-[color-mix(in_srgb,var(--panel)_55%,transparent)]"
     >
       {zone && <div className={cn("pointer-events-none absolute rounded-md border-2 border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_22%,transparent)] transition-all", ZONE_BOX[zone])} />}
       <span className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-md bg-[var(--panel)] px-3 py-1 text-sm text-[var(--title)] shadow-[var(--pop-shadow)]">
@@ -144,6 +152,27 @@ function DropOverlay({ show, label, onDrop }) {
       </span>
     </div>
   );
+}
+
+/* ---------- bố cục tab (dock) ---------- */
+
+// Mọi tab đều kéo thả được giữa các khung. Lưu trong localStorage:
+//  assign[tab] = khung chứa tab (left | code | test | extra), order = thứ tự tab, extra = khung tách riêng {target, side}.
+const ORDER = ["desc", "hint", "know", "subs", "detail", "note", "code", "cases", "result"];
+const HOME = { desc: "left", hint: "left", know: "left", subs: "left", detail: "left", note: "left", code: "code", cases: "test", result: "test" };
+const PANEL_IDS = ["left", "code", "test", "extra"];
+const SIDES = ["left", "right", "top", "bottom"];
+const DOCK_KEY = "nj-dock-v3";
+const PANEL_NAME = { left: "khung đề bài", code: "khung Code", test: "khung Testcase", extra: "khung này" };
+
+function normalizeDock(raw) {
+  const assign = {};
+  for (const [k, v] of Object.entries(raw?.assign || {})) if (ORDER.includes(k) && PANEL_IDS.includes(v)) assign[k] = v;
+  const saved = Array.isArray(raw?.order) ? raw.order.filter((id) => ORDER.includes(id)) : [];
+  const order = [...new Set([...saved, ...ORDER])];
+  const e = raw?.extra;
+  const extra = e && ["left", "code", "test"].includes(e.target) && SIDES.includes(e.side) ? { target: e.target, side: e.side } : { target: "left", side: "right" };
+  return { assign, order, extra };
 }
 
 const Sep = () => <span className="mx-1 h-3.5 w-px shrink-0 bg-[var(--line-strong)] opacity-60" />;
@@ -167,30 +196,20 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
   const [code, setCode] = useState(starter);
   const [saved, setSaved] = useState(true);
   const [pos, setPos] = useState({ ln: 1, col: 1 });
-  const [busy, setBusy] = useState(false);
-  const [running, setRunning] = useState(false);
+  const [busy, setBusy] = useState(false);       // đang nộp bài
+  const [running, setRunning] = useState(false); // đang chạy thử
   const [debugging, setDebugging] = useState(false);
   const [error, setError] = useState("");
   const [waitNote, setWaitNote] = useState("");
-  const [result, setResult] = useState(null);
+  const [result, setResult] = useState(null);    // kết quả CHẠY THỬ (Test Result). Kết quả nộp bài nằm ở tab bài nộp.
   const [past, setPast] = useState(history);
   const [lastCode, setLastCode] = useState(lastSubmitted);
-  const [leftTab, setLeftTab] = useState("desc"); // desc | subs | detail | note
-  const [detail, setDetail] = useState(null);
-  // Tab bài nộp đang xem nằm ở khung nào: "left" (cạnh Đề bài) | "code" (cạnh Code) | "test" (cạnh Testcase). Kéo thả để đổi.
-  const [detailDock, setDetailDock] = useLocal("nj-detail-dock", "code");
-  // detailDock = "left" | "code" | "test" (nhập làm tab của khung) hoặc "<khung>:<mép>" (tách nửa khung, mép = left|right|top|bottom).
-  const [dockPanel, dockSide] = String(detailDock).split(":");
-  const tabIn = (p) => !!detail && dockPanel === p && !dockSide;
-  const splitHere = (p) => !!detail && dockPanel === p && !!dockSide;
-  const [codeTab, setCodeTab] = useState("code"); // code | detail
-  const [dragging, setDragging] = useState(false);
+  const [detail, setDetail] = useState(null);    // bài nộp đang xem: tab "Accepted / Wrong Answer…" cạnh Đề bài
   const [noteOpen, setNoteOpen] = useState(false);
   const [note, setNote] = useLocal(`nj-note-${problemId}`, "");
   const [soc, setSoc] = useState(social); // { likes, mine, favorite } — lưu trên máy chủ
   const [confirm, setConfirm] = useState(null); // { message, onOk }
   const [langMenu, setLangMenu] = useState(false);
-  const [bottomTab, setBottomTab] = useState("cases");
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [bottomCollapsed, setBottomCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
@@ -206,13 +225,27 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
   const draftKey = `nj-draft-${problemId}`;
   const leet = settings.layout === "leet";
 
+  // Bố cục tab: tab nào nằm ở khung nào, tab nào đang mở trong mỗi khung.
+  const [rawDock, setRawDock] = useLocal(DOCK_KEY, null);
+  const dock = useMemo(() => normalizeDock(rawDock), [rawDock]);
+  const dockRef = useRef(dock);
+  dockRef.current = dock;
+  const [activeIn, setActiveIn] = useState({ left: "desc", code: "code", test: "cases", extra: null });
+  const [dragId, setDragId] = useState(null);
+
+  const valid = { desc: true, hint: hints.length > 0, know: knowledge.length > 0, subs: true, detail: !!detail, note: noteOpen, code: true, cases: true, result: true };
+  const panelOf = (id) => dock.assign[id] ?? HOME[id];
+  const tabsIn = (p) => dock.order.filter((id) => valid[id] && panelOf(id) === p);
+  const activeOf = (p) => { const t = tabsIn(p); return t.includes(activeIn[p]) ? activeIn[p] : t[0]; };
+  const isActive = (id) => activeOf(panelOf(id)) === id;
+
   // Testcase sửa được (bài stdio/function): mặc định = input của test mẫu.
   const editable = problem.type === "stdio" || problem.type === "function";
   const defaultCases = samples.length ? samples.map((s) => s.input.replace(/\s+$/, "")) : [""];
   const [cases, setCases] = useLocal(`nj-cases-${problemId}`, defaultCases);
   const [caseSel, setCaseSel] = useState(0);
 
-  const flash = useCallback((msg) => { setToast(msg); setTimeout(() => setToast(""), 1800); }, []);
+  const flash = useCallback((msg) => { setToast(msg); setTimeout(() => setToast(""), 2600); }, []);
 
   // Thích / Không thích / Yêu thích: cập nhật ngay, rồi đồng bộ với máy chủ (số lượt thích là của mọi người dùng).
   async function sendReact(body) {
@@ -241,29 +274,66 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
     return () => document.removeEventListener("fullscreenchange", onFs);
   }, []);
 
-  const openBottom = (tab) => {
-    setBottomTab(tab);
-    if (bottomRef.current?.isCollapsed()) bottomRef.current.expand();
-  };
+  // Chọn tab `id` (ở khung đang chứa nó) và mở khung đó ra nếu đang thu gọn.
+  function activate(id) {
+    const d = dockRef.current;
+    const p = d.assign[id] ?? HOME[id];
+    setActiveIn((a) => ({ ...a, [p]: id }));
+    const host = p === "extra" ? d.extra.target : p;
+    const ref = { left: leftRef, code: codeRef, test: bottomRef }[host];
+    if (!leet && host !== "left" && rightRef.current?.isCollapsed()) rightRef.current.expand();
+    if (ref?.current?.isCollapsed()) ref.current.expand();
+  }
+
+  // Kéo thả tab: zone = center (nhập vào khung làm tab) hoặc left|right|top|bottom (tách thành khung riêng ở mép đó).
+  // beforeId = chèn trước tab đó (thả lên thanh tab).
+  function moveTab(id, panel, zone, beforeId) {
+    setDragId(null);
+    if (!id) return;
+    const split = zone && zone !== "center" && panel !== "extra";
+    const dest = split ? "extra" : panel;
+    setRawDock((cur) => {
+      const d = normalizeDock(cur);
+      const assign = { ...d.assign, [id]: dest };
+      const order = d.order.filter((x) => x !== id);
+      const at = beforeId && beforeId !== id ? order.indexOf(beforeId) : -1;
+      if (at >= 0) order.splice(at, 0, id); else order.push(id);
+      return { assign, order, extra: split ? { target: panel, side: zone } : d.extra };
+    });
+    setActiveIn((a) => ({ ...a, [dest]: id }));
+    const host = split ? panel : panel === "extra" ? dockRef.current.extra.target : panel;
+    if (!leet && host !== "left" && rightRef.current?.isCollapsed()) rightRef.current.expand();
+    const hostRef = { left: leftRef, code: codeRef, test: bottomRef }[host];
+    if (hostRef?.current?.isCollapsed()) hostRef.current.expand();
+  }
 
   async function submit() {
     if (busy || running || debugging) return;
-    setBusy(true); setError(""); setResult(null); openBottom("result");
-    const res = await fetch("/api/submit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ problemId, code }) });
-    const data = await res.json();
-    if (!res.ok) { setError(data.error || "Lỗi khi nộp bài"); setBusy(false); return; }
-    const id = data.id;
+    setBusy(true); setError("");
+    let id;
+    try {
+      const res = await fetch("/api/submit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ problemId, code }) });
+      const data = await res.json();
+      if (!res.ok) { flash(data.error || "Lỗi khi nộp bài"); setBusy(false); return; }
+      id = data.id;
+    } catch { flash("Không kết nối được máy chủ"); setBusy(false); return; }
     setLastCode(code);
-    setPast((h) => [{ id, status: "queued", created: Math.floor(Date.now() / 1000) }, ...h].slice(0, 30));
+    const created = Math.floor(Date.now() / 1000);
+    setPast((h) => [{ id, status: "queued", created }, ...h].slice(0, 30));
+    // Kết quả nộp bài hiện ở tab bài nộp (cạnh Đề bài), không phải ở Test Result.
+    setDetail({ id, status: "queued", created, code, result: null });
+    activate("detail");
     for (let i = 0; i < 300; i++) {
       await new Promise((r) => setTimeout(r, 1000));
-      const s = await (await fetch(`/api/submissions/${id}`)).json();
+      let s;
+      try { s = await (await fetch(`/api/submissions/${id}`)).json(); } catch { continue; }
       if (s.status === "done") {
-        setResult(s.result);
+        setDetail((d) => (!d || d.id === id ? { id, ...s } : d));
         setPast((h) => h.map((x) => x.id === id ? { ...x, status: "done", verdict: s.verdict, passed: s.result?.passed, total: s.result?.total } : x));
         if (s.verdict === "AC") clockRef.current?.onAccepted();
         break;
       }
+      setDetail((d) => (d && d.id === id ? { ...d, ...s } : d));
       setWaitNote(s.status === "queued" && s.position > 0 ? `Đang xếp hàng — vị trí ${s.position}` : "");
       if (s.status === "running") setPast((h) => h.map((x) => x.id === id ? { ...x, status: "running" } : x));
     }
@@ -272,10 +342,10 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
   }
 
   // Chạy thử: bài stdio/function chạy đúng các testcase trong khung Testcase (output mong đợi lấy từ lời giải mẫu);
-  // bài client/server chạy test mẫu. Không tính là một lần nộp.
+  // bài client/server chạy test mẫu. Không tính là một lần nộp. Kết quả hiện ở tab Test Result.
   async function run(debug = false) {
     if (busy || running || debugging) return;
-    (debug ? setDebugging : setRunning)(true); setError(""); setResult(null); openBottom("result");
+    (debug ? setDebugging : setRunning)(true); setError(""); setResult(null); activate("result");
     try {
       const body = { problemId, code, ...(editable ? { cases } : {}), ...(debug ? { debug: true } : {}) };
       const res = await fetch("/api/run", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -289,44 +359,36 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
   }
   const debugRun = () => run(true);
 
-  // Chọn tab "bài nộp" trong khung `dock` và mở khung đó ra nếu đang thu gọn.
-  function showDetailIn(dock) {
-    if (dock.includes(":")) { // tách nửa khung: chỉ cần mở khung chứa nó
-      const ref = { left: leftRef, code: codeRef, test: bottomRef }[dock.split(":")[0]];
-      if (ref.current?.isCollapsed()) ref.current.expand();
-    } else if (dock === "left") { setLeftTab("detail"); if (leftRef.current?.isCollapsed()) leftRef.current.expand(); }
-    else if (dock === "code") { setCodeTab("detail"); if (codeRef.current?.isCollapsed()) codeRef.current.expand(); }
-    else { setBottomTab("detail"); if (bottomRef.current?.isCollapsed()) bottomRef.current.expand(); }
-  }
-  // Khung nào đang hiện tab bài nộp mà tab đó đã chuyển đi chỗ khác thì trả về tab mặc định của khung.
-  function releaseDetail(keep) {
-    if (keep !== "left") setLeftTab((t) => (t === "detail" ? "subs" : t));
-    if (keep !== "code") setCodeTab((t) => (t === "detail" ? "code" : t));
-    if (keep !== "test") setBottomTab((t) => (t === "detail" ? "cases" : t));
-  }
-  function moveDetail(panel, zone) {
-    setDragging(false);
-    if (!detail) return;
-    const dock = zone === "center" ? panel : `${panel}:${zone}`;
-    setDetailDock(dock); releaseDetail(zone === "center" ? panel : null); showDetailIn(dock);
-  }
   function closeDetail() {
-    setDetail(null); releaseDetail(null);
-    if (detailDock === "left") setLeftTab("subs");
+    const p = panelOf("detail");
+    setDetail(null);
+    if (panelOf("subs") === p) setActiveIn((a) => ({ ...a, [p]: "subs" }));
   }
-  const detailActive = !!detail && (splitHere(dockPanel) || (detailDock === "left" && leftTab === "detail") || (detailDock === "code" && codeTab === "detail") || (detailDock === "test" && bottomTab === "detail"));
+  function closeNote() { setNoteOpen(false); }
 
   async function openSubmission(id) {
-    setDetail({ id }); showDetailIn(detailDock);
-    const s = await (await fetch(`/api/submissions/${id}`)).json();
-    setDetail({ id, ...s });
+    setDetail({ id }); activate("detail");
+    try {
+      const s = await (await fetch(`/api/submissions/${id}`)).json();
+      setDetail((d) => (d?.id === id ? { id, ...s } : d));
+    } catch { flash("Không tải được bài nộp"); }
+  }
+
+  // "Use Testcase": thêm input của test bị sai vào khung Testcase (nếu chưa có), chọn nó và chuyển sang tab Testcase.
+  function useCase(input) {
+    const v = String(input ?? "").replace(/\s+$/, "");
+    const at = cases.indexOf(v);
+    if (at >= 0) setCaseSel(at);
+    else if (cases.length >= 10) { flash("Đã đủ 10 testcase, hãy xoá bớt một case rồi thử lại"); return; }
+    else { setCases([...cases, v]); setCaseSel(cases.length); }
+    activate("cases");
+    flash(at >= 0 ? `Testcase này đã có (Case ${at + 1})` : "Đã thêm vào khung Testcase");
   }
 
   function loadIntoEditor() {
     if (!detail?.code) return;
-    setCode(detail.code); setResult(detail.result); setError("");
-    if (detailDock === "code") setCodeTab("code");
-    openBottom("result");
+    setCode(detail.code); setError("");
+    activate("code");
   }
   function resetCode() {
     setConfirm({ message: "Code đang viết sẽ bị xoá và đưa về code khung ban đầu. Các bài đã nộp vẫn còn trong Lịch sử nộp.", onOk: () => setCode(originalStarter) });
@@ -344,13 +406,12 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
     try { await navigator.clipboard.writeText(url); flash("Đã sao chép liên kết"); } catch { flash(url); }
   }
   function closeActiveTab() {
-    if (detailActive) closeDetail();
-    else if (leftTab === "note") { setNoteOpen(false); setLeftTab("desc"); }
+    if (detail && isActive("detail")) closeDetail();
+    else if (noteOpen && isActive("note")) closeNote();
   }
   function toggleNote() {
-    if (noteOpen && leftTab === "note") { setNoteOpen(false); setLeftTab("desc"); return; }
-    setNoteOpen(true); setLeftTab("note");
-    if (leftRef.current?.isCollapsed()) leftRef.current.expand();
+    if (noteOpen && isActive("note")) { closeNote(); return; }
+    setNoteOpen(true); activate("note");
   }
 
   // Phóng to khung đề = thu gọn phần code + testcase.
@@ -372,7 +433,10 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
     else { codeRef.current?.collapse(); leftRef.current?.collapse(); }
   }
   function resetLayout() {
-    try { Object.keys(localStorage).filter((k) => k.startsWith("react-resizable-panels:nj-")).forEach((k) => localStorage.removeItem(k)); } catch {}
+    try {
+      Object.keys(localStorage).filter((k) => k.startsWith("react-resizable-panels:nj-")).forEach((k) => localStorage.removeItem(k));
+      localStorage.removeItem(DOCK_KEY);
+    } catch {}
     location.reload();
   }
 
@@ -412,190 +476,219 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
     const others = nav.all.filter((x) => x !== problemId);
     if (others.length) router.push(`/problems/${others[Math.floor(Math.random() * others.length)]}`);
   };
-  const verdictTab = detail?.verdict ? LABEL[detail.verdict] || detail.verdict : "Bài nộp";
+  const detailPending = !!detail && detail.status && detail.status !== "done";
+  const verdictTab = detailPending ? "Đang chấm…" : detail?.verdict ? LABEL[detail.verdict] || detail.verdict : "Bài nộp";
   const acCount = past.filter((s) => s.verdict === "AC").length;
 
-  /* ----- tab bài nộp: dùng chung cho cả 3 khung, kéo thả để đổi khung ----- */
+  /* ----- tab: nhãn + nội dung ----- */
 
-  const detailTabEl = (active, onClick) => (
-    <Tab active={active} onClick={onClick} icon={History} iconClass="text-[var(--accent)]"
-      onClose={closeDetail}
-      onDragStart={(e) => { e.dataTransfer.setData("text/plain", "nj-detail"); e.dataTransfer.effectAllowed = "move"; setTimeout(() => setDragging(true), 0); }}
-      onDragEnd={() => setDragging(false)}>
-      {verdictTab}
-    </Tab>
+  const TABS = {
+    desc: { label: "Đề bài", icon: FileText, cls: "text-[var(--accent)]" },
+    hint: { label: "Gợi ý", icon: Lightbulb, cls: "text-[var(--brand)]" },
+    know: { label: "Kiến thức", icon: BookOpen, cls: "text-[var(--accent)]" },
+    subs: { label: "Lịch sử nộp", icon: History, cls: "text-[var(--accent)]" },
+    detail: { label: verdictTab, icon: History, cls: detailPending ? "text-[var(--muted)]" : detail?.verdict === "AC" ? "text-[var(--green)]" : detail?.verdict ? "text-[var(--hard)]" : "text-[var(--accent)]", close: closeDetail },
+    note: { label: "Ghi chú", icon: NotebookPen, cls: "text-[var(--brand)]", close: closeNote },
+    code: { label: "Code", icon: Code2, cls: "text-[var(--green)]" },
+    cases: { label: "Testcase", icon: SquareCheck, cls: "text-[var(--green)]" },
+    result: { label: <>Test Result{(running || debugging) && <Loader2 className="ml-1 size-3.5 animate-spin" />}</>, icon: Terminal, cls: "text-[var(--green)]" },
+  };
+
+  const bodyOf = (id) => {
+    switch (id) {
+      case "desc": return <Description problem={problem} html={html} solved={acCount > 0} stats={stats} similar={similar} />;
+      case "hint": return <HintsPanel problemId={problemId} hints={hints} />;
+      case "know": return <KnowledgePanel cards={knowledge} />;
+      case "subs": return <SubmissionList past={past} onOpen={openSubmission} />;
+      case "detail": return (
+        <SubmissionDetail bugs={bugs} sub={detail?.code != null ? detail : null} user={user} note={waitNote}
+          onBack={() => activate("subs")} onLoad={loadIntoEditor} onUseCase={editable ? useCase : undefined} />
+      );
+      case "note": return <NoteEditor value={note} onChange={setNote} />;
+      case "cases": return <Testcases editable={editable} cases={cases} setCases={setCases} defaults={defaultCases} sel={caseSel} setSel={setCaseSel} />;
+      case "result": return <TestResult r={result} error={error} busy={running || debugging} note={waitNote} />;
+      default: return null;
+    }
+  };
+
+  // Tab Code luôn gắn vào cây DOM (chỉ ẩn khi không được chọn) để không mất vị trí con trỏ / lịch sử hoàn tác khi đổi tab.
+  const codeView = (active) => (
+    <div ref={codeBox} className={cn("flex min-h-0 flex-1 flex-col bg-[var(--panel)]", !active && "hidden")}>
+      <div className="relative flex h-8 shrink-0 items-center gap-1 px-2 text-sm">
+        <button onClick={() => setLangMenu((v) => !v)} className="flex h-6 items-center gap-1 rounded-[5px] px-1.5 text-[var(--text2)] hover:bg-[var(--fill-3)]" aria-haspopup="listbox">
+          C <ChevronDown className="size-3.5" />
+        </button>
+        {langMenu && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setLangMenu(false)} />
+            <div role="listbox" className="absolute left-2 top-8 z-50 w-72 rounded-lg bg-[var(--panel)] p-1 text-sm shadow-[var(--pop-shadow)]">
+              <button role="option" aria-selected onClick={() => setLangMenu(false)} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left hover:bg-[var(--raised)]">
+                <Check className="size-4 text-[var(--green)]" /><span><b className="font-medium text-[var(--title)]">C</b><span className="block text-xs text-[var(--muted)]">gcc -std=gnu11 -Wall -Wextra -pthread</span></span>
+              </button>
+            </div>
+          </>
+        )}
+        <span className="flex items-center gap-1.5 px-1 text-[var(--text2)]" title="gcc -std=gnu11 -Wall -Wextra -pthread"><Lock className="size-3.5" />Auto</span>
+        <span className="flex-1" />
+        <NavIcon label="Ghi chú bài nộp" onClick={toggleNote} className="size-6 rounded-[5px]"><Bookmark /></NavIcon>
+        <NavIcon label="Lấy code nộp gần nhất" onClick={retrieveLast} className="size-6 rounded-[5px]"><Braces /></NavIcon>
+        <NavIcon label="Đưa về code khung ban đầu" onClick={resetCode} className="size-6 rounded-[5px]"><RotateCcw /></NavIcon>
+        <NavIcon label={fullscreen ? "Thoát toàn màn hình (Alt+F)" : "Toàn màn hình (Alt+F)"} onClick={toggleFullscreen} className="size-6 rounded-[5px]">{fullscreen ? <Shrink /> : <Expand />}</NavIcon>
+      </div>
+      <div className="min-h-0 flex-1">
+        <Monaco
+          height="100%" language="c" value={code}
+          theme={resolvedTheme === "dark" ? "nj-dark" : "nj-light"}
+          beforeMount={defineThemes} onMount={onEditorMount}
+          onChange={(v) => setCode(v ?? "")}
+          options={{
+            minimap: { enabled: false }, fontSize: settings.fontSize, lineHeight: Math.round(settings.fontSize * 1.55),
+            fontFamily: "Menlo, Monaco, Consolas, 'Courier New', monospace", fontLigatures: settings.ligatures,
+            tabSize: settings.tabSize, wordWrap: settings.wordWrap ? "on" : "off",
+            lineNumbers: settings.relativeLines ? "relative" : "on", cursorBlinking: settings.noCursorBlink ? "solid" : "blink",
+            scrollBeyondLastLine: false, automaticLayout: true, padding: { top: 8 },
+            lineNumbersMinChars: 3, renderLineHighlight: "line", scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8 },
+          }}
+        />
+      </div>
+      <div className="flex h-7 shrink-0 items-center justify-between gap-3 px-3 text-xs text-[var(--text3)]">
+        <span>{saved ? "Đã lưu" : "Đang lưu…"}</span>
+        <span className="flex items-center gap-3">
+          Ln {pos.ln}, Col {pos.col}
+          {bottomCollapsed && !maximized && (
+            <button onClick={() => bottomRef.current?.expand()} className="flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-[var(--raised)] hover:text-[var(--title)]">
+              <Terminal className="size-3.5" />Console<ChevronUp className="size-3.5" />
+            </button>
+          )}
+        </span>
+      </div>
+    </div>
   );
-  const detailView = <SubmissionDetail bugs={bugs} sub={detail?.code != null ? detail : null} user={user}
-    onBack={() => { setLeftTab("subs"); if (leftRef.current?.isCollapsed()) leftRef.current.expand(); }} onLoad={loadIntoEditor} />;
-  const dropFor = (panel, label) => <DropOverlay show={dragging && !!detail} label={label} onDrop={(zone) => moveDetail(panel, zone)} />;
 
-  // Khung tách riêng cho tab bài nộp (thả vào mép của một khung): đặt cạnh khung `target` ở phía `dockSide`.
-  const splitWrap = (target, body) => {
-    if (!splitHere(target)) return <div className="lc-panel h-full">{body}</div>;
-    const horizontal = dockSide === "left" || dockSide === "right";
-    const first = dockSide === "left" || dockSide === "top";
-    const side = (
-      <Panel id="detail" order={first ? 1 : 2} defaultSize={40} minSize={15}>
-        <div className="lc-panel h-full">
-          <TabBar activeKey="detail">{detailTabEl(true, () => {})}</TabBar>
-          <div className="min-h-0 flex-1 overflow-y-auto">{detailView}</div>
-        </div>
-      </Panel>
-    );
-    const main = (
-      <Panel id="main" order={first ? 2 : 1} defaultSize={60} minSize={15}>
-        <div className="lc-panel h-full">{body}</div>
-      </Panel>
-    );
+  // Nút phóng to / thu gọn bên phải thanh tab của từng khung.
+  const panelRight = (p) => {
+    if (p === "left") return (<>
+      <IconBtn label={rightCollapsed ? "Thu nhỏ" : "Phóng to"} onClick={toggleLeftMax}>{rightCollapsed ? <Minimize className="size-4" /> : <Maximize className="size-4" />}</IconBtn>
+      {!rightCollapsed && <IconBtn label="Thu gọn" onClick={() => leftRef.current?.collapse()}><ChevronLeft className="size-4" /></IconBtn>}
+    </>);
+    if (p === "code") return (<>
+      {leftCollapsed && !maximized && <IconBtn label="Mở khung đề bài" onClick={() => leftRef.current?.expand()}><PanelLeftOpen className="size-4" /></IconBtn>}
+      <IconBtn label={maximized ? "Thu nhỏ (Alt+=)" : "Phóng to (Alt+=)"} onClick={toggleMax}>{maximized ? <Minimize className="size-4" /> : <Maximize className="size-4" />}</IconBtn>
+    </>);
+    if (p === "test") return (<>
+      <IconBtn label={testMax ? "Thu nhỏ" : "Phóng to"} onClick={toggleTestMax}>{testMax ? <Minimize className="size-4" /> : <Maximize className="size-4" />}</IconBtn>
+      <IconBtn label="Thu gọn" onClick={() => bottomRef.current?.collapse()}>{leet ? <ChevronRight className="size-4" /> : <ChevronDown className="size-4" />}</IconBtn>
+    </>);
+    return null;
+  };
+
+  // Một khung: thanh tab (kéo thả được) + nội dung tab đang chọn.
+  const renderPanel = (p) => {
+    const tabs = tabsIn(p), act = activeOf(p);
     return (
-      <PanelGroup key={detailDock} direction={horizontal ? "horizontal" : "vertical"}>
-        {first ? <>{side}<Handle vertical={!horizontal} />{main}</> : <>{main}<Handle vertical={!horizontal} />{side}</>}
-      </PanelGroup>
+      <>
+        <DropOverlay show={dragId != null} label={`Thả vào ${PANEL_NAME[p]}`} onDrop={(zone) => moveTab(dragId, p, zone)} />
+        <TabBar activeKey={`${act}|${tabs.join(",")}`} right={panelRight(p)} dragging={dragId != null} onDropTab={() => moveTab(dragId, p, "center")}>
+          {tabs.map((id, i) => {
+            const t = TABS[id];
+            return (
+              <Fragment key={id}>
+                {i > 0 && <Sep />}
+                <Tab active={id === act} onClick={() => setActiveIn((a) => ({ ...a, [p]: id }))} icon={t.icon} iconClass={t.cls} onClose={t.close}
+                  onDragStart={(e) => { e.dataTransfer.setData("text/plain", `nj-tab:${id}`); e.dataTransfer.effectAllowed = "move"; setTimeout(() => setDragId(id), 0); }}
+                  onDragEnd={() => setDragId(null)}
+                  onDropBefore={dragId && dragId !== id ? () => moveTab(dragId, p, "center", id) : undefined}>
+                  {t.label}
+                </Tab>
+              </Fragment>
+            );
+          })}
+        </TabBar>
+        {tabs.includes("code") && codeView(act === "code")}
+        {act !== "code" && <div className="min-h-0 flex-1 overflow-y-auto">{bodyOf(act)}</div>}
+        {act === "desc" && (
+          <DescFooter likes={soc.likes} mine={soc.mine} favorite={soc.favorite} onLike={(v) => sendReact({ like: v })} onFavorite={(v) => sendReact({ favorite: v })}
+            onShare={share} onHelp={() => setSettingsOpen("keys")} />
+        )}
+      </>
     );
   };
 
   /* ----- các khung ----- */
 
-  const leftPanel = (
-    <Panel id="left" order={1} ref={leftRef} defaultSize={leet ? 33 : 30} minSize={20} collapsible collapsedSize={0}
+  const extra = dock.extra;
+  const extraHas = tabsIn("extra").length > 0;
+  const has = (p) => tabsIn(p).length > 0 || (extraHas && extra.target === p);
+
+  // Khung `target`; nếu có khung tách riêng (thả tab vào mép) thì đặt cạnh nó ở phía `extra.side`.
+  const wrap = (target) => {
+    if (!(extraHas && extra.target === target)) return <div className="lc-panel h-full">{renderPanel(target)}</div>;
+    if (tabsIn(target).length === 0) return <div className="lc-panel h-full">{renderPanel("extra")}</div>;
+    const horizontal = extra.side === "left" || extra.side === "right";
+    const first = extra.side === "left" || extra.side === "top";
+    const side = (
+      <Panel key="extra" id="extra" order={first ? 1 : 2} defaultSize={40} minSize={15}>
+        <div className="lc-panel h-full">{renderPanel("extra")}</div>
+      </Panel>
+    );
+    const main = (
+      <Panel key="main" id="main" order={first ? 2 : 1} defaultSize={60} minSize={15}>
+        <div className="lc-panel h-full">{renderPanel(target)}</div>
+      </Panel>
+    );
+    return (
+      <PanelGroup key={`${target}:${extra.side}`} direction={horizontal ? "horizontal" : "vertical"}>
+        {first ? [side, <Handle key="h" vertical={!horizontal} />, main] : [main, <Handle key="h" vertical={!horizontal} />, side]}
+      </PanelGroup>
+    );
+  };
+
+  // Khung nào rỗng (đã kéo hết tab đi) thì ẩn; kích thước các khung còn lại quy về tổng 100%.
+  const share100 = (ids, base) => { const sum = ids.reduce((a, i) => a + base[i], 0); return Object.fromEntries(ids.map((i) => [i, (base[i] / sum) * 100])); };
+  const join = (items, vertical) => items.flatMap((x, i) => (i ? [<Handle key={`h${i}`} vertical={vertical} />, x] : [x]));
+  const sig = ["left", "code", "test"].map((p) => (has(p) ? 1 : 0)).join("");
+  useEffect(() => { // khung biến mất thì không còn sự kiện thu gọn: đặt lại cờ
+    setLeftCollapsed(false); setBottomCollapsed(false); setRightCollapsed(false); setCodeCollapsed(false);
+  }, [sig, leet]);
+
+  const mkLeft = (size) => (
+    <Panel key="left" id="left" order={1} ref={leftRef} defaultSize={size} minSize={20} collapsible collapsedSize={0}
       onCollapse={() => setLeftCollapsed(true)} onExpand={() => setLeftCollapsed(false)}>
-      {splitWrap("left", <>
-      {dropFor("left", "Thả vào khung đề bài")}
-      <TabBar activeKey={`${leftTab}|${detail && detailDock === "left" ? 1 : 0}|${noteOpen ? 1 : 0}`}
-        right={<>
-          <IconBtn label={rightCollapsed ? "Thu nhỏ" : "Phóng to"} onClick={toggleLeftMax}>{rightCollapsed ? <Minimize className="size-4" /> : <Maximize className="size-4" />}</IconBtn>
-          {!rightCollapsed && <IconBtn label="Thu gọn" onClick={() => leftRef.current?.collapse()}><ChevronLeft className="size-4" /></IconBtn>}
-        </>}>
-        <Tab active={leftTab === "desc"} onClick={() => setLeftTab("desc")} icon={FileText} iconClass="text-[var(--accent)]">Đề bài</Tab>
-        {hints.length > 0 && (<>
-          <Sep />
-          <Tab active={leftTab === "hint"} onClick={() => setLeftTab("hint")} icon={Lightbulb} iconClass="text-[var(--brand)]">Gợi ý</Tab>
-        </>)}
-        {knowledge.length > 0 && (<>
-          <Sep />
-          <Tab active={leftTab === "know"} onClick={() => setLeftTab("know")} icon={BookOpen} iconClass="text-[var(--accent)]">Kiến thức</Tab>
-        </>)}
-        <Sep />
-        <Tab active={leftTab === "subs"} onClick={() => setLeftTab("subs")} icon={History} iconClass="text-[var(--accent)]">Lịch sử nộp</Tab>
-        {detail && detailDock === "left" && (<>
-          <Sep />
-          {detailTabEl(leftTab === "detail", () => setLeftTab("detail"))}
-        </>)}
-        {noteOpen && (<>
-          <Sep />
-          <Tab active={leftTab === "note"} onClick={() => setLeftTab("note")} icon={NotebookPen} iconClass="text-[var(--brand)]"
-            onClose={() => { setNoteOpen(false); if (leftTab === "note") setLeftTab("desc"); }}>Ghi chú</Tab>
-        </>)}
-      </TabBar>
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {leftTab === "desc" && <Description problem={problem} html={html} solved={acCount > 0} stats={stats} similar={similar} />}
-        {leftTab === "hint" && hints.length > 0 && <HintsPanel problemId={problemId} hints={hints} />}
-        {leftTab === "know" && knowledge.length > 0 && <KnowledgePanel cards={knowledge} />}
-        {leftTab === "subs" && <SubmissionList past={past} onOpen={openSubmission} />}
-        {leftTab === "detail" && detail && detailView}
-        {leftTab === "note" && <NoteEditor value={note} onChange={setNote} />}
-      </div>
-      <DescFooter likes={soc.likes} mine={soc.mine} favorite={soc.favorite} onLike={(v) => sendReact({ like: v })} onFavorite={(v) => sendReact({ favorite: v })}
-        onShare={share} onHelp={() => setSettingsOpen("keys")}
-        />
-      </>)}
+      {wrap("left")}
     </Panel>
   );
-
-  const codePanel = (
-    <Panel id="code" order={2} ref={codeRef} defaultSize={leet ? 40 : 55} minSize={15} collapsible collapsedSize={0}
+  const mkCode = (size) => (
+    <Panel key="code" id="code" order={2} ref={codeRef} defaultSize={size} minSize={15} collapsible collapsedSize={0}
       onCollapse={() => setCodeCollapsed(true)} onExpand={() => setCodeCollapsed(false)}>
-      {splitWrap("code", <>
-      {dropFor("code", "Thả vào khung Code")}
-      <div ref={codeBox} className="flex h-full flex-col bg-[var(--panel)]">
-        <TabBar activeKey={`${codeTab}|${detail && detailDock === "code" ? 1 : 0}`} right={<>
-          {leftCollapsed && !maximized && <IconBtn label="Mở khung đề bài" onClick={() => leftRef.current?.expand()}><PanelLeftOpen className="size-4" /></IconBtn>}
-          <IconBtn label={maximized ? "Thu nhỏ (Alt+=)" : "Phóng to (Alt+=)"} onClick={toggleMax}>{maximized ? <Minimize className="size-4" /> : <Maximize className="size-4" />}</IconBtn>
-        </>}>
-          <Tab active={codeTab === "code"} onClick={() => setCodeTab("code")} icon={Code2} iconClass="text-[var(--green)]">Code</Tab>
-          {detail && detailDock === "code" && (<><Sep />{detailTabEl(codeTab === "detail", () => setCodeTab("detail"))}</>)}
-        </TabBar>
-        {codeTab === "detail" && detail && detailDock === "code" && <div className="min-h-0 flex-1 overflow-y-auto">{detailView}</div>}
-        {/* Giữ Monaco luôn gắn vào cây DOM (chỉ ẩn) để không mất vị trí con trỏ / lịch sử hoàn tác khi đổi tab. */}
-        <div className={cn("flex min-h-0 flex-1 flex-col", codeTab === "detail" && detailDock === "code" && detail && "hidden")}>
-        <div className="relative flex h-8 shrink-0 items-center gap-1 px-2 text-sm">
-          <button onClick={() => setLangMenu((v) => !v)} className="flex h-6 items-center gap-1 rounded-[5px] px-1.5 text-[var(--text2)] hover:bg-[var(--fill-3)]" aria-haspopup="listbox">
-            C <ChevronDown className="size-3.5" />
-          </button>
-          {langMenu && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setLangMenu(false)} />
-              <div role="listbox" className="absolute left-2 top-8 z-50 w-72 rounded-lg bg-[var(--panel)] p-1 text-sm shadow-[var(--pop-shadow)]">
-                <button role="option" aria-selected onClick={() => setLangMenu(false)} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left hover:bg-[var(--raised)]">
-                  <Check className="size-4 text-[var(--green)]" /><span><b className="font-medium text-[var(--title)]">C</b><span className="block text-xs text-[var(--muted)]">gcc -std=gnu11 -Wall -Wextra -pthread</span></span>
-                </button>
-              </div>
-            </>
-          )}
-          <span className="flex items-center gap-1.5 px-1 text-[var(--text2)]" title="gcc -std=gnu11 -Wall -Wextra -pthread"><Lock className="size-3.5" />Auto</span>
-          <span className="flex-1" />
-          <NavIcon label="Ghi chú bài nộp" onClick={toggleNote} className="size-6 rounded-[5px]"><Bookmark /></NavIcon>
-          <NavIcon label="Lấy code nộp gần nhất" onClick={retrieveLast} className="size-6 rounded-[5px]"><Braces /></NavIcon>
-          <NavIcon label="Đưa về code khung ban đầu" onClick={resetCode} className="size-6 rounded-[5px]"><RotateCcw /></NavIcon>
-          <NavIcon label={fullscreen ? "Thoát toàn màn hình (Alt+F)" : "Toàn màn hình (Alt+F)"} onClick={toggleFullscreen} className="size-6 rounded-[5px]">{fullscreen ? <Shrink /> : <Expand />}</NavIcon>
-        </div>
-        <div className="min-h-0 flex-1">
-          <Monaco
-            height="100%" language="c" value={code}
-            theme={resolvedTheme === "dark" ? "nj-dark" : "nj-light"}
-            beforeMount={defineThemes} onMount={onEditorMount}
-            onChange={(v) => setCode(v ?? "")}
-            options={{
-              minimap: { enabled: false }, fontSize: settings.fontSize, lineHeight: Math.round(settings.fontSize * 1.55),
-              fontFamily: "Menlo, Monaco, Consolas, 'Courier New', monospace", fontLigatures: settings.ligatures,
-              tabSize: settings.tabSize, wordWrap: settings.wordWrap ? "on" : "off",
-              lineNumbers: settings.relativeLines ? "relative" : "on", cursorBlinking: settings.noCursorBlink ? "solid" : "blink",
-              scrollBeyondLastLine: false, automaticLayout: true, padding: { top: 8 },
-              lineNumbersMinChars: 3, renderLineHighlight: "line", scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8 },
-            }}
-          />
-        </div>
-        <div className="flex h-7 shrink-0 items-center justify-between gap-3 px-3 text-xs text-[var(--text3)]">
-          <span>{saved ? "Đã lưu" : "Đang lưu…"}</span>
-          <span className="flex items-center gap-3">
-            Ln {pos.ln}, Col {pos.col}
-            {bottomCollapsed && !maximized && (
-              <button onClick={() => bottomRef.current?.expand()} className="flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-[var(--raised)] hover:text-[var(--title)]">
-                <Terminal className="size-3.5" />Console<ChevronUp className="size-3.5" />
-              </button>
-            )}
-          </span>
-        </div>
-        </div>
-      </div>
-      </>)}
+      {wrap("code")}
+    </Panel>
+  );
+  const mkTest = (size) => (
+    <Panel key="test" id="test" order={3} ref={bottomRef} defaultSize={size} minSize={12} collapsible collapsedSize={0}
+      onCollapse={() => setBottomCollapsed(true)} onExpand={() => setBottomCollapsed(false)}>
+      {wrap("test")}
     </Panel>
   );
 
-  const testPanel = (
-    <Panel id="test" order={3} ref={bottomRef} defaultSize={leet ? 27 : 45} minSize={12} collapsible collapsedSize={0}
-      onCollapse={() => setBottomCollapsed(true)} onExpand={() => setBottomCollapsed(false)}>
-      {splitWrap("test", <>
-      {dropFor("test", "Thả vào khung Testcase")}
-      <TabBar activeKey={`${bottomTab}|${detail && detailDock === "test" ? 1 : 0}`} right={<>
-        <IconBtn label={testMax ? "Thu nhỏ" : "Phóng to"} onClick={toggleTestMax}>{testMax ? <Minimize className="size-4" /> : <Maximize className="size-4" />}</IconBtn>
-        <IconBtn label="Thu gọn" onClick={() => bottomRef.current?.collapse()}>{leet ? <ChevronRight className="size-4" /> : <ChevronDown className="size-4" />}</IconBtn>
-      </>}>
-        <Tab active={bottomTab === "cases"} onClick={() => setBottomTab("cases")} icon={SquareCheck} iconClass="text-[var(--green)]">Testcase</Tab>
-        <Sep />
-        <Tab active={bottomTab === "result"} onClick={() => setBottomTab("result")} icon={Terminal} iconClass="text-[var(--green)]">
-          Test Result{(busy || running || debugging) && <Loader2 className="ml-1 size-3.5 animate-spin" />}
-        </Tab>
-        {detail && detailDock === "test" && (<><Sep />{detailTabEl(bottomTab === "detail", () => setBottomTab("detail"))}</>)}
-      </TabBar>
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {bottomTab === "cases" && <Testcases editable={editable} cases={cases} setCases={setCases} defaults={defaultCases} sel={caseSel} setSel={setCaseSel} />}
-        {bottomTab === "result" && <TestResult bugs={bugs} r={result} error={error} busy={busy || running || debugging} note={waitNote} />}
-        {bottomTab === "detail" && detail && detailView}
-      </div>
-      </>)}
-    </Panel>
-  );
+  let layoutEl = null;
+  if (leet) {
+    const ids = ["left", "code", "test"].filter(has);
+    const sz = share100(ids, { left: 33, code: 40, test: 27 });
+    const mk = { left: mkLeft, code: mkCode, test: mkTest };
+    layoutEl = ids.length ? <PanelGroup key={`leet-${sig}`} direction="horizontal" autoSaveId={`nj-lc-leet2-${sig}`}>{join(ids.map((i) => mk[i](sz[i])))}</PanelGroup> : null;
+  } else {
+    const rids = ["code", "test"].filter(has);
+    const rsz = share100(rids, { code: 55, test: 45 });
+    const mk = { code: mkCode, test: mkTest };
+    const rightEl = rids.length ? (
+      <Panel key="right" id="right" order={2} ref={rightRef} defaultSize={has("left") ? 70 : 100} minSize={30} collapsible collapsedSize={0}
+        onCollapse={() => setRightCollapsed(true)} onExpand={() => setRightCollapsed(false)}>
+        <PanelGroup key={`v-${sig}`} direction="vertical" autoSaveId={`nj-lc-v2-${sig}`}>{join(rids.map((i) => mk[i](rsz[i])), true)}</PanelGroup>
+      </Panel>
+    ) : null;
+    const cols = [has("left") ? mkLeft(rids.length ? 30 : 100) : null, rightEl].filter(Boolean);
+    layoutEl = cols.length ? <PanelGroup key={`default-${sig}`} direction="horizontal" autoSaveId={`nj-lc-h2-${sig}`}>{join(cols)}</PanelGroup> : null;
+  }
 
   return (
     <div className="lc-shell">
@@ -611,24 +704,7 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
       <ProblemDrawer open={drawer} onClose={() => setDrawer(false)} list={nav.list} diffLabel={nav.diffLabel} currentId={problemId} />
 
       {/* ---------- các khung ---------- */}
-      <div className="min-h-0 flex-1 px-2.5 pb-2.5">
-        {leet ? (
-          <PanelGroup key="leet" direction="horizontal" autoSaveId="nj-lc-leet2">
-            {leftPanel}<Handle />{codePanel}<Handle />{testPanel}
-          </PanelGroup>
-        ) : (
-          <PanelGroup key="default" direction="horizontal" autoSaveId="nj-lc-h2">
-            {leftPanel}
-            <Handle />
-            <Panel id="right" order={2} ref={rightRef} defaultSize={70} minSize={30} collapsible collapsedSize={0}
-              onCollapse={() => setRightCollapsed(true)} onExpand={() => setRightCollapsed(false)}>
-              <PanelGroup direction="vertical" autoSaveId="nj-lc-v2">
-                {codePanel}<Handle vertical />{testPanel}
-              </PanelGroup>
-            </Panel>
-          </PanelGroup>
-        )}
-      </div>
+      <div className="min-h-0 flex-1 px-2.5 pb-2.5">{layoutEl}</div>
 
       <SettingsDialog open={!!settingsOpen} initial={settingsOpen === "keys" ? "keys" : "layout"} onClose={() => setSettingsOpen(false)} settings={settings} set={setSettings}
         onResetLayout={resetLayout} timerCfg={timerCfg} setTimerCfg={setTimerCfg} />
