@@ -1,0 +1,14 @@
+id: telnet-poll
+title: Server Telnet dùng poll
+difficulty: hard
+chapter: 3
+topics: [TCP, Stream Framing, poll, Authentication, Process]
+prerequisites: [telnet-select, chat-poll]
+ref: "Lecture notes §3.5 (hàm poll), §3.6 Bài tập 3.3; code mẫu 2-Chap2/telnet_server.c"
+type: server
+args: ["{port}"]
+test_timeout: 8
+constraints:
+  require_any: [poll]
+  forbid: [select, epoll_wait, fork, pthread_create]
+concepts: [select-poll, telnet-auth]

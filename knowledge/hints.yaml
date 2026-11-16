@@ -193,3 +193,43 @@ kv-max-n:
     Chọn `select`/`poll` (một luồng, không cần khoá) cho gọn. Bảng key-value là mảng `{key, value, used}` tối đa 1000 phần tử. Mỗi client có bộ đệm dòng riêng. Khi `accept`: nếu `nclients >= N` thì gửi `FULL\n` rồi `close`, ngược lại gửi `WELCOME\n` và tăng `nclients`. Xem thẻ **Quản lý nhiều client**.
   - |-
     Giảm `nclients` ở **mọi** đường client rời đi (`QUIT`, `recv == 0`, lỗi). Lệnh sai tên hoặc **thừa/thiếu tham số** đều trả `ERROR` (kiểm tra bằng số trường `sscanf` đọc được cộng với việc không còn ký tự thừa). `SET` ghi đè nếu key đã có; bảng đầy 1000 key thì quyết định xử lý theo đề. `QUIT` trả `BYE` rồi đóng. Bỏ `\r` cuối dòng.
+
+telnet-poll:
+  - |-
+    Giao thức và `system()` giữ nguyên như bài *telnet-select*; chỉ khác cách chờ sự kiện. Hãy nghĩ: thông tin nào `select` bắt bạn dựng lại mỗi vòng, và `poll` biểu diễn nó thế nào?
+  - |-
+    Dựng mảng `struct pollfd` (phần tử đầu là socket nghe, sau đó mỗi client một phần tử, `events = POLLIN`), gọi `poll(fds, n, -1)`, rồi duyệt `revents`. Cần một mảng phụ `idx[]` để biết `fds[j]` là client nào.
+  - |-
+    Kiểm tra `revents & (POLLIN | POLLHUP | POLLERR)`: client đóng đột ngột có thể chỉ báo `POLLHUP`. Duyệt `j` từ 1 để bỏ qua socket nghe. Giữ `2>&1` trong lệnh `system()` và dùng tên tệp tạm riêng cho từng client.
+
+echo-max-n:
+  - |-
+    Hai việc: (1) phục vụ nhiều client cùng lúc (giống *select-echo*), (2) đếm số client **đang kết nối** để từ chối client thứ N+1. Thử trả lời: biến đếm tăng ở đâu, giảm ở đâu?
+  - |-
+    Chọn `poll` hoặc `select`. Khi `accept`: nếu `active >= N` thì gửi `FULL\n` rồi `close` (client này **không** tính vào `active`), ngược lại `active++` và gửi `WELCOME\n`. `COUNT` trả đúng giá trị `active` hiện tại.
+  - |-
+    `active--` chỉ nên đặt ở **một** chỗ: đường đóng client chung, dùng cho cả `QUIT`, `recv == 0` và lỗi. Mỗi client có bộ đệm dòng riêng vì dòng có thể đến cắt vụn hoặc dính nhau. Bỏ `\r` cuối dòng; dòng rỗng vẫn trả `ECHO ` (có dấu cách).
+
+chat-client:
+  - |-
+    Có hai nguồn sự kiện cần chờ **cùng lúc**: bàn phím và socket. Nếu chờ lần lượt (`fgets` rồi `recv`), phía nào im lặng sẽ làm phía kia đơ. Cái bạn cần là một hàm chờ được nhiều fd.
+  - |-
+    `struct pollfd fds[2] = {{0, POLLIN, 0}, {sock, POLLIN, 0}}`; `poll(fds, 2, -1)`. Nhánh stdin: `read(0, ...)` rồi `send` sang server. Nhánh socket: `recv` rồi `write(1, ...)`. Đây là code mẫu `select_client.c` viết lại bằng `poll`.
+  - |-
+    Khi `read(0)` trả `0` (EOF): `shutdown(sock, SHUT_WR)` rồi đặt `fds[0].fd = -1` để `poll` bỏ qua, và vẫn nhận tiếp cho tới khi `recv` trả `0`. In ra stdout bằng `write(1, ...)` (hoặc `fflush`), vì stdout là tệp/pipe khi chấm.
+
+sv-client:
+  - |-
+    Bài toán là **tuần tự hoá**: biến 4 giá trị đọc từ bàn phím thành một dãy byte đúng đặc tả. Hãy vẽ ra bản ghi trên giấy: byte thứ mấy là gì, dài bao nhiêu?
+  - |-
+    Dùng mảng `unsigned char rec[...]` và `memcpy` từng trường sau khi đổi: `htonl(mssv)` (4 byte), `nlen` (1 byte, là `strlen(name)` tính bằng **byte**), tên, `htons(year)`, `month`, `day`, `htons(gpa100)`. Gửi cả mảng bằng một `send`. Ngày sinh tách bằng `sscanf(dob, "%u-%u-%u", ...)`.
+  - |-
+    `fgets` giữ `\n`: bỏ nó (`strcspn`) trước khi `strlen`. Đổi điểm bằng `lround(strtod(s, NULL) * 100)` chứ không ép `(int)` (vì `2.85*100 = 284.999…`; nhớ `-lm`). Dòng phản hồi đọc đến `\n`; `ERROR` thì dừng.
+
+udp-client:
+  - |-
+    UDP không có kết nối và không đảm bảo giao hàng. Hãy nghĩ: nếu server không trả lời thì sao, và chương trình của bạn đợi tới bao giờ?
+  - |-
+    Mỗi dòng: bỏ `\r\n` cuối, bỏ qua dòng rỗng, `sendto` đúng `strlen` byte. Rồi `poll(&p, 1, 1000)` trên socket: lớn hơn `0` thì `recvfrom`, ngược lại in `TIMEOUT`. Đây là `udp_sender.c` cộng thêm nhận phản hồi.
+  - |-
+    Phản hồi không có `\0` và không có `\n`: in bằng `fwrite(buf, 1, k, stdout)` rồi `fputc('\n', stdout)`, sau đó `fflush(stdout)` vì stdout là tệp/pipe khi chấm. Bộ đệm nhận cần ít nhất 2048 byte.

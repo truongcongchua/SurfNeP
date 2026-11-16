@@ -241,6 +241,44 @@ class MockServer:
             self.sock.close()
 
 
+class MockUdpServer:
+    """Server UDP giả do bộ chấm dựng để chấm chương trình client UDP."""
+
+    def __init__(self):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.bind(("127.0.0.1", 0))
+        self.port = self.sock.getsockname()[1]
+        self.peer = None
+
+    def recv(self, timeout=2.0):
+        """Nhận một datagram từ client, nhớ địa chỉ client để reply()."""
+        r, _, _ = select.select([self.sock], [], [], timeout)
+        if not r:
+            raise Fail(WA, f"server giả: chờ {timeout}s không nhận được datagram nào từ client")
+        data, self.peer = self.sock.recvfrom(70000)
+        return data
+
+    def expect(self, expected, timeout=2.0):
+        got = self.recv(timeout)
+        want = _b(expected)
+        if got != want:
+            raise Fail(WA, f"server giả: mong đợi datagram {want!r}, nhận được {got!r}")
+        return got
+
+    def reply(self, data):
+        self.sock.sendto(_b(data), self.peer)
+
+    def expect_nothing(self, duration=0.3):
+        r, _, _ = select.select([self.sock], [], [], duration)
+        if r:
+            data = self.sock.recv(70000)
+            raise Fail(WA, f"server giả: không mong đợi datagram nhưng nhận được {data[:200]!r}")
+
+    def close(self):
+        with contextlib.suppress(OSError):
+            self.sock.close()
+
+
 class ClientProc:
     """Chương trình client của người làm bài, chạy với stdin là pipe."""
 
@@ -270,6 +308,17 @@ class ClientProc:
         with open(os.path.join(self.workdir, ".stdout"), "rb") as fh:
             return fh.read().decode(errors="replace")
 
+    def expect_stdout(self, text, timeout=1.0):
+        """Đợi tới khi stdout của client chứa `text` (kiểm tra client in ra KỊP THỜI, không đợi lúc thoát)."""
+        deadline = time.monotonic() + timeout
+        while True:
+            out = self.stdout()
+            if text in out:
+                return out
+            if time.monotonic() >= deadline:
+                raise Fail(WA, f"client: sau {timeout}s stdout chưa có {text!r}; hiện có {out[-200:]!r}")
+            time.sleep(0.02)
+
 
 # ---------- ngữ cảnh của một test ----------
 
@@ -294,6 +343,11 @@ class Ctx:
 
     def mock_server(self):
         m = MockServer()
+        self._conns.append(m)
+        return m
+
+    def mock_udp_server(self):
+        m = MockUdpServer()
         self._conns.append(m)
         return m
 

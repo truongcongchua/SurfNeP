@@ -1,0 +1,13 @@
+id: echo-max-n
+title: Echo server tối đa N client
+difficulty: medium
+chapter: 3
+topics: [TCP, Client Limit, select, Multithreading]
+prerequisites: [select-echo]
+ref: "Lecture notes §3.4–3.5; bước đệm trước dạng đề giữa kỳ (kv-max-n)"
+type: server
+args: ["{port}", "10"]
+test_timeout: 8
+constraints:
+  forbid: [fork]
+concepts: [client-management, select-poll]

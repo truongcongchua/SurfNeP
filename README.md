@@ -32,7 +32,7 @@ python judge/judge.py selftest                                # kiểm tra bộ 
 | type | Chấm thế nào |
 |---|---|
 | `server` | Chạy bài nộp với `args` (`{port}` được thay), kịch bản Python đóng vai client. `protocol: udp` cho server UDP |
-| `client` | Kịch bản dựng server giả (`ctx.mock_server()`), chạy bài nộp bằng `ctx.run_client(...)` và cấp stdin |
+| `client` | Kịch bản dựng server giả (`ctx.mock_server()` cho TCP, `ctx.mock_udp_server()` cho UDP với `protocol: udp`), chạy bài nộp bằng `ctx.run_client(...)`, cấp stdin và kiểm tra stdout kịp thời bằng `cli.expect_stdout(...)` |
 | `stdio` | `tests/*.in` → so với `tests/*.out` (sinh `.out` bằng `judge.py genout`) |
 | `function` | Như stdio, nhưng biên dịch kèm `tests/harness.c`; bài nộp chỉ viết hàm, không viết `main` |
 

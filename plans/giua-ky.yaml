@@ -5,10 +5,10 @@ id: giua-ky
 title: Giữa kỳ IT4062
 subtitle: Server/client TCP/UDP phục vụ tối đa N client
 description: >
-  26 bài, 9 chủ đề, đi từ địa chỉ socket đến server phục vụ đồng thời tối đa N client,
+  31 bài, 10 chủ đề, đi từ địa chỉ socket đến server phục vụ đồng thời tối đa N client,
   kết thúc bằng 2 đề thi thử tính giờ. Bám lecture notes Chương 2–3.
 exam_date: 2026-12-15
-suggested_days: 14
+suggested_days: 16
 award: Huy hiệu "Sẵn sàng giữa kỳ"
 
 sections:
@@ -16,7 +16,7 @@ sections:
     intro: sockaddr_in, htons/ntohs, inet_pton/inet_ntop, getaddrinfo. (§2.2)
     problems:
       - {id: byte-order, title: Đổi thứ tự byte, difficulty: easy, ready: true}
-      - {id: inet-addr, title: Kiểm tra và chuẩn hoá địa chỉ IPv4, difficulty: easy, ready: true}
+      - {id: inet-addr, title: Kiểm tra và phân loại địa chỉ IPv4, difficulty: easy, ready: true}
       - {id: domain2ip, title: Phân giải tên miền, difficulty: easy, ready: true}
 
   - title: TCP cơ bản
@@ -32,44 +32,53 @@ sections:
       - {id: tcp-recv-line, title: Đọc dữ liệu theo từng dòng qua TCP, difficulty: medium, ready: true}
       - {id: tcp-stop-phrase, title: Chuỗi dừng bị phân mảnh, difficulty: medium, ready: true}
       - {id: length-prefix, title: Thông điệp có độ dài tiền tố, difficulty: medium, ready: true}
-      - {id: sv-struct, title: Trao đổi dữ liệu có cấu trúc qua TCP, difficulty: hard, ready: true}
+      - {id: sv-struct, title: Nhận hồ sơ sinh viên qua dữ liệu nhị phân, difficulty: hard, ready: true}
+      - {id: sv-client, title: Gửi hồ sơ sinh viên dạng nhị phân, difficulty: medium, ready: true}
 
   - title: UDP
     intro: Hướng thông điệp, không kết nối, sendto/recvfrom. (§2.4)
     problems:
-      - {id: udp-echo, title: UDP echo, difficulty: easy, ready: true}
+      - {id: udp-echo, title: UDP echo server, difficulty: easy, ready: true}
+      - {id: udp-client, title: UDP client gửi từng dòng và đợi phản hồi, difficulty: medium, ready: true}
       - {id: udp-boundary, title: Ranh giới datagram, difficulty: medium, ready: true}
-      - {id: udp-calc, title: Máy tính qua UDP nhiều client, difficulty: medium, ready: true}
+      - {id: udp-calc, title: Máy tính qua UDP, difficulty: medium, ready: true}
 
   - title: Blocking, non-blocking & server lặp
     intro: fcntl O_NONBLOCK, EWOULDBLOCK, server lặp và giới hạn của nó. (§3.1–3.2)
     problems:
-      - {id: nonblock-accept, title: accept không chặn, difficulty: medium, ready: true}
-      - {id: looping-server, title: Server lặp phục vụ HTML, difficulty: medium, ready: true}
+      - {id: nonblock-accept, title: Server non-blocking không dùng select, difficulty: medium, ready: true}
+      - {id: looping-server, title: Server lặp phục vụ tệp qua HTTP, difficulty: medium, ready: true}
 
   - title: Đa tiến trình
     intro: fork mỗi client, đóng fd đúng phía, dọn zombie bằng SIGCHLD/waitpid. (§3.3)
     problems:
       - {id: fork-echo, title: Forking echo server, difficulty: medium, ready: true}
-      - {id: telnet-fork, title: Server Telnet đa tiến trình, difficulty: hard, ready: true}
 
   - title: Đa luồng
     intro: pthread_create/detach, trạng thái dùng chung, mutex. (§3.4)
     problems:
       - {id: thread-echo, title: Pthread echo server, difficulty: medium, ready: true}
-      - {id: thread-chat, title: Server chat đa luồng, difficulty: hard, ready: true}
 
   - title: Ghép kênh select / poll
     intro: fd_set, dựng lại tập fd mỗi vòng, bộ đệm riêng mỗi client. (§3.5)
     problems:
-      - {id: select-echo, title: select echo server, difficulty: medium, ready: true}
+      - {id: select-echo, title: Echo server dùng select, difficulty: medium, ready: true}
       - {id: chat-select, title: Phòng chat đa client với select, difficulty: hard, ready: true}
+      - {id: chat-client, title: Chat client dùng poll, difficulty: medium, ready: true}
       - {id: telnet-select, title: Server Telnet đăng nhập và xử lý lệnh, difficulty: hard, ready: true}
       - {id: chat-poll, title: Phòng chat đa client với poll, difficulty: hard, ready: true}
+      - {id: telnet-poll, title: Server Telnet dùng poll, difficulty: hard, ready: true}
+
+  - title: Một giao thức, nhiều kiến trúc
+    intro: Làm lại giao thức chat/telnet bằng fork và pthread để so sánh với select. (§3.3–3.4, BT 3.4–3.5)
+    problems:
+      - {id: thread-chat, title: Server chat đa luồng, difficulty: hard, ready: true}
+      - {id: telnet-fork, title: Server Telnet đa tiến trình, difficulty: hard, ready: true}
 
   - title: Tối đa N client & thi thử
     intro: Đúng dạng đề giữa kỳ. Đề thi thử ẩn test, tính giờ 90 phút.
     problems:
+      - {id: echo-max-n, title: Echo server tối đa N client, difficulty: medium, ready: true}
       - {id: kv-max-n, title: Key-Value server tối đa N client, difficulty: hard, ready: true}
       - {id: mock-booking-tcp, title: "Thi thử 1: Đặt chỗ qua TCP", difficulty: hard, exam: true, ready: true}
       - {id: mock-quiz-udp, title: "Thi thử 2: Quiz server UDP", difficulty: hard, exam: true, ready: true}
