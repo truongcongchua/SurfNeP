@@ -1,0 +1,36 @@
+# Study plan "Kiến trúc server đồng thời"; bài lấy từ problems/, sắp theo bài tiên quyết.
+id: kien-truc-server
+order: 3
+title: "Kiến trúc server đồng thời"
+subtitle: "Cùng một bài, nhiều cách phục vụ nhiều client"
+description: >
+  10 bài, 4 chủ đề. So sánh trực tiếp non-blocking, fork, pthread, select và poll bằng cùng một giao thức chat và telnet. Bám Chương 3.
+suggested_days: 8
+award: "Huy hiệu \"Kiến trúc sư server\""
+
+sections:
+  - title: "Không chặn"
+    intro: "fcntl O_NONBLOCK và EWOULDBLOCK. (§3.1)"
+    problems:
+      - {id: nonblock-accept, title: "Server non-blocking không dùng select", difficulty: medium, ready: true}
+
+  - title: "Ba kỹ thuật, một bài echo"
+    intro: "fork, pthread, select. (§3.3–3.5)"
+    problems:
+      - {id: fork-echo, title: "Forking echo server", difficulty: medium, ready: true}
+      - {id: thread-echo, title: "Pthread echo server", difficulty: medium, ready: true}
+      - {id: select-echo, title: "Echo server dùng select", difficulty: medium, ready: true}
+
+  - title: "Chat: select, poll, pthread"
+    intro: "Cùng giao thức, ba kiến trúc. (§3.4–3.5)"
+    problems:
+      - {id: chat-select, title: "Phòng chat đa client với select", difficulty: hard, ready: true}
+      - {id: chat-poll, title: "Phòng chat đa client với poll", difficulty: hard, ready: true}
+      - {id: thread-chat, title: "Server chat đa luồng", difficulty: hard, ready: true}
+
+  - title: "Telnet: select, poll, fork"
+    intro: "Cùng giao thức, ba kiến trúc. (§3.3, §3.5)"
+    problems:
+      - {id: telnet-select, title: "Server Telnet đăng nhập và xử lý lệnh", difficulty: hard, ready: true}
+      - {id: telnet-poll, title: "Server Telnet dùng poll", difficulty: hard, ready: true}
+      - {id: telnet-fork, title: "Server Telnet đa tiến trình", difficulty: hard, ready: true}

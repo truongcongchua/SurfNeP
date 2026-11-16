@@ -1,0 +1,28 @@
+# Study plan "Ôn nước rút: tối đa N client"; bài lấy từ problems/, sắp theo bài tiên quyết.
+id: un-nuoc-rut-n-client
+order: 5
+title: "Ôn nước rút: tối đa N client"
+subtitle: "Đúng dạng đề giữa kỳ, làm trong 3 ngày"
+description: >
+  5 bài, 3 chủ đề. Plan ngắn cho tuần cuối: từ echo giới hạn N, key-value dùng chung đến hai đề thi thử. Tính ngày còn lại tới kỳ thi.
+exam_date: 2026-12-15
+suggested_days: 3
+award: "Huy hiệu \"Sẵn sàng thi\""
+
+sections:
+  - title: "Khởi động UDP"
+    intro: "Bộ đếm theo từng người gửi, nền của đề quiz UDP. (§2.4)"
+    problems:
+      - {id: udp-calc, title: "Máy tính qua UDP", difficulty: medium, ready: true}
+
+  - title: "Giới hạn N client"
+    intro: "WELCOME / FULL và giải phóng chỗ. (§3.4–3.5)"
+    problems:
+      - {id: echo-max-n, title: "Echo server tối đa N client", difficulty: medium, ready: true}
+      - {id: kv-max-n, title: "Key-Value server tối đa N client", difficulty: hard, ready: true}
+
+  - title: "Đề thi thử"
+    intro: "Tính giờ 90 phút, test ẩn."
+    problems:
+      - {id: mock-booking-tcp, title: "Thi thử 1: Đặt chỗ qua TCP", difficulty: hard, exam: true, ready: true}
+      - {id: mock-quiz-udp, title: "Thi thử 2: Quiz server UDP", difficulty: hard, exam: true, ready: true}

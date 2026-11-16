@@ -2,6 +2,7 @@
 # phần đầu (subtitle, title, tiến độ X/Y) -> các section theo chủ đề -> mỗi dòng: bài, lời giải, độ khó.
 # Bài có `ready: true` đã có trong problems/ và đã qua selftest.
 id: giua-ky
+order: 0
 title: Giữa kỳ IT4062
 subtitle: Server/client TCP/UDP phục vụ tối đa N client
 description: >

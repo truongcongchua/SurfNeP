@@ -1,0 +1,29 @@
+# Study plan "Nhập môn Socket"; bài lấy từ problems/, sắp theo bài tiên quyết.
+id: nhap-mon-socket
+order: 1
+title: "Nhập môn Socket"
+subtitle: "Làm quen socket trong 3 ngày: địa chỉ, TCP, UDP"
+description: >
+  7 bài, 3 chủ đề. Khởi động cho người mới: bài dễ đi từ byte order đến cặp client/server TCP và UDP đầu tiên. Xong plan này bạn đủ nền để vào các plan còn lại.
+suggested_days: 3
+award: "Huy hiệu \"Socket đầu tay\""
+
+sections:
+  - title: "Địa chỉ socket"
+    intro: "sockaddr_in, htons/ntohs, inet_pton, getaddrinfo. (§2.2)"
+    problems:
+      - {id: byte-order, title: "Đổi thứ tự byte", difficulty: easy, ready: true}
+      - {id: inet-addr, title: "Kiểm tra và phân loại địa chỉ IPv4", difficulty: easy, ready: true}
+      - {id: domain2ip, title: "Phân giải tên miền", difficulty: easy, ready: true}
+
+  - title: "Cặp TCP đầu tiên"
+    intro: "Server echo rồi client đọc bàn phím gửi đi. (§2.3)"
+    problems:
+      - {id: tcp-echo, title: "TCP echo server", difficulty: easy, ready: true}
+      - {id: tcp-client-stdin, title: "Gửi dữ liệu từ bàn phím qua TCP", difficulty: easy, ready: true}
+
+  - title: "Cặp UDP đầu tiên"
+    intro: "sendto/recvfrom và client có thời gian chờ. (§2.4)"
+    problems:
+      - {id: udp-echo, title: "UDP echo server", difficulty: easy, ready: true}
+      - {id: udp-client, title: "UDP client gửi từng dòng và đợi phản hồi", difficulty: medium, ready: true}

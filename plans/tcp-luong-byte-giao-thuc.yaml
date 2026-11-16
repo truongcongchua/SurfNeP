@@ -1,0 +1,34 @@
+# Study plan "TCP là luồng byte và thiết kế giao thức"; bài lấy từ problems/, sắp theo bài tiên quyết.
+id: tcp-luong-byte-giao-thuc
+order: 2
+title: "TCP là luồng byte và thiết kế giao thức"
+subtitle: "Ghép dòng, độ dài tiền tố, đóng gói nhị phân"
+description: >
+  8 bài, 4 chủ đề. Chủ đề hay mất điểm nhất: một send() không bằng một recv(). Đi từ ghép dòng đến giao thức nhị phân hai phía, rồi so với UDP và HTTP. Nên làm xong "Nhập môn Socket" trước.
+suggested_days: 7
+award: "Huy hiệu \"Bậc thầy framing\""
+
+sections:
+  - title: "Ghép dòng"
+    intro: "Đọc từng dòng, chuỗi dừng bị cắt vụn. (§2.3)"
+    problems:
+      - {id: tcp-recv-line, title: "Đọc dữ liệu theo từng dòng qua TCP", difficulty: medium, ready: true}
+      - {id: tcp-stop-phrase, title: "Chuỗi dừng bị phân mảnh", difficulty: medium, ready: true}
+
+  - title: "Độ dài tiền tố và cấu trúc"
+    intro: "Length-prefix, byte order, padding của struct. (§2.3–2.5, §4.3)"
+    problems:
+      - {id: length-prefix, title: "Thông điệp có độ dài tiền tố", difficulty: medium, ready: true}
+      - {id: sv-struct, title: "Nhận hồ sơ sinh viên qua dữ liệu nhị phân", difficulty: hard, ready: true}
+      - {id: sv-client, title: "Gửi hồ sơ sinh viên dạng nhị phân", difficulty: medium, ready: true}
+
+  - title: "Ghi tệp và log"
+    intro: "Ghi dữ liệu client gửi vào tệp. (§2.5)"
+    problems:
+      - {id: tcp-greeting-log, title: "Server chào hỏi và ghi log", difficulty: medium, ready: true}
+
+  - title: "So sánh với UDP và HTTP"
+    intro: "Ranh giới datagram và server lặp phục vụ tệp. (§2.4, §3.2, §4.2.1)"
+    problems:
+      - {id: udp-boundary, title: "Ranh giới datagram", difficulty: medium, ready: true}
+      - {id: looping-server, title: "Server lặp phục vụ tệp qua HTTP", difficulty: medium, ready: true}

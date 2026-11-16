@@ -1,0 +1,26 @@
+# Study plan "Client toàn tập"; bài lấy từ problems/, sắp theo bài tiên quyết.
+id: client-toan-tap
+order: 4
+title: "Client toàn tập"
+subtitle: "Viết client: đọc bàn phím, nhận mạng, đóng gói"
+description: >
+  4 bài, 3 chủ đề. Bốn bài client đi từ đơn giản đến vừa đọc bàn phím vừa nhận từ server. Ghép cặp với server của các plan khác để tự kiểm tra chéo.
+suggested_days: 3
+award: "Huy hiệu \"Client chuyên nghiệp\""
+
+sections:
+  - title: "Client TCP"
+    intro: "Đọc stdin, gửi ngay từng dòng. (§2.3)"
+    problems:
+      - {id: tcp-client-stdin, title: "Gửi dữ liệu từ bàn phím qua TCP", difficulty: easy, ready: true}
+      - {id: sv-client, title: "Gửi hồ sơ sinh viên dạng nhị phân", difficulty: medium, ready: true}
+
+  - title: "Client UDP"
+    intro: "Gửi datagram, chờ phản hồi có timeout. (§2.4)"
+    problems:
+      - {id: udp-client, title: "UDP client gửi từng dòng và đợi phản hồi", difficulty: medium, ready: true}
+
+  - title: "Hai chiều cùng lúc"
+    intro: "poll() theo dõi cả bàn phím và socket. (§3.5)"
+    problems:
+      - {id: chat-client, title: "Chat client dùng poll", difficulty: medium, ready: true}
