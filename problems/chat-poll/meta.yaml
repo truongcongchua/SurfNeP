@@ -1,5 +1,5 @@
 id: chat-poll
-title: chat_server với poll()
+title: Phòng chat đa client với poll
 difficulty: hard
 chapter: 3
 topics: [TCP, Stream Framing, poll, Broadcast]
@@ -11,3 +11,4 @@ test_timeout: 6
 constraints:
   require_any: [poll]
   forbid: [select, epoll_wait, fork, pthread_create]
+concepts: [select-poll, client-management]

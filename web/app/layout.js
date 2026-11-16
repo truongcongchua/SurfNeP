@@ -1,50 +1,37 @@
 import "./globals.css";
 import Link from "next/link";
-import { currentUser, logout } from "@/lib/auth";
-import { redirect } from "next/navigation";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { currentUser } from "@/lib/auth";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NavLink } from "@/components/nav-link";
-import { Code2 } from "lucide-react";
+import { UserMenu } from "@/components/user-menu";
+import { Logo } from "@/components/logo";
 
-const inter = Inter({ subsets: ["latin", "vietnamese"], axes: ["opsz"], variable: "--font-inter", display: "swap" });
-const mono = JetBrains_Mono({ subsets: ["latin", "vietnamese"], variable: "--font-jetbrains", display: "swap" });
-
-export const metadata = { title: "NetJudge IT4062", description: "Luyện lập trình mạng với bộ chấm tự động" };
-
-async function doLogout() {
-  "use server";
-  await logout();
-  redirect("/login");
-}
+export const metadata = { title: "SurfNeP IT4062", description: "Luyện lập trình mạng với bộ chấm tự động" };
 
 export default async function RootLayout({ children }) {
   const user = await currentUser();
   return (
-    <html lang="vi" suppressHydrationWarning className={`${inter.variable} ${mono.variable}`}>
+    <html lang="vi" suppressHydrationWarning>
       <body>
         <ThemeProvider attribute="data-theme" defaultTheme="dark" enableSystem disableTransitionOnChange>
-        <header className="top">
-          <div className="container">
-            <Link href="/" className="brand"><Code2 size={20} color="var(--text)" />NetJudge</Link>
-            {!user && <span style={{ flex: 1 }} />}
-            {user && (
-              <>
+          {user && (
+            <header className="top">
+              <div className="bar">
+                <Link href="/" className="brand"><span className="logo"><Logo size={22} strokeWidth={2.2} /></span>SurfNeP</Link>
                 <nav>
                   <NavLink href="/">Bài tập</NavLink>
                   <NavLink href="/plans">Study Plan</NavLink>
+                  <NavLink href="/learn">Ôn tập</NavLink>
                 </nav>
-                <form action={doLogout} className="who">
-                  <span>{user.display || user.username}</span>
-                  <button className="btn ghost">Đăng xuất</button>
-                </form>
-              </>
-            )}
-            <ThemeToggle />
-          </div>
-        </header>
-        <main className="container">{children}</main>
+                <div className="right">
+                  <ThemeToggle />
+                  <UserMenu name={user.display || user.username} admin={user.role === "admin"} />
+                </div>
+              </div>
+            </header>
+          )}
+          <main>{children}</main>
         </ThemeProvider>
       </body>
     </html>

@@ -7,7 +7,9 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 COPY runner/ /runner/
-RUN useradd -m -u 1000 judge
-USER judge
+# Runner chạy bằng root (chỉ giữ vài capability, xem judge.py); bài nộp chạy bằng user `sandbox` (uid 1000).
+# /judge (0700, chỉ root vào được) chứa đề, test, đáp án và bài nộp gốc — bài nộp không đọc được, cũng không
+# mở được stdout của runner (/proc/<pid>/fd của root) để giả mạo kết quả.
+RUN useradd -m -u 1000 sandbox && mkdir -m 0700 /judge
 WORKDIR /tmp
 ENTRYPOINT ["python3", "/runner/run.py"]

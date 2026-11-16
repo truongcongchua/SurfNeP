@@ -1,4 +1,4 @@
-# tcp_server chào và ghi log (Bài tập 2.3)
+# Server chào hỏi và ghi log
 
 Viết server chạy bằng:
 

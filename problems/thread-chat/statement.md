@@ -1,4 +1,4 @@
-# chat_server đa luồng (Bài tập 3.5)
+# Server chat đa luồng
 
 Viết **chat_server** `./chat_server <cổng>` với **cùng giao thức** như bài *chat-select*, nhưng mỗi client
 được phục vụ bởi **một luồng** (`pthread_create`). **Không được dùng:** `select`, `poll`, `epoll`, `fork`.

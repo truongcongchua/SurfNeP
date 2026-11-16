@@ -1,0 +1,343 @@
+# Bài "Tìm bug": mỗi mục là một bản sai trong problems/<problem>/wrong/<file>.
+# lines = số dòng THẬT trong tệp (tệp có thể có chú thích "SAI..." bị ẩn khi hiển thị nhưng giữ nguyên số dòng).
+# near  = dòng liên quan, chọn thêm vẫn không bị tính là chọn thừa.
+# Đúng khi: chọn >= 1 dòng thuộc `lines`, không quá 5 dòng, không dòng nào ngoài lines + near.
+# symptom = hiện trước khi trả lời (giống thông báo của bộ chấm). verdict = mã verdict điển hình.
+
+- id: byte-order-host-order
+  problem: byte-order
+  file: host_order.c
+  concept: byte-order
+  lines: [12, 15]
+  near: [13, 16]
+  verdict: WA
+  symptom: "Với `u16 4660` chương trình in `34 12 | 4660`, còn kết quả đúng là `12 34 | 13330`."
+  title: Quên đổi sang network byte order
+  explain: |-
+    Dòng 12 và 15 gán thẳng `x = (uint16_t)v` / `(uint32_t)v` rồi đọc từng byte, nên thấy byte theo thứ tự của **máy** (little-endian: byte thấp trước), không phải thứ tự **mạng** (big-endian).
+    Phần 3 của đề cũng sai theo: giá trị "máy đọc lại dãy byte đó" phải là giá trị của `htons`/`htonl`.
+  fix: "`uint16_t x = htons((uint16_t)v);` và `uint32_t x = htonl((uint32_t)v);`"
+
+- id: inet-addr-no-ntohl
+  problem: inet-addr
+  file: no_ntohl.c
+  concept: byte-order
+  lines: [13]
+  near: [14, 15, 16]
+  verdict: WA
+  symptom: "`127.0.0.1` bị xếp loại `PUBLIC` thay vì `LOOPBACK`, và giá trị 32 bit in ra là `0x0100007F`."
+  title: Dùng s_addr (thứ tự mạng) để so mặt nạ và in
+  explain: |-
+    `inet_pton` ghi `s_addr` theo **network order**. Trên máy little-endian, `127.0.0.1` nằm trong `s_addr` là `0x0100007F`, nên phép so `(a & 0xFF000000u) == 0x7F000000u` không bao giờ đúng.
+    Cần chuyển về thứ tự máy trước khi so với mặt nạ hoặc in dạng `0xXXXXXXXX`.
+  fix: "`uint32_t a = ntohl(in.s_addr);`"
+
+- id: domain2ip-no-hints
+  problem: domain2ip
+  file: no_hints.c
+  concept: socket-address
+  lines: [14]
+  near: [17, 18, 19, 20]
+  verdict: WA
+  symptom: "Mỗi IP bị in lặp 3 lần, và xuất hiện cả địa chỉ IPv6."
+  title: Gọi getaddrinfo mà không đặt hints
+  explain: |-
+    Truyền `NULL` cho `hints` khiến `getaddrinfo` trả về **mọi** kiểu socket (STREAM, DGRAM, RAW) và cả IPv4 lẫn IPv6, nên mỗi địa chỉ xuất hiện nhiều lần.
+    Phải đặt `ai_family = AF_INET` và `ai_socktype = SOCK_STREAM` để mỗi địa chỉ IPv4 chỉ có một nút.
+  fix: "`struct addrinfo hints = {0}; hints.ai_family = AF_INET; hints.ai_socktype = SOCK_STREAM;` rồi truyền `&hints`."
+
+- id: tcp-echo-exit-after-one
+  problem: tcp-echo
+  file: exit_after_one.c
+  concept: tcp-lifecycle
+  lines: [17, 22]
+  near: [21]
+  verdict: RE
+  symptom: "Client thứ nhất được phục vụ bình thường, client thứ hai không kết nối được (server đã thoát)."
+  title: accept nằm ngoài vòng lặp
+  explain: |-
+    `accept` chỉ được gọi **một lần** và sau khi phục vụ xong, hàm `main` `return 0`. Server lặp phải đặt `accept` **bên trong** `for (;;)` để quay lại nhận client tiếp theo.
+  fix: "Bọc `accept ... close(c)` trong `for (;;) { ... }` và bỏ `return 0` khỏi vòng lặp."
+
+- id: tcp-echo-strlen
+  problem: tcp-echo
+  file: strlen_echo.c
+  concept: tcp-lifecycle
+  lines: [23, 24]
+  verdict: WA
+  symptom: "Test nhị phân có byte `00 FF 41` chỉ nhận lại được 0 byte."
+  title: Dùng strlen thay cho số byte recv trả về
+  explain: |-
+    Dữ liệu từ socket **không phải xâu C**: có thể chứa `0x00`. `strlen(buf)` dừng ở byte `0` đầu tiên nên chỉ gửi lại phần đứng trước nó.
+    Phải dùng chính giá trị `n` mà `recv` trả về.
+  fix: "`send(c, buf, (size_t)n, 0);` (không cần `buf[n] = 0`)."
+
+- id: tcp-client-read-all-first
+  problem: tcp-client-stdin
+  file: read_all_first.c
+  concept: tcp-lifecycle
+  lines: [19, 20]
+  near: [16, 17, 18]
+  verdict: WA
+  symptom: "Bộ chấm báo dòng thứ nhất đến muộn: client chỉ gửi sau khi stdin đã đóng."
+  title: Đọc hết stdin rồi mới gửi
+  explain: |-
+    Vòng `read(0, ...)` chạy đến EOF rồi mới `send` một lần. Đề yêu cầu gửi **ngay khi có từng dòng**, nên người dùng gõ xong một dòng mà server chưa nhận được gì.
+    Phải gửi trong vòng lặp đọc (mỗi dòng một lần `send`).
+  fix: "Dùng `fgets` đọc từng dòng và `send(s, line, strlen(line), 0)` ngay trong vòng lặp."
+
+- id: tcp-greeting-overwrite-log
+  problem: tcp-greeting-log
+  file: overwrite_log.c
+  concept: file-io
+  lines: [25]
+  near: [27, 28]
+  verdict: WA
+  symptom: "Sau khi 2 client gửi `abc` rồi `xyz`, tệp log chỉ còn `xyz`."
+  title: Mở tệp log bằng chế độ "w"
+  explain: |-
+    `fopen(..., "w")` **cắt cụt** tệp về 0 byte mỗi khi mở, nên dữ liệu của client trước bị xoá. Muốn ghi nối tiếp phải mở chế độ append.
+  fix: "`fopen(argv[3], \"ab\")`"
+
+- id: tcp-recv-line-one-recv
+  problem: tcp-recv-line
+  file: one_recv.c
+  concept: tcp-stream
+  lines: [7, 10, 11]
+  near: [8, 9]
+  verdict: WA
+  symptom: "Khi bên kia gửi `a\\nb\\n` trong một lần, dòng `b` biến mất; khi gửi `ab` rồi `c\\n`, dòng bị cắt thành hai."
+  title: Một lần recv rồi cắt ở '\n'
+  explain: |-
+    Hàm chỉ gọi `recv` một lần và **vứt** phần dữ liệu sau `'\n'` (dòng 10–11 chỉ đặt lại độ dài). Lần gọi sau không thể trả lại phần đó.
+    Ngược lại nếu dòng đến thành nhiều mảnh thì `recv` đầu tiên chưa có `'\n'` và hàm trả về nửa dòng.
+    Cần bộ đệm lưu **giữa các lần gọi** và vòng lặp `recv` đến khi gặp `'\n'`.
+  fix: "Giữ bộ đệm `static` (hoặc theo fd), `memchr` tìm `'\\n'`, `memmove` phần dư, `recv` thêm nếu chưa có dòng đầy đủ."
+
+- id: tcp-stop-phrase-per-chunk
+  problem: tcp-stop-phrase
+  file: per_chunk_strstr.c
+  concept: tcp-stream
+  lines: [22, 23, 24]
+  verdict: WA
+  symptom: "Khi client gửi `Ky th` rồi `uat May tinh`, server không bao giờ gửi `BYE`."
+  title: strstr chỉ trên từng mảnh vừa nhận
+  explain: |-
+    Mỗi vòng lặp ghi đè `buf` bằng mảnh mới (`recv(client, buf, ...)`) và chỉ tìm chuỗi trong mảnh đó. Nếu chuỗi bị cắt đôi giữa hai lần `recv`, không mảnh nào chứa trọn vẹn nó.
+    Phải tìm trong **bộ đệm tích luỹ** từ đầu kết nối (hoặc giữ lại phần đuôi dài `strlen(phrase)-1` byte của lần trước).
+  fix: "`recv(client, buf + len, sizeof buf - 1 - len, 0)`, cộng dồn `len`, rồi `strstr` trên toàn bộ `buf`."
+
+- id: length-prefix-single-recv
+  problem: length-prefix
+  file: single_recv.c
+  concept: tcp-stream
+  lines: [23, 28, 30]
+  near: [24, 25, 26]
+  verdict: WA
+  symptom: "Khi 4 byte độ dài hoặc phần dữ liệu đến từng mảnh, server trả về dữ liệu rác hoặc thiếu."
+  title: Giả định một recv nhận trọn một thông điệp
+  explain: |-
+    Điều kiện `recv(...) >= 4` coi như một lần nhận luôn có đủ độ dài **và** toàn bộ L byte dữ liệu. TCP không đảm bảo điều đó: 4 byte đầu có thể đến từng byte, dữ liệu có thể đến sau, và hai thông điệp có thể dính nhau.
+    Dòng 30 còn gửi `4 + len` byte dù `buf` có thể chưa nhận đủ.
+  fix: "Viết `recv_all(fd, buf, n)`: đọc đủ 4 byte, `ntohl`, rồi đọc đủ L byte trước khi xử lý và trả lời."
+
+- id: looping-server-single-recv
+  problem: looping-server
+  file: single_recv.c
+  concept: iterative-server
+  lines: [47]
+  near: [48, 49]
+  verdict: WA
+  symptom: "Khi yêu cầu HTTP đến thành nhiều mảnh, server trả `400 Bad Request` thay vì `200 OK`."
+  title: Chỉ recv một lần cho cả yêu cầu HTTP
+  explain: |-
+    Yêu cầu HTTP kết thúc ở dòng trống `\r\n\r\n` và có thể đến **nhiều mảnh**. Một lần `recv` có thể chỉ nhận được nửa dòng đầu, khiến `sscanf` thất bại và server trả 400.
+  fix: "Lặp `recv` vào bộ đệm cho đến khi `strstr(req, \"\\r\\n\\r\\n\")` khác NULL (hoặc đầy 8 KB)."
+
+- id: nonblock-accept-blocking-clients
+  problem: nonblock-accept
+  file: blocking_clients.c
+  concept: nonblocking
+  lines: [18, 22, 25]
+  verdict: BLOCKED
+  symptom: "Client A kết nối rồi im lặng thì client B không được phục vụ (BLOCKED)."
+  title: Chỉ socket nghe là non-blocking
+  explain: |-
+    Dòng 18 đặt `FIONBIO` cho `ls`, nhưng socket do `accept` trả về (`c`, dòng 22) vẫn **blocking**. Khi duyệt client, `recv` (dòng 25) chặn đến khi client đó gửi gì, làm đứng cả vòng lặp.
+    Mỗi socket client cũng phải được đặt non-blocking, và `EAGAIN` phải được coi là "chưa có dữ liệu".
+  fix: "Sau `accept`, gọi `ioctl(c, FIONBIO, &on)` (hoặc `fcntl O_NONBLOCK`), và xử lý `recv == -1 && errno == EAGAIN`."
+
+- id: sv-struct-raw-struct
+  problem: sv-struct
+  file: raw_struct.c
+  concept: length-prefix-struct
+  lines: [10, 25]
+  near: [24, 27, 28]
+  verdict: WA
+  symptom: "Tên dài hơn 16 ký tự bị cắt, số liệu năm/tháng/ngày sai, và các bản ghi liên tiếp bị lệch."
+  title: Đọc thẳng vào struct
+  explain: |-
+    Hai lỗi cùng lúc: (1) bản ghi có độ dài **thay đổi** (`name_len` byte tên) nên không thể `recv` đúng `sizeof(struct)` byte; (2) struct bị **padding** và các số nhiều byte đang ở thứ tự mạng, không phải thứ tự máy, nên phải `ntohl`/`ntohs` từng trường.
+  fix: "Đọc từng trường bằng `recv_all` (4 byte mssv, 1 byte nlen, nlen byte tên, ...), rồi `ntohl`/`ntohs`."
+
+- id: udp-echo-zero-is-close
+  problem: udp-echo
+  file: zero_is_close.c
+  concept: udp-basics
+  lines: [18]
+  verdict: RE
+  symptom: "Sau khi client gửi một datagram rỗng, server thoát và các client sau không nhận được phản hồi."
+  title: Coi recvfrom == 0 là đóng kết nối
+  explain: |-
+    Với TCP, `recv` trả `0` nghĩa là đối phương đã đóng. Với UDP **không có kết nối**: `recvfrom` trả `0` chỉ là một datagram **rỗng** hợp lệ.
+    Chỉ nên thoát khi `n < 0` (lỗi), còn `n == 0` vẫn phải `sendto` lại một datagram rỗng.
+  fix: "`if (n < 0) continue;` (hoặc xử lý lỗi) rồi `sendto(s, buf, n, ...)` kể cả khi `n == 0`."
+
+- id: udp-boundary-small-buffer
+  problem: udp-boundary
+  file: small_buffer.c
+  concept: udp-basics
+  lines: [14, 15, 21]
+  near: [19]
+  verdict: WA
+  symptom: "Datagram 60000 byte được báo `LEN 1024 ...`, và số thứ tự đếm chung cho mọi người gửi."
+  title: Bộ đệm nhỏ và bộ đếm toàn cục
+  explain: |-
+    (1) `buf[1024]`: `recvfrom` **cắt cụt** datagram dài hơn bộ đệm mà không báo lỗi. Datagram UDP có thể tới 65507 byte.
+    (2) `count` là một biến chung cho mọi người gửi, trong khi đề yêu cầu đếm riêng cho từng cặp (IP, cổng).
+  fix: "`static char buf[65536];` và một bảng `(ip, cổng) -> count`."
+
+- id: udp-calc-global-count
+  problem: udp-calc
+  file: global_count.c
+  concept: udp-basics
+  lines: [16, 24, 29]
+  near: [25]
+  verdict: WA
+  symptom: "`COUNT` của client B trả về số phép tính của cả client A; `5+3` không bị báo `ERROR syntax`."
+  title: Bộ đếm COUNT dùng chung và phân tích lỏng lẻo
+  explain: |-
+    `COUNT` phải là số phép tính thành công **của người gửi này**; biến `count` toàn cục gộp mọi người gửi (dòng 16, 24, 29).
+    Dòng 25 còn dùng `sscanf("%lld %c %lld")`, vốn bỏ qua số dấu cách và chấp nhận `5+3`, trong khi đề yêu cầu đúng một dấu cách giữa các thành phần.
+  fix: "Bảng `(địa chỉ, cổng) -> count` và phân tích chặt (kiểm tra từng dấu cách, `strtoll` kèm `endptr`)."
+
+- id: fork-echo-no-waitpid
+  problem: fork-echo
+  file: no_waitpid.c
+  concept: fork-server
+  lines: [17, 19, 24]
+  near: [25, 26]
+  verdict: WA
+  symptom: "Sau khi 10 client lần lượt rời đi, bộ chấm đếm được 10 tiến trình zombie."
+  title: Không thu dọn tiến trình con
+  explain: |-
+    Tiến trình con kết thúc bằng `_exit(0)` nhưng không có ai gọi `wait`/`waitpid`, nên nó ở lại bảng tiến trình dưới dạng **zombie**.
+    Cha phải đăng ký handler `SIGCHLD` chứa `while (waitpid(-1, NULL, WNOHANG) > 0);`.
+  fix: "Trước vòng lặp: `signal(SIGCHLD, reap);` với `reap` gọi `waitpid(-1, NULL, WNOHANG)` trong vòng `while`."
+
+- id: telnet-fork-parent-waits
+  problem: telnet-fork
+  file: parent_waits.c
+  concept: fork-server
+  lines: [138, 139]
+  verdict: BLOCKED
+  symptom: "Client A chạy `sleep 1.5` thì client B không nhận được `LOGIN OK` ngay (BLOCKED)."
+  title: Cha chờ con xong mới accept tiếp
+  explain: |-
+    `while (wait(NULL) > 0)` ngay sau `fork` bắt tiến trình **cha** đứng chờ con kết thúc. Khi đó chỉ phục vụ được một client tại một thời điểm, giống server lặp, mất hết ý nghĩa của đa tiến trình.
+    Cha phải quay lại `accept` ngay; việc thu dọn con để cho handler `SIGCHLD` làm.
+  fix: "Bỏ vòng `wait` này; dùng handler `SIGCHLD` với `waitpid(-1, NULL, WNOHANG)` đã có sẵn."
+
+- id: telnet-select-no-stderr
+  problem: telnet-select
+  file: no_stderr.c
+  concept: telnet-auth
+  lines: [47]
+  near: [48]
+  verdict: WA
+  symptom: "Lệnh `ls khong_ton_tai` trả `OUTPUT 0`, trong khi đúng ra phải có thông báo lỗi của `ls`."
+  title: Quên gộp stderr vào kết quả
+  explain: |-
+    Chỉ có `> tệp` chuyển hướng **stdout**. Thông báo lỗi nằm ở **stderr** nên không vào tệp và không được gửi về client. Đề yêu cầu gửi cả hai.
+  fix: "`snprintf(shell, sizeof shell, \"%s > %s 2>&1\", cmd, out);`"
+
+- id: thread-echo-join-immediately
+  problem: thread-echo
+  file: join_immediately.c
+  concept: threads-mutex
+  lines: [32]
+  near: [30, 31]
+  verdict: BLOCKED
+  symptom: "Client A kết nối rồi im lặng thì client B không được phục vụ (BLOCKED)."
+  title: pthread_join ngay sau khi tạo luồng
+  explain: |-
+    `pthread_join` **chặn** luồng gọi nó cho đến khi luồng con kết thúc. Gọi ngay sau `pthread_create` thì luồng chính không quay lại `accept` được, nên thực chất vẫn phục vụ tuần tự.
+    Dùng `pthread_detach` để luồng tự giải phóng tài nguyên mà không cần chờ.
+  fix: "`pthread_detach(t);` thay cho `pthread_join(t, NULL);`"
+
+- id: thread-chat-no-line-buffer
+  problem: thread-chat
+  file: no_line_buffer.c
+  concept: client-management
+  lines: [61, 63, 64, 65]
+  verdict: WA
+  symptom: "Khi client gửi hai dòng liền nhau, người nhận chỉ thấy dòng đầu; nửa dòng bị coi là một tin."
+  title: Coi mỗi recv là đúng một dòng
+  explain: |-
+    Mỗi lần `recv`, mã cắt ở `\r\n` đầu tiên rồi xử lý cả buffer như **một** dòng, bỏ phần còn lại. TCP có thể gộp nhiều dòng vào một lần nhận hoặc cắt một dòng làm đôi.
+    Mỗi luồng cần bộ đệm riêng, cộng dồn dữ liệu và tách từng dòng bằng `'\n'`.
+  fix: "Giữ `buf`/`len` ngoài vòng `recv`, `memchr` tìm `'\\n'`, xử lý từng dòng rồi `memmove` phần dư."
+
+- id: chat-select-no-line-buffer
+  problem: chat-select
+  file: no_line_buffer.c
+  concept: client-management
+  lines: [40, 42, 43, 46]
+  near: [41]
+  verdict: WA
+  symptom: "Hai dòng chat dính nhau trong một segment chỉ được chuyển đi một dòng; dòng đăng ký bị cắt đôi bị báo `ERROR`."
+  title: Không có bộ đệm riêng cho từng client
+  explain: |-
+    `buf` là biến cục bộ của **từng lần** `recv`: dữ liệu dở dang bị mất ở vòng sau và nhiều dòng trong cùng một lần nhận bị gộp. Với `select`, mỗi client cần một bộ đệm lâu dài (`Client.buf` + `len`) để ghép dòng.
+  fix: "Lưu `buf` và `len` trong struct client; sau mỗi `recv`, tách tất cả dòng đầy đủ bằng `memchr` rồi `memmove` phần dư."
+
+- id: kv-max-n-iterative
+  problem: kv-max-n
+  file: iterative.c
+  concept: client-management
+  lines: [27, 28, 32]
+  near: [52, 53]
+  verdict: BLOCKED
+  symptom: "Client thứ hai không nhận được `WELCOME` khi client thứ nhất còn đang kết nối (BLOCKED)."
+  title: Server lặp, phục vụ xong client này mới accept client khác
+  explain: |-
+    Vòng `while (fgets(...))` ở dòng 32 chạy cho đến khi client hiện tại **đóng kết nối**, trong lúc đó chương trình không quay lại `accept` (dòng 28). Đề yêu cầu phục vụ đồng thời tối đa N client.
+    Cần `select`/`poll` hoặc đa luồng (dùng chung bảng key-value nên không dùng fork).
+  fix: "Dùng `select`/`poll` với bộ đệm riêng cho mỗi client, hoặc một luồng mỗi client + mutex bảo vệ bảng."
+
+- id: kv-max-n-no-limit
+  problem: kv-max-n
+  file: no_limit.c
+  concept: client-management
+  lines: [107]
+  near: [108, 109, 110, 115, 116]
+  verdict: LIMIT
+  symptom: "Với N = 2, client thứ 3 vẫn nhận được `WELCOME` thay vì `FULL` (LIMIT)."
+  title: Điều kiện từ chối bị vô hiệu
+  explain: |-
+    Điều kiện `fd >= 0 && 0` **luôn sai**, nên nhánh gửi `FULL` rồi đóng không bao giờ chạy và mọi client đều được nhận. Đúng ra phải so số client đang kết nối với giới hạn: `nclients >= limit`.
+  fix: "`if (fd >= 0 && nclients >= limit) { reply(fd, \"FULL\\n\"); close(fd); }`"
+
+- id: select-echo-serve-until-close
+  problem: select-echo
+  file: serve_until_close.c
+  concept: select-poll
+  lines: [22, 23, 26]
+  near: [21]
+  verdict: BLOCKED
+  symptom: "Client A kết nối rồi im lặng thì client B không được phục vụ (BLOCKED), dù chương trình có gọi `select`."
+  title: Dùng select nhưng chỉ theo dõi socket nghe
+  explain: |-
+    `select` chỉ theo dõi `ls` (socket nghe), rồi `accept` xong thì **phục vụ client đó trong vòng `while (recv ...)` đến khi nó đóng kết nối**. Trong lúc đó chương trình không quay lại `select`, nên client khác không được phục vụ.
+    Cần giữ **một tập fd gồm cả socket nghe lẫn mọi client**, mỗi vòng chỉ `recv` một lần ở fd sẵn sàng rồi quay lại `select`.
+  fix: "Duy trì `fd_set master` chứa `ls` và các socket client; sau `select`, `accept` nếu `ls` sẵn sàng, còn lại `recv`/`send` một lần cho từng fd sẵn sàng."

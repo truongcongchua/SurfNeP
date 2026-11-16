@@ -8,3 +8,4 @@ ref: "Lecture notes §3.4–3.5; dạng đề giữa kỳ"
 type: server
 args: ["{port}", "10"]
 test_timeout: 8
+concepts: [client-management, select-poll, threads-mutex]

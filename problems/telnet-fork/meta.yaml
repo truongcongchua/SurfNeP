@@ -1,5 +1,5 @@
 id: telnet-fork
-title: telnet_server đa tiến trình
+title: Server Telnet đa tiến trình
 difficulty: hard
 chapter: 3
 topics: [TCP, Stream Framing, Multiprocessing, Authentication, Process]
@@ -11,3 +11,4 @@ test_timeout: 8
 constraints:
   require_any: [fork]
   forbid: [select, poll, epoll_wait, pthread_create]
+concepts: [fork-server, telnet-auth]

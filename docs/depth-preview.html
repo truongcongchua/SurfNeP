@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="vi" data-theme="light" data-depth="on">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NetJudge — Depth</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============ TOKENS: bản PHẲNG (giống code hiện tại) ============ */
+:root[data-theme="light"] {
+  --bg: #fafafa; --panel: #fff; --raised: #f4f4f5; --line: rgba(0,0,0,.07); --line-strong: rgba(0,0,0,.12);
+  --text: #18181b; --muted: #71717a; --faint: #a1a1aa;
+  --accent: #5b5bd6; --accent-soft: rgba(91,91,214,.10);
+  --green: #12a46b; --ok-bg: rgba(18,164,107,.10); --medium: #c27c0e; --warn-bg: rgba(194,124,14,.10); --hard: #dc3a3f;
+  --solid: #18181b; --solid-text: #fff;
+  --s1: none; --s2: none; --s3: none; --hi: 0 0 #0000; --chip-bg: transparent; --zebra: transparent;
+}
+:root[data-theme="dark"] {
+  --bg: #0b0b0d; --panel: #131316; --raised: #1b1b1f; --line: rgba(255,255,255,.07); --line-strong: rgba(255,255,255,.12);
+  --text: #ededef; --muted: #a1a1aa; --faint: #63636e;
+  --accent: #8b8cf8; --accent-soft: rgba(139,140,248,.14);
+  --green: #3ecf8e; --ok-bg: rgba(62,207,142,.12); --medium: #f5a524; --warn-bg: rgba(245,165,36,.12); --hard: #f2555a;
+  --solid: #ededef; --solid-text: #0b0b0d;
+  --s1: none; --s2: none; --s3: none; --hi: 0 0 #0000; --chip-bg: transparent; --zebra: transparent;
+}
+
+/* ============ TOKENS: bản CÓ CHIỀU SÂU ============
+   1. Nền trang tối hơn mặt thẻ rõ rệt.
+   2. Bóng nhiều lớp theo 3 mức độ cao (s1 thẻ, s2 hover, s3 nổi hẳn).
+   3. Dark mode: lớp càng cao càng sáng + viền sáng mép trên (--hi), vì bóng khó thấy trên nền tối.
+   4. Chip/tab/hàng xen kẽ là khối màu đặc thay cho đường kẻ. */
+:root[data-theme="light"][data-depth="on"] {
+  --bg: #f2f3f5; --panel: #fff; --raised: #f2f3f5; --line: rgba(15,23,42,.06);
+  --s1: 0 0 0 1px rgba(15,23,42,.04), 0 1px 2px rgba(15,23,42,.04), 0 4px 12px rgba(15,23,42,.04);
+  --s2: 0 0 0 1px rgba(15,23,42,.05), 0 2px 4px rgba(15,23,42,.05), 0 12px 28px rgba(15,23,42,.09);
+  --s3: 0 0 0 1px rgba(15,23,42,.06), 0 8px 16px rgba(15,23,42,.06), 0 24px 56px rgba(15,23,42,.14);
+  --chip-bg: #eef0f3; --zebra: #f8f9fa;
+}
+:root[data-theme="dark"][data-depth="on"] {
+  --bg: #08080a; --panel: #141417; --raised: #1f1f24; --line: rgba(255,255,255,.06);
+  --hi: inset 0 1px 0 rgba(255,255,255,.06);
+  --s1: 0 0 0 1px rgba(255,255,255,.05), 0 1px 2px rgba(0,0,0,.5), 0 6px 16px rgba(0,0,0,.35);
+  --s2: 0 0 0 1px rgba(255,255,255,.08), 0 2px 4px rgba(0,0,0,.5), 0 16px 36px rgba(0,0,0,.5);
+  --s3: 0 0 0 1px rgba(255,255,255,.09), 0 12px 24px rgba(0,0,0,.5), 0 32px 64px rgba(0,0,0,.6);
+  --chip-bg: #1c1c21; --zebra: #17171a;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 13px/1.5 Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; transition: background .25s; }
+a { color: inherit; text-decoration: none; }
+svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.num { font-variant-numeric: tabular-nums; }
+.depth { transition: box-shadow .2s, transform .2s, background .25s, border-color .2s; }
+
+/* header */
+header { position: sticky; top: 0; z-index: 10; height: 48px; display: flex; align-items: center; gap: 24px; padding: 0 20px;
+  background: color-mix(in srgb, var(--panel) 80%, transparent); backdrop-filter: blur(14px) saturate(1.4); border-bottom: 1px solid var(--line); }
+[data-depth="on"] header { box-shadow: 0 1px 0 var(--line), 0 4px 16px rgba(0,0,0,.03); }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.logo { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 45%, #000)); }
+[data-depth="on"] .logo { box-shadow: 0 2px 6px color-mix(in srgb, var(--accent) 45%, transparent), inset 0 1px 0 rgba(255,255,255,.25); }
+.logo svg { width: 13px; height: 13px; stroke-width: 2; }
+header nav { display: flex; gap: 2px; flex: 1; }
+header nav a { height: 30px; display: flex; align-items: center; padding: 0 10px; border-radius: 6px; color: var(--muted); font-weight: 500; }
+header nav a.on { color: var(--text); background: var(--raised); }
+.who { color: var(--muted); display: flex; gap: 10px; align-items: center; }
+.btn { height: 30px; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--panel); color: var(--text); font: 500 13px Inter, sans-serif; cursor: pointer; }
+[data-depth="on"] .btn { border-color: transparent; box-shadow: var(--s1), var(--hi); }
+
+/* layout */
+.home { max-width: 1380px; margin: 0 auto; padding: 20px 16px 60px; display: grid; grid-template-columns: 208px minmax(0,1fr) 296px; gap: 28px; align-items: start; }
+.side-l, .side-r { position: sticky; top: 68px; }
+.side-l { display: flex; flex-direction: column; gap: 2px; }
+.side-l a { display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 12px; border-radius: 8px; color: var(--muted); font-weight: 500; }
+.side-l a:hover { background: var(--raised); color: var(--text); }
+.side-l a.on { background: var(--raised); color: var(--text); }
+[data-depth="on"] .side-l a.on { background: var(--panel); box-shadow: var(--s1), var(--hi); }
+.side-l .n { margin-left: auto; font-size: 12px; color: var(--faint); }
+.grp { margin: 18px 12px 6px; font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
+
+/* banner */
+.promo { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; margin-bottom: 22px; }
+.promo a { position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 6px; min-height: 120px; padding: 16px; border-radius: 14px;
+  border: 1px solid var(--line); background: radial-gradient(110% 150% at 0% 0%, var(--accent-soft), transparent 65%), var(--panel); }
+.promo .k { font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.promo .t { font-size: 15px; font-weight: 600; letter-spacing: -.01em; position: relative; }
+.promo .m { margin-top: auto; color: var(--muted); font-size: 12px; position: relative; }
+.promo .big { display: none; }
+.promo a:nth-child(2) { background: radial-gradient(110% 150% at 0% 0%, var(--ok-bg), transparent 65%), var(--panel); } .promo a:nth-child(2) .k { color: var(--green); }
+.promo a:nth-child(3) { background: radial-gradient(110% 150% at 0% 0%, var(--warn-bg), transparent 65%), var(--panel); } .promo a:nth-child(3) .k { color: var(--medium); }
+/* Chiều sâu: mesh gradient đậm, nhiễu mờ, icon lớn chìm ở góc, chữ trắng, bóng màu cùng tông. */
+[data-depth="on"] .promo a { border: 0; color: #fff; box-shadow: 0 10px 28px -10px var(--glow), inset 0 1px 0 rgba(255,255,255,.18);
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    radial-gradient(80% 120% at 100% 0%, var(--c3), transparent 60%),
+    radial-gradient(90% 130% at 0% 100%, var(--c2), transparent 60%),
+    linear-gradient(135deg, var(--c1), var(--c2)); }
+[data-depth="on"] .promo a:nth-child(1) { --c1: #3b3bb3; --c2: #6d4fe0; --c3: #9a7cff; --glow: rgba(91,91,214,.6); }
+[data-depth="on"] .promo a:nth-child(2) { --c1: #0b6b4a; --c2: #12a46b; --c3: #5be3a8; --glow: rgba(18,164,107,.55); }
+[data-depth="on"] .promo a:nth-child(3) { --c1: #8a3b0a; --c2: #d4790e; --c3: #ffc35a; --glow: rgba(212,121,14,.55); }
+[data-depth="on"] .promo .k { color: rgba(255,255,255,.75) !important; }
+[data-depth="on"] .promo .m { color: rgba(255,255,255,.8); }
+[data-depth="on"] .promo .big { display: block; position: absolute; right: -14px; bottom: -18px; width: 104px; height: 104px; stroke-width: 1.2; color: rgba(255,255,255,.18); }
+[data-depth="on"] .promo a:hover { transform: translateY(-2px); box-shadow: 0 16px 36px -10px var(--glow), inset 0 1px 0 rgba(255,255,255,.18); }
+.bar { height: 4px; border-radius: 99px; background: var(--raised); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+[data-depth="on"] .promo .bar { background: rgba(255,255,255,.22); } [data-depth="on"] .promo .bar i { background: #fff; }
+
+/* chủ đề + tab chương */
+.topic-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.topic-row a { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 9px; border-radius: 6px; color: var(--muted); font-weight: 500; background: var(--chip-bg); }
+.topic-row a .n { font-size: 11px; color: var(--faint); }
+.topic-row a.on { color: var(--accent); background: var(--accent-soft); }
+.cat-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.cat-tabs a { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 16px; border-radius: 999px; background: var(--raised); color: var(--muted); font-weight: 500; }
+.cat-tabs a.on { background: var(--text); color: var(--bg); }
+[data-depth="on"] .cat-tabs a { background: var(--panel); color: var(--text); box-shadow: var(--s1), var(--hi); }
+[data-depth="on"] .cat-tabs a:hover { box-shadow: var(--s2), var(--hi); transform: translateY(-1px); }
+[data-depth="on"] .cat-tabs a.on { background: var(--solid); color: var(--solid-text); box-shadow: 0 6px 16px -6px rgba(0,0,0,.45); }
+[data-depth="on"] .cat-tabs a .ic { color: var(--ic); }
+[data-depth="on"] .cat-tabs a.on .ic { color: inherit; }
+
+/* thanh công cụ */
+.filters { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+.field { height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--panel); color: var(--faint); }
+.field.grow { flex: 1; max-width: 380px; }
+.field.sel { color: var(--muted); font-weight: 500; }
+[data-depth="on"] .field { border-color: transparent; box-shadow: var(--s1), var(--hi); }
+.solved { margin-left: auto; display: flex; align-items: center; gap: 6px; color: var(--muted); }
+
+/* bảng */
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+[data-depth="on"] .card, [data-depth="on"] .rcard { border-color: transparent; box-shadow: var(--s1), var(--hi); }
+table { width: 100%; border-collapse: collapse; }
+th { height: 36px; padding: 0 12px; text-align: left; font-weight: 500; font-size: 12px; color: var(--faint); }
+td { height: 44px; padding: 0 12px; border-top: 1px solid var(--line); }
+[data-depth="on"] td { border-top: 0; }
+[data-depth="on"] tbody tr:nth-child(even) td { background: var(--zebra); }
+tbody tr { cursor: pointer; }
+tbody tr:hover td { background: var(--raised) !important; }
+tbody tr:hover .title { color: var(--accent); }
+.title { font-weight: 500; } .pn { color: var(--faint); margin-right: 6px; }
+.lock { display: block; color: var(--faint); font-size: 11px; font-weight: 400; }
+.st { width: 40px; text-align: center; }
+.dash { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 1.5px dashed var(--line-strong); vertical-align: middle; }
+.e { color: var(--green); } .m { color: var(--medium); } .h { color: var(--hard); }
+td.e, td.m, td.h { font-weight: 500; font-size: 12px; }
+.mut { color: var(--muted); }
+.chip { display: inline-block; font-size: 11px; line-height: 18px; padding: 0 7px; border-radius: 5px; background: var(--accent-soft); color: var(--accent); font-weight: 500; margin-left: 8px; }
+
+/* cột phải */
+.side-r { display: flex; flex-direction: column; gap: 12px; }
+.rcard { padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.rhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-weight: 600; }
+.streak { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: 999px; background: var(--warn-bg); color: var(--medium); font-size: 12px; font-weight: 500; }
+.streak svg { width: 13px; height: 13px; }
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+.dow { font-size: 11px; color: var(--faint); height: 22px; }
+.day { position: relative; display: grid; place-items: center; height: 32px; border-radius: 8px; font-size: 12px; color: var(--muted); }
+.day i { position: absolute; bottom: 3px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; }
+.day.today { background: var(--accent); color: #fff; font-weight: 600; }
+[data-depth="on"] .day.today { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 85%, #fff), var(--accent)); box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--accent) 60%, transparent), inset 0 1px 0 rgba(255,255,255,.3); }
+.exam { display: flex; align-items: center; gap: 8px; margin-top: 14px; padding: 10px 12px; border-radius: 8px; background: var(--accent-soft); font-size: 12px; }
+.exam svg { color: var(--accent); }
+[data-depth="on"] .exam { background: linear-gradient(135deg, var(--accent-soft), transparent), var(--raised); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent); }
+.drow { display: grid; grid-template-columns: 72px 1fr 40px; align-items: center; gap: 10px; font-size: 12px; margin-bottom: 12px; }
+.drow:last-child { margin-bottom: 0; } .drow .num { text-align: right; }
+[data-depth="on"] .drow .bar { height: 6px; box-shadow: inset 0 1px 2px rgba(0,0,0,.08); }
+[data-depth="on"] .drow .bar i { box-shadow: 0 0 8px currentColor; }
+.board li { display: grid; grid-template-columns: 24px 28px 1fr auto; align-items: center; gap: 8px; height: 38px; padding: 0 8px; border-radius: 8px; }
+.board { list-style: none; margin: 0; padding: 0; }
+.board li.me { background: var(--raised); }
+.av { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 600; color: #fff; }
+.rank { color: var(--faint); font-weight: 600; }
+
+/* bảng điều khiển xem trước */
+.ctl { position: fixed; right: 16px; bottom: 16px; z-index: 30; display: flex; gap: 6px; padding: 6px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line-strong); box-shadow: 0 12px 32px rgba(0,0,0,.18); }
+.ctl button { height: 30px; padding: 0 12px; border-radius: 8px; border: 0; background: transparent; color: var(--muted); font: 500 12px Inter, sans-serif; cursor: pointer; }
+.ctl button.on { background: var(--solid); color: var(--solid-text); }
+.ctl .sep { width: 1px; background: var(--line-strong); margin: 4px 2px; }
+
+@media (max-width: 1180px) { .home { grid-template-columns: 208px minmax(0,1fr); } .side-l { grid-row: 1 / span 2; } .side-r { grid-column: 2; position: static; } }
+@media (max-width: 860px) { .home { grid-template-columns: 1fr; } .side-l { display: none; } .side-r { grid-column: 1; } .promo { grid-template-columns: 1fr; } .filters { flex-wrap: wrap; } .ctl { left: 16px; right: 16px; justify-content: center; } }
+</style>
+</head>
+<body>
+<svg style="display:none">
+  <symbol id="code" viewBox="0 0 24 24"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></symbol>
+  <symbol id="list" viewBox="0 0 24 24"><path d="M3 12h.01M3 18h.01M3 6h.01M8 12h13M8 18h13M8 6h13"/></symbol>
+  <symbol id="cap" viewBox="0 0 24 24"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="dashc" viewBox="0 0 24 24"><path d="M10.1 2.18a10 10 0 0 1 3.8 0M17.6 3.71a10 10 0 0 1 2.69 2.7M21.82 10.1a10 10 0 0 1 0 3.8M20.29 17.6a10 10 0 0 1-2.7 2.69M13.9 21.82a10 10 0 0 1-3.8 0M6.4 20.29a10 10 0 0 1-2.69-2.7M2.18 13.9a10 10 0 0 1 0-3.8M3.71 6.4a10 10 0 0 1 2.7-2.69"/></symbol>
+  <symbol id="grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></symbol>
+  <symbol id="book" viewBox="0 0 24 24"><path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+  <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="shuffle" viewBox="0 0 24 24"><path d="m18 14 4 4-4 4M18 2l4 4-4 4M2 18h1.97a4 4 0 0 0 3.3-1.7l5.45-7.6A4 4 0 0 1 16.03 7H22M2 6h1.97a4 4 0 0 1 3.3 1.7l5.45 7.6a4 4 0 0 0 3.3 1.7H22"/></symbol>
+  <symbol id="flame" viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></symbol>
+  <symbol id="timer" viewBox="0 0 24 24"><path d="M10 2h4M12 14l3-3"/><circle cx="12" cy="14" r="8"/></symbol>
+  <symbol id="trophy" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2Z"/></symbol>
+  <symbol id="arrow" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+  <symbol id="target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+</svg>
+
+<header>
+  <div class="brand"><span class="logo"><svg><use href="#code"/></svg></span>NetJudge</div>
+  <nav><a class="on" href="#">Bài tập</a><a href="#">Study Plan</a></nav>
+  <div class="who">hienluong <button class="btn">Đăng xuất</button></div>
+</header>
+
+<div class="home">
+  <nav class="side-l">
+    <a class="on" href="#"><svg><use href="#list"/></svg>Bài tập</a>
+    <a href="#"><svg><use href="#cap"/></svg>Study Plan</a>
+    <div class="grp">Danh sách của tôi</div>
+    <a href="#"><svg style="color:var(--green)"><use href="#check"/></svg>Đã giải <span class="n">2</span></a>
+    <a href="#"><svg style="color:var(--medium)"><use href="#dashc"/></svg>Đang thử <span class="n">1</span></a>
+    <a href="#"><svg style="color:var(--faint)"><use href="#dashc"/></svg>Chưa làm <span class="n">23</span></a>
+  </nav>
+
+  <section>
+    <div class="promo">
+      <a href="#" class="depth"><span class="k">Study Plan</span><span class="t">Giữa kỳ IT4062</span><span class="bar" style="margin-top:auto;position:relative"><i style="width:8%"></i></span><span class="m">2 / 26 bài · 9 chủ đề</span><svg class="big"><use href="#cap"/></svg></a>
+      <a href="#" class="depth"><span class="k">Bài tiếp theo</span><span class="t">Phân giải tên miền</span><span class="m">Dễ · Chương 2 →</span><svg class="big"><use href="#target"/></svg></a>
+      <a href="#" class="depth"><span class="k">Thi thử</span><span class="t">Thi thử 2: Quiz server UDP</span><span class="m">90 phút · 2 đề</span><svg class="big"><use href="#timer"/></svg></a>
+    </div>
+
+    <div class="topic-row">
+      <a href="#">TCP <span class="n">19</span></a><a href="#">Stream Framing <span class="n">12</span></a><a href="#">Protocol Design <span class="n">5</span></a>
+      <a href="#">Byte Order <span class="n">4</span></a><a class="on" href="#">UDP <span class="n">4</span></a><a href="#">File I/O <span class="n">4</span></a>
+      <a href="#">select <span class="n">4</span></a><a href="#">Client Limit <span class="n">3</span></a>
+    </div>
+
+    <div class="cat-tabs">
+      <a class="on depth" href="#"><svg class="ic"><use href="#grid"/></svg>Tất cả</a>
+      <a class="depth" href="#" style="--ic:#5b8def"><svg class="ic"><use href="#book"/></svg>Chương 2</a>
+      <a class="depth" href="#" style="--ic:#e2793a"><svg class="ic"><use href="#book"/></svg>Chương 3</a>
+    </div>
+
+    <div class="filters">
+      <span class="field grow"><svg><use href="#search"/></svg>Tìm bài theo tên hoặc số…</span>
+      <span class="field sel">Sắp xếp ▾</span><span class="field sel">Mọi mức ▾</span><span class="field sel">Mọi trạng thái ▾</span>
+      <span class="solved"><svg viewBox="0 0 40 40" style="width:20px;height:20px"><circle cx="20" cy="20" r="16" stroke="var(--raised)" stroke-width="5"/><circle cx="20" cy="20" r="16" stroke="var(--green)" stroke-width="5" stroke-dasharray="100.5" stroke-dashoffset="92" transform="rotate(-90 20 20)"/></svg><span class="num">2/26 đã giải</span></span>
+      <button class="btn" style="padding:0 9px"><svg><use href="#shuffle"/></svg></button>
+    </div>
+
+    <div class="card depth">
+      <table>
+        <thead><tr><th class="st"></th><th>Tên bài</th><th>Chương</th><th>Tỉ lệ AC</th><th>Mức độ</th></tr></thead>
+        <tbody>
+          <tr><td class="st"><svg style="color:var(--green)"><use href="#check"/></svg></td><td><span class="title"><span class="pn">1.</span>Đổi thứ tự byte</span></td><td class="mut">Chương 2</td><td class="mut num">50%</td><td class="e">Dễ</td></tr>
+          <tr><td class="st"><svg style="color:var(--green)"><use href="#check"/></svg></td><td><span class="title"><span class="pn">2.</span>Kiểm tra và phân loại địa chỉ IPv4</span></td><td class="mut">Chương 2</td><td class="mut num">50%</td><td class="e">Dễ</td></tr>
+          <tr><td class="st"><svg style="color:var(--medium)"><use href="#dashc"/></svg></td><td><span class="title"><span class="pn">3.</span>Phân giải tên miền</span></td><td class="mut">Chương 2</td><td class="mut num">0%</td><td class="e">Dễ</td></tr>
+          <tr><td class="st"><span class="dash"></span></td><td><span class="title"><span class="pn">4.</span>TCP echo server</span></td><td class="mut">Chương 2</td><td class="mut">—</td><td class="e">Dễ</td></tr>
+          <tr><td class="st"><span class="dash"></span></td><td><span class="title"><span class="pn">6.</span>UDP echo server</span><span class="lock">Cần làm trước: tcp-echo</span></td><td class="mut">Chương 2</td><td class="mut">—</td><td class="e">Dễ</td></tr>
+          <tr><td class="st"><span class="dash"></span></td><td><span class="title"><span class="pn">9.</span>Máy tính qua UDP</span><span class="lock">Cần làm trước: udp-boundary</span></td><td class="mut">Chương 2</td><td class="mut">—</td><td class="m">Trung bình</td></tr>
+          <tr><td class="st"><span class="dash"></span></td><td><span class="title"><span class="pn">13.</span>sv_server nhận hồ sơ sinh viên nhị phân</span></td><td class="mut">Chương 2</td><td class="mut">—</td><td class="h">Khó</td></tr>
+          <tr><td class="st"><span class="dash"></span></td><td><span class="title"><span class="pn">14.</span>Thi thử 2: Quiz server UDP</span><span class="chip">Thi thử</span></td><td class="mut">Chương 2</td><td class="mut">—</td><td class="h">Khó</td></tr>
+          <tr><td class="st"><span class="dash"></span></td><td><span class="title"><span class="pn">17.</span>select() echo server</span></td><td class="mut">Chương 3</td><td class="mut">—</td><td class="m">Trung bình</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <aside class="side-r">
+    <div class="rcard depth">
+      <div class="rhead">Tháng 11 / 2026 <span class="streak"><svg><use href="#flame"/></svg>3 ngày</span></div>
+      <div class="cal" id="cal"></div>
+      <div class="exam"><svg><use href="#timer"/></svg>Còn <b class="num">29</b> ngày đến kỳ thi (15/12/2026)</div>
+    </div>
+    <div class="rcard depth">
+      <div class="rhead">Tiến độ theo mức độ</div>
+      <div class="drow"><span class="e">Dễ</span><span class="bar"><i style="width:33%;background:var(--green);color:var(--green)"></i></span><span class="num mut">2/6</span></div>
+      <div class="drow"><span class="m">Trung bình</span><span class="bar"><i style="width:9%;background:var(--medium);color:var(--medium)"></i></span><span class="num mut">1/11</span></div>
+      <div class="drow"><span class="h">Khó</span><span class="bar"><i style="width:0"></i></span><span class="num mut">0/9</span></div>
+    </div>
+    <div class="rcard depth">
+      <div class="rhead">Bảng xếp hạng <svg style="color:var(--faint)"><use href="#trophy"/></svg></div>
+      <ol class="board">
+        <li class="me"><span class="rank">1</span><span class="av" style="background:linear-gradient(135deg,#6d4fe0,#3b3bb3)">H</span><span>hienluong</span><span class="num mut">2 bài</span></li>
+        <li><span class="rank">2</span><span class="av" style="background:linear-gradient(135deg,#12a46b,#0b6b4a)">T</span><span>thu</span><span class="num mut">0 bài</span></li>
+      </ol>
+    </div>
+  </aside>
+</div>
+
+<div class="ctl">
+  <button data-k="depth" data-v="off">Phẳng</button><button data-k="depth" data-v="on">Chiều sâu</button>
+  <span class="sep"></span>
+  <button data-k="theme" data-v="light">Sáng</button><button data-k="theme" data-v="dark">Tối</button>
+</div>
+
+<script>
+  // Lịch tháng 11/2026: bắt đầu Chủ nhật, hôm nay 16, chấm ở 14–16.
+  const cal = document.getElementById('cal');
+  cal.innerHTML = ['T2','T3','T4','T5','T6','T7','CN'].map(d => `<span class="dow">${d}</span>`).join('')
+    + '<span></span>'.repeat(6)
+    + Array.from({ length: 30 }, (_, i) => {
+      const d = i + 1, dot = { 14: 'var(--medium)', 15: 'var(--green)', 16: 'var(--green)' }[d];
+      return `<span class="day${d === 16 ? ' today' : ''}">${d}${dot ? `<i style="background:${dot}"></i>` : ''}</span>`;
+    }).join('');
+  const root = document.documentElement;
+  const sync = () => document.querySelectorAll('.ctl button').forEach(b => b.classList.toggle('on', root.dataset[b.dataset.k] === b.dataset.v));
+  document.querySelectorAll('.ctl button').forEach(b => b.onclick = () => { root.dataset[b.dataset.k] = b.dataset.v; sync(); });
+  sync();
+</script>
+</body>
+</html>

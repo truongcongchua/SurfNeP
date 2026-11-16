@@ -1,4 +1,4 @@
-# sv_server nhận hồ sơ sinh viên nhị phân (Bài tập 2.4–2.5)
+# Nhận hồ sơ sinh viên qua dữ liệu nhị phân
 
 `sv_client` đóng gói thông tin sinh viên thành **bản ghi nhị phân** và gửi qua TCP. Bạn viết phía
 server: `./sv_server <cổng> <tệp log>`. Phục vụ lần lượt từng client là đủ.

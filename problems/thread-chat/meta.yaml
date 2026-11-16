@@ -1,5 +1,5 @@
 id: thread-chat
-title: chat_server đa luồng
+title: Server chat đa luồng
 difficulty: hard
 chapter: 3
 topics: [TCP, Stream Framing, Multithreading, Mutex, Broadcast]
@@ -11,3 +11,4 @@ test_timeout: 6
 constraints:
   require_any: [pthread_create]
   forbid: [select, poll, epoll_wait, fork]
+concepts: [threads-mutex, client-management]

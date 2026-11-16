@@ -8,11 +8,20 @@ if ($LASTEXITCODE -ne 0) {
     Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe"
     for ($i = 0; $i -lt 60; $i++) { Start-Sleep 3; docker info *> $null; if ($LASTEXITCODE -eq 0) { break } }
 }
-docker image inspect netjudge-runner:1 *> $null
-if ($LASTEXITCODE -ne 0) { python judge/judge.py build }
+# Image máy chấm được tag theo mã băm của judge/Dockerfile + judge/runner/: sửa runner thì tự dựng lại, không dùng nhầm bản cũ.
+python judge/judge.py ensure
+if ($LASTEXITCODE -ne 0) { Write-Host "Không chuẩn bị được image máy chấm (xem lỗi ở trên)."; exit 1 }
 
 Set-Location web
 if (-not (Test-Path node_modules)) { npm install --no-audit --no-fund }
-if (-not (Test-Path .next)) { npx next build }
+# Build lại khi chưa có bản build hoặc mã nguồn mới hơn bản build.
+$stamp = Get-Item ".next/BUILD_ID" -ErrorAction SilentlyContinue
+$newest = Get-ChildItem app, components, lib, package.json, next.config.mjs -Recurse -File | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+if (-not $stamp -or $newest.LastWriteTime -gt $stamp.LastWriteTime) { npx next build; if ($LASTEXITCODE -ne 0) { Write-Host "Build lỗi."; exit 1 } }
 Write-Host "NetJudge chạy tại http://localhost:3000  (Ctrl+C để dừng)"
-npx next start -H 0.0.0.0 -p 3000
+# Server sập thì tự chạy lại sau 3 giây (chỉ khi cửa sổ này còn mở; không tự chạy khi bật máy).
+while ($true) {
+    npx next start -H 0.0.0.0 -p 3000
+    Write-Host "Server dừng (mã $LASTEXITCODE), chạy lại sau 3 giây... (Ctrl+C để thoát)"
+    Start-Sleep 3
+}

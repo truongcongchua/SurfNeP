@@ -1,5 +1,5 @@
 id: chat-select
-title: Phòng chat với select()
+title: Phòng chat đa client với select
 difficulty: hard
 chapter: 3
 topics: [TCP, Stream Framing, select, Broadcast]
@@ -11,3 +11,4 @@ test_timeout: 6
 constraints:
   require_any: [select]
   forbid: [fork, pthread_create, poll, epoll_wait]
+concepts: [select-poll, client-management]

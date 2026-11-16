@@ -1,5 +1,5 @@
 id: tcp-recv-line
-title: Hàm recv_line
+title: Đọc dữ liệu theo từng dòng qua TCP
 difficulty: medium
 chapter: 2
 topics: [TCP, Stream Framing]
@@ -7,3 +7,4 @@ prerequisites: [tcp-echo]
 ref: "Lecture notes §2.3 — recv() và ranh giới thông điệp"
 type: function
 test_timeout: 3
+concepts: [tcp-stream]

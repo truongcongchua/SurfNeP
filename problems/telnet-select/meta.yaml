@@ -1,5 +1,5 @@
 id: telnet-select
-title: telnet_server đăng nhập và chạy lệnh
+title: Server Telnet đăng nhập và xử lý lệnh
 difficulty: hard
 chapter: 3
 topics: [TCP, Stream Framing, select, Authentication, Process]
@@ -11,3 +11,4 @@ test_timeout: 8
 constraints:
   require_any: [select]
   forbid: [poll, epoll_wait, fork, pthread_create]
+concepts: [select-poll, telnet-auth]
