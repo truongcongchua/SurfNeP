@@ -1,6 +1,6 @@
 import time
 
-from njlib import Fail, WA, sample
+from njlib import Fail, WA, cases, group, sample, timeout
 
 
 def start(ctx):
@@ -60,6 +60,7 @@ def test_timeout_then_continue(ctx):
     finish(cli)
 
 
+@group("edge")
 def test_empty_lines_skipped(ctx):
     """Dòng rỗng không được gửi và không in gì"""
     cli, srv = start(ctx)
@@ -74,6 +75,7 @@ def test_empty_lines_skipped(ctx):
     finish(cli)
 
 
+@group("edge")
 def test_crlf_stripped(ctx):
     """Dòng kết thúc bằng \\r\\n: datagram không chứa \\r"""
     cli, srv = start(ctx)
@@ -84,6 +86,7 @@ def test_crlf_stripped(ctx):
     finish(cli)
 
 
+@group("basic")
 def test_long_reply(ctx):
     """Phản hồi dài 1500 byte vẫn được in đủ"""
     cli, srv = start(ctx)
@@ -95,6 +98,7 @@ def test_long_reply(ctx):
     finish(cli)
 
 
+@group("basic")
 def test_replies_not_mixed_up(ctx):
     """Phản hồi của dòng nào in ở dòng đó (đợi xong dòng trước mới gửi dòng sau)"""
     cli, srv = start(ctx)
@@ -108,8 +112,119 @@ def test_replies_not_mixed_up(ctx):
     finish(cli)
 
 
+@group("edge")
 def test_bad_ip(ctx):
     """Địa chỉ IP sai: báo lỗi, thoát mã khác 0"""
     cli = ctx.run_client("999.1.2.3", 9)
     if cli.wait(timeout=2) == 0:
         raise Fail(WA, "client phải thoát mã khác 0 khi địa chỉ IP không hợp lệ")
+
+
+# ======================= phần mở rộng (thiết kế lại) =======================
+
+@group("edge")
+def test_reply_with_nul(ctx):
+    """Phản hồi chứa byte 0x00: in đủ từng byte (printf %s dừng ở 0x00)"""
+    cli, srv = start(ctx)
+    cli.write("nul\n")
+    srv.expect(b"nul")
+    srv.reply(b"a\x00b\x00c")
+    cli.expect_stdout("a\x00b\x00c\n")
+    finish(cli)
+
+
+@group("edge")
+def test_empty_reply(ctx):
+    """Phản hồi là datagram rỗng: in một dòng trống (không phải TIMEOUT)"""
+    cli, srv = start(ctx)
+    cli.write("rong\n")
+    srv.expect(b"rong")
+    srv.reply(b"")
+    cli.expect_stdout("\n", timeout=0.8)
+    time.sleep(1.2)
+    if "TIMEOUT" in cli.stdout():
+        raise Fail(WA, "datagram rỗng là một phản hồi hợp lệ, không phải TIMEOUT")
+    finish(cli)
+
+
+@group("edge")
+def test_reply_2048(ctx):
+    """Phản hồi dài đúng 2048 byte"""
+    cli, srv = start(ctx)
+    cli.write("max\n")
+    srv.expect(b"max")
+    body = "".join(chr(ord("A") + i % 26) for i in range(2048))
+    srv.reply(body)
+    cli.expect_stdout(body + "\n")
+    finish(cli)
+
+
+@group("edge")
+def test_long_request_line(ctx):
+    """Dòng nhập dài 1500 byte: gửi trong một datagram nguyên vẹn"""
+    cli, srv = start(ctx)
+    line = "y" * 1500
+    cli.write(line + "\n")
+    srv.expect(line.encode())
+    srv.reply("ok")
+    cli.expect_stdout("ok\n")
+    finish(cli)
+
+
+@group("edge")
+def test_last_line_no_newline(ctx):
+    """Dòng cuối không có xuống dòng vẫn được gửi; dòng chỉ có CR coi là rỗng"""
+    cli, srv = start(ctx)
+    cli.write("\r\ncuoi")
+    cli.close_stdin()
+    srv.expect(b"cuoi")
+    srv.reply("da nhan")
+    cli.expect_stdout("da nhan\n")
+    srv.expect_nothing(0.2)
+    if cli.wait() != 0:
+        raise Fail(WA, "client phải thoát mã 0")
+
+
+@group("basic")
+def test_spaces_preserved(ctx):
+    """Dấu cách đầu/cuối dòng và tab được giữ nguyên trong datagram"""
+    cli, srv = start(ctx)
+    cli.write("  a\tb  \n")
+    srv.expect(b"  a\tb  ")
+    srv.reply(" r ")
+    cli.expect_stdout(" r \n")
+    finish(cli)
+
+
+@group("robust")
+@timeout(12)
+def test_three_timeouts(ctx):
+    """Ba lần liên tiếp không có phản hồi rồi mới có: TIMEOUT ×3 rồi in phản hồi"""
+    cli, srv = start(ctx)
+    for i in range(3):
+        cli.write(f"m{i}\n")
+        srv.expect(f"m{i}".encode(), timeout=2.5)
+    cli.write("cuoi\n")
+    srv.expect(b"cuoi", timeout=2.5)
+    srv.reply("xong")
+    out = cli.expect_stdout("xong\n", timeout=2)
+    if out != "TIMEOUT\nTIMEOUT\nTIMEOUT\nxong\n":
+        raise Fail(WA, f"stdout mong đợi 3 dòng TIMEOUT rồi 'xong', nhận {out!r}")
+    finish(cli)
+
+
+@group("stress")
+@timeout(12)
+def test_300_requests(ctx):
+    """300 dòng, phản hồi ngay: đủ 300 dòng đúng thứ tự"""
+    cli, srv = start(ctx)
+    want = ""
+    cli.write("".join(f"req {i}\n" for i in range(300)))
+    for i in range(300):
+        srv.expect(f"req {i}".encode())
+        srv.reply(f"rep {i}")
+        want += f"rep {i}\n"
+    out = cli.expect_stdout(want[-12:], timeout=2)
+    if out != want:
+        raise Fail(WA, "stdout không đủ / sai thứ tự 300 phản hồi")
+    finish(cli)

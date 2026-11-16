@@ -49,7 +49,12 @@ static int check_login(const char *line) {
 static void run_command(int c, const char *cmd) {
     char out[64], shell[BUF_SIZE + 128];
     snprintf(out, sizeof out, "out_%d.txt", (int)getpid());
-    snprintf(shell, sizeof shell, "%s > %s 2>&1", cmd, out);
+    if (!*cmd) {  // dòng rỗng: không có gì để chạy
+        send_str(c, "OUTPUT 0\n");
+        return;
+    }
+    // Bọc cả dòng trong { ...; } để gom kết quả của MỌI lệnh trên dòng (echo a; echo b, a | b...).
+    snprintf(shell, sizeof shell, "{ %s\n} > %s 2>&1", cmd, out);
     system(shell);
     FILE *f = fopen(out, "rb");
     char *data = NULL;

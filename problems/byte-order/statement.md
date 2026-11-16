@@ -10,7 +10,14 @@ Với mỗi dòng, in ra:
 3. giá trị thu được nếu **máy này** đọc nguyên dãy byte đó như một số nguyên của chính nó (thập phân).
 
 Dòng không đúng định dạng (sai kiểu, thiếu số, thừa từ, số âm, số quá lớn) thì in `ERROR`.
-Dòng trống thì bỏ qua, không in gì.
+Dòng trống (hoặc chỉ có khoảng trắng) thì bỏ qua, không in gì.
+
+## Ràng buộc
+- Các từ trên một dòng cách nhau bởi một hoặc nhiều dấu cách/tab; dòng có thể kết thúc bằng `\r\n`,
+  dòng cuối có thể không có `\n`.
+- `X` hợp lệ khi **chỉ gồm chữ số** `0-9` (được có số 0 ở đầu, ví dụ `007`). Có dấu `+`/`-`, có chữ cái, hay vượt
+  `65535` (u16) / `4294967295` (u32) đều là `ERROR`. Tên kiểu phân biệt hoa thường (`U16` là `ERROR`).
+- Mỗi dòng dài không quá 60 ký tự; input có tới 100 000 dòng.
 
 ## Ví dụ
 

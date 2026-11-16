@@ -1,0 +1,30 @@
+- id: table-too-small
+  why: "Bảng chỉ chứa 100 key"
+  replace: [["#define MAX_KEYS 1000", "#define MAX_KEYS 100"]]
+- id: key-length-off-by-one
+  why: "Chấp nhận key/value 65 ký tự (so sánh > thay vì >=)"
+  replace: [["if (strlen(tok[i]) >= KLEN)", "if (strlen(tok[i]) > KLEN)"]]
+- id: del-removes-last
+  why: "DEL xoá phần tử cuối bảng thay vì phần tử tìm được"
+  replace: [["else { table[i] = table[--nkeys]; reply(c->fd, \"OK\\n\"); }", "else { --nkeys; reply(c->fd, \"OK\\n\"); }"]]
+- id: count-clients
+  why: "COUNT trả số client thay vì số key"
+  replace: [["snprintf(out, sizeof out, \"COUNT %d\\n\", nkeys);", "snprintf(out, sizeof out, \"COUNT %d\\n\", nclients);"]]
+- id: keep-cr
+  why: "Không bỏ '\\r' cuối dòng"
+  replace: [["    if (n && line[n - 1] == '\\r') line[--n] = 0;\n", ""]]
+- id: limit-off-by-one
+  why: "So sánh > N thay vì >= N"
+  replace: [["if (fd >= 0 && nclients >= limit) {", "if (fd >= 0 && nclients > limit) {"]]
+- id: tab-is-separator
+  why: "Tách từ theo cả tab (đề chỉ cho phép dấu cách)"
+  replace: [["strtok_r(line, \" \", &save)", "strtok_r(line, \" \\t\", &save)"], ["strtok_r(NULL, \" \", &save)", "strtok_r(NULL, \" \\t\", &save)"]]
+- id: abrupt-close-leaks-slot
+  why: "Client đóng đột ngột: đóng socket nhưng không trả lại chỗ"
+  replace: [["if (n <= 0) { drop(c); continue; }", "if (n <= 0) { close(c->fd); c->fd = -1; c->len = 0; continue; }"]]
+- id: drop-partial-line
+  why: "Bỏ phần lệnh dở dang thay vì giữ cho lần recv sau"
+  replace: [["            c->len -= (size_t)(start - c->buf);\n            memmove(c->buf, start, c->len);", "            c->len = 0;"]]
+- id: full-not-closed
+  why: "Gửi FULL nhưng không đóng kết nối"
+  replace: [["                reply(fd, \"FULL\\n\");\n                close(fd);", "                reply(fd, \"FULL\\n\");"]]

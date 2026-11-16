@@ -42,3 +42,12 @@ B: CANCEL 2             ← NOT_YOURS 2
 C: (kết nối)            ← FULL
 A: MINE                 ← MINE 1 2
 ```
+
+## Ràng buộc (test ẩn kiểm tra đúng các điều này)
+- Các thành phần cách nhau một dấu cách; dòng có thể kết thúc bằng `\r\n`; mỗi dòng tối đa 1000 byte.
+- Tên dài 1–32 byte (33 trở lên → `ERROR`). Ghế hợp lệ là số thập phân `1…S` (không dấu, không chữ).
+- Lệnh có thể bị cắt vụn từng byte, hoặc hàng trăm lệnh dính nhau trong một lần gửi.
+- Nhiều client có thể **cùng lúc** tranh một ghế: mỗi ghế chỉ có đúng một chủ.
+- Kết nối mới luôn ở trạng thái **chưa LOGIN**, kể cả khi dùng lại chỗ của client cũ.
+- Client có thể mất kết nối đột ngột (RST) khi server đang gửi; chương trình chạy với giới hạn 256 file
+  descriptor, bộ chấm cho 300 kết nối vào-ra và 300 kết nối bị `FULL`.

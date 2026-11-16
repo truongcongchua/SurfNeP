@@ -39,6 +39,15 @@ A → server : xin chao
 server → B : abc: xin chao
 ```
 
+## Ràng buộc
+- `client_id`, `client_name` dài 1–32 byte, không chứa dấu cách; dòng đăng ký phải **khớp chính xác** dạng
+  `id: name` (dấu cách thừa ở đầu/cuối/giữa → `ERROR`). Mỗi dòng tối đa 1000 byte, không chứa `0x00`.
+- Nội dung tin được chuyển **nguyên vẹn** (kể cả dòng rỗng, dấu cách, dấu `:`), chỉ bỏ `\r` cuối dòng.
+- Kết nối mới luôn ở trạng thái **chưa đăng ký**, kể cả khi dùng lại chỗ của client cũ.
+- Người nhận có thể mất kết nối đột ngột (RST) **đúng lúc** server đang phát tin: server không được chết vì
+  `SIGPIPE`. Chương trình chạy với giới hạn 256 file descriptor (bộ chấm cho 300 lượt vào-ra phòng).
+- Tới 30 client cùng lúc; tới 1000 tin dồn trong một lần gửi; tin của cùng một người phải đến **đúng thứ tự**.
+
 ## Những điều bộ chấm sẽ kiểm tra
 - Dòng bị cắt thành nhiều lần `send`, hoặc nhiều dòng dính trong một lần `send`.
 - Một client gửi dở nửa dòng rồi im lặng không được làm server "đứng" với client khác.

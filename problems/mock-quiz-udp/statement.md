@@ -23,6 +23,13 @@ Mỗi datagram là một yêu cầu (không có `\n`); server trả lời ngư�
 
 `Q <i>` không cần đã trả lời câu trước. Mỗi câu chỉ được trả lời một lần, lần đầu là lần được tính.
 
+## Ràng buộc (test ẩn kiểm tra đúng các điều này)
+- Tệp câu hỏi có thể dùng CRLF, có dòng trống (kể cả dòng chỉ có `\r`), dòng cuối không có xuống dòng; tới 100 câu,
+  mỗi dòng tới 500 byte; lựa chọn có thể chứa `|` — đáp án đúng luôn là trường **cuối cùng**.
+- `N` từ 1 tới 100; tên dài 1–32 byte. Người chơi là cặp **IP + cổng** (các client của bộ chấm cùng IP, khác cổng).
+- `JOIN` lại sau `LEAVE` bắt đầu từ 0 điểm, chưa trả lời câu nào. Đáp án phải là chữ **hoa** `A`–`D`.
+- Bộ chấm so với mô hình trên hàng trăm yêu cầu ngẫu nhiên của nhiều người chơi xen kẽ.
+
 ## Ví dụ (N = 3)
 
 ```

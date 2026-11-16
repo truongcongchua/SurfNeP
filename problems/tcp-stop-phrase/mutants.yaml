@@ -1,0 +1,18 @@
+- id: no-carry
+  why: "Không giữ lại phần cuối của lần nhận trước: chuỗi vắt qua hai lần recv bị bỏ lỡ"
+  replace: [["        kept = total < plen - 1 ? total : plen - 1;", "        kept = 0;"]]
+- id: carry-too-short
+  why: "Chỉ giữ lại plen-2 byte (lệch một)"
+  replace: [["        kept = total < plen - 1 ? total : plen - 1;", "        kept = total < plen - 2 ? total : plen - 2;"]]
+- id: strstr
+  why: "Dùng strstr: dừng ở byte 0x00"
+  replace: [["        if (memmem(buf, total, PHRASE, plen)) {", "        buf[total] = 0;\n        if (strstr(buf, PHRASE)) {"]]
+- id: case-insensitive
+  why: "So khớp không phân biệt hoa thường"
+  replace: [["        if (memmem(buf, total, PHRASE, plen)) {", "        buf[total] = 0;\n        if (strcasestr(buf, PHRASE)) {"]]
+- id: keep-serving-after-bye
+  why: "Gửi BYE nhưng không đóng/thoát"
+  replace: [["            send(client, \"BYE\\n\", 4, 0);\n            break;", "            send(client, \"BYE\\n\", 4, 0);\n            kept = 0;\n            continue;"]]
+- id: bye-without-newline
+  why: "Gửi 'BYE' thiếu '\\n'"
+  replace: [["send(client, \"BYE\\n\", 4, 0);", "send(client, \"BYE\", 3, 0);"]]

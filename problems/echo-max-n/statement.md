@@ -31,6 +31,16 @@ C1: QUIT         → BYE
 C3 kết nối lại   → WELCOME
 ```
 
+## Ràng buộc và bộ chấm kiểm tra
+- Mỗi dòng dài tối đa 1000 byte (không tính `\n`), không chứa byte `0x00`. Lệnh phân biệt hoa thường và phải khớp
+  **nguyên dòng**: `COUNT ` (thừa dấu cách) hay `count` là dòng thường → `ECHO ...`.
+- Dòng có thể bị cắt thành mảnh 1 byte, hoặc tới 1000 dòng dính nhau trong một lần gửi. Nếu `QUIT` nằm giữa
+  khối, xử lý các dòng trước nó, gửi `BYE`, đóng và bỏ phần còn lại.
+- `N` từ 1 tới 50. Client bị `FULL` phải được **đóng ngay** và không chiếm chỗ. Chỗ được trả lại khi client
+  `QUIT`, đóng thường, hay mất kết nối đột ngột (RST).
+- Chạy với giới hạn **256 file descriptor**: bộ chấm cho 300 client lần lượt vào-ra và 300 kết nối liên tiếp bị
+  `FULL`. Client dồn lệnh rồi RST không được làm server chết (`SIGPIPE`).
+
 ## Bẫy hay gặp
 - `>` và `>=` khi so sánh với `N` (lệch một client).
 - Quên giảm bộ đếm khi client **đóng đột ngột** (`recv` trả `0` hoặc `-1`), chứ không chỉ khi nhận `QUIT`.

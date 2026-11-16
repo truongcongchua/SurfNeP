@@ -1,0 +1,33 @@
+- id: month-13-ok
+  why: "Kiểm tra tháng lệch một (month > 13)"
+  replace: [["month > 12", "month > 13"]]
+- id: day-31-rejected
+  why: "Ngày 31 bị coi là sai"
+  replace: [["day > 31", "day > 30"]]
+- id: gpa-400-rejected
+  why: "gpa = 400 bị coi là sai (>=)"
+  replace: [["gpa > 400", "gpa >= 400"]]
+- id: name-100-rejected
+  why: "Tên dài đúng 100 byte bị từ chối"
+  replace: [["nlen > 100", "nlen >= 100"]]
+- id: no-fflush-stdout
+  why: "Quên fflush(stdout): dòng log không hiện kịp trên màn hình"
+  replace: [["    fflush(stdout);\n", ""]]
+- id: log-no-fclose
+  why: "Mở log mà không fclose: rò rỉ fd (và dữ liệu nằm trong bộ đệm)"
+  replace: [["        fputs(line, f);\n        fclose(f);", "        fputs(line, f);\n        fflush(f);"]]
+- id: log-truncate
+  why: "Mở log bằng \"w\": ghi đè thay vì nối tiếp"
+  replace: [["fopen(logpath, \"a\")", "fopen(logpath, \"w\")"]]
+- id: gpa-format
+  why: "In điểm bằng %u.%u (0.05 thành 0.5)"
+  replace: [["%u.%02u\\n", "%u.%u\\n"]]
+- id: date-no-pad
+  why: "Ngày không đệm số 0 (2002-4-10)"
+  replace: [["%04u-%02u-%02u", "%u-%u-%u"]]
+- id: year-no-ntohs
+  why: "Quên ntohs cho năm"
+  replace: [["    year = ntohs(year);\n", ""]]
+- id: mssv-signed
+  why: "In mssv bằng %d (mssv ≥ 2^31 thành số âm)"
+  replace: [["\"%s %s %u %s", "\"%s %s %d %s"]]

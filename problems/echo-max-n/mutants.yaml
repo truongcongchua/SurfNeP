@@ -1,0 +1,24 @@
+- id: full-not-closed
+  why: "Gửi FULL nhưng quên close(): client bị từ chối treo, rò rỉ fd"
+  replace: [["                    send_str(c, \"FULL\\n\");\n                    close(c);", "                    send_str(c, \"FULL\\n\");"]]
+- id: keep-cr
+  why: "Không bỏ '\\r' cuối dòng: 'COUNT\\r' bị coi là dòng thường"
+  replace: [["    if (n && line[n - 1] == '\\r') line[--n] = 0;\n", ""]]
+- id: one-line-per-recv
+  why: "Mỗi lần recv chỉ xử lý dòng đầu tiên"
+  replace: [["while (alive && (nl = strchr(start, '\\n'))) {", "if (alive && (nl = strchr(start, '\\n'))) {"]]
+- id: drop-partial-line
+  why: "Bỏ phần dòng dở dang cuối bộ đệm thay vì giữ cho lần recv sau"
+  replace: [["                x->len -= (size_t)(start - x->buf);\n                memmove(x->buf, start, x->len);", "                x->len = 0;"]]
+- id: small-buffer
+  why: "Bộ đệm dòng 256 byte"
+  replace: [["#define BUF_SIZE 4096", "#define BUF_SIZE 256"]]
+- id: quit-keeps-connection
+  why: "QUIT gửi BYE nhưng không đóng kết nối"
+  replace: [["        send_str(x->fd, \"BYE\\n\");\n        return 0;", "        send_str(x->fd, \"BYE\\n\");\n        return 1;"]]
+- id: count-off-by-one
+  why: "Giới hạn so sánh > thay vì >="
+  replace: [["if (active >= limit || slot < 0) {", "if (active > limit || slot < 0) {"]]
+- id: client-table-too-small
+  why: "Bảng client chỉ 16 chỗ (không đạt N = 50)"
+  replace: [["#define MAX_CLIENTS 64", "#define MAX_CLIENTS 16"]]

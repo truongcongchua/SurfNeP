@@ -5,9 +5,12 @@ mới khởi động (ctx.port) và dùng ctx.connect() để đóng vai client.
 Docstring dòng đầu của hàm là tên test hiển thị cho người dùng.
 """
 import contextlib
+import hashlib
 import os
+import random
 import select
 import socket
+import struct
 import time
 
 # Mã kết quả (verdict)
@@ -50,7 +53,65 @@ def expects_exit(f):
 def sample(f):
     """Test mẫu: luôn hiển thị đầy đủ input/output cho người làm."""
     f.nj_sample = True
+    f.nj_group = "sample"
     return f
+
+
+GROUPS = ("sample", "basic", "edge", "stream", "robust", "concurrency", "stress", "regression")
+
+
+def group(name):
+    """Nhóm của test (xem docs/TEST-DESIGN.md). Mặc định: basic."""
+    if name not in GROUPS:
+        raise ValueError(f"nhóm test không hợp lệ: {name}")
+
+    def deco(f):
+        f.nj_group = name
+        return f
+    return deco
+
+
+def timeout(seconds):
+    """Giới hạn thời gian riêng cho test này (ghi đè test_timeout của meta.yaml)."""
+    def deco(f):
+        f.nj_timeout = float(seconds)
+        return f
+    return deco
+
+
+def cases(*params, title=None):
+    """Tham số hoá: mỗi bộ tham số thành một test riêng, gọi fn(ctx, *tham_số).
+    title: chuỗi format cho tên test, ví dụ "Key dài {0} ký tự" (mặc định: docstring + tham số)."""
+    def deco(f):
+        f.nj_cases = [p if isinstance(p, tuple) else (p,) for p in params]
+        f.nj_case_title = title
+        return f
+    return deco
+
+
+def expand(fn):
+    """Biến một hàm test (có thể có @cases) thành danh sách (tên hiển thị, hàm 1 tham số ctx, hàm gốc)."""
+    doc = (fn.__doc__ or fn.__name__).strip().splitlines()[0]
+    if not getattr(fn, "nj_cases", None):
+        return [(doc, fn, fn)]
+    out = []
+    for p in fn.nj_cases:
+        if fn.nj_case_title:
+            name = fn.nj_case_title.format(*p)
+        else:
+            name = f"{doc} [{', '.join(_short(x) for x in p)}]"
+        out.append((name, (lambda ctx, p=p: fn(ctx, *p)), fn))
+    return out
+
+
+def _short(x):
+    s = repr(x)
+    return s if len(s) <= 30 else s[:27] + "..."
+
+
+def buffer_boundary_sizes():
+    """Độ dài hay làm lộ lỗi bộ đệm cố định (quanh 256/512/1024/2048/4096)."""
+    return [255, 256, 257, 511, 512, 513, 1023, 1024, 1025, 2047, 2048, 2049, 4095, 4096, 4097]
 
 
 # ---------- kết nối client ----------
@@ -60,7 +121,7 @@ def _b(data):
 
 
 class Conn:
-    def __init__(self, port=None, name="client", timeout=1.0, sock=None):
+    def __init__(self, port=None, name="client", timeout=1.0, sock=None, rcvbuf=None):
         self.name = name
         self.buf = b""
         self.eof = False
@@ -68,11 +129,42 @@ class Conn:
             self.sock = sock
         else:
             try:
-                self.sock = socket.create_connection(("127.0.0.1", port), timeout=timeout)
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                if rcvbuf:  # phải đặt TRƯỚC connect thì cửa sổ TCP mới nhỏ theo
+                    s.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, rcvbuf)
+                s.settimeout(timeout)
+                s.connect(("127.0.0.1", port))
+                self.sock = s
             except (ConnectionRefusedError, socket.timeout, OSError) as e:
                 raise Fail(NL, f"{name}: không kết nối được tới server ({e})")
         self.sock.settimeout(None)
         self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+
+    def send_chunks(self, data, rng, min_chunk=1, max_chunk=7, delay=0.002):
+        """Cắt `data` thành các mảnh ngẫu nhiên [min_chunk, max_chunk] byte, gửi cách nhau `delay` giây."""
+        data = _b(data)
+        i = 0
+        while i < len(data):
+            n = rng.randint(min_chunk, max_chunk)
+            self.send(data[i:i + n])
+            i += n
+            if delay:
+                time.sleep(delay)
+
+    def reset(self):
+        """Đóng đột ngột bằng RST (SO_LINGER 0) — như client bị kill / mất mạng."""
+        with contextlib.suppress(OSError):
+            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack("ii", 1, 0))
+            self.sock.close()
+
+    def shutdown_write(self):
+        """Half-close: báo hết dữ liệu (FIN) nhưng vẫn đọc được phản hồi."""
+        with contextlib.suppress(OSError):
+            self.sock.shutdown(socket.SHUT_WR)
+
+    def expect_lines(self, lines, timeout=1.0):
+        for want in lines:
+            self.expect_line(want, timeout)
 
     # --- gửi ---
     def send(self, data):
@@ -322,19 +414,62 @@ class ClientProc:
 
 # ---------- ngữ cảnh của một test ----------
 
+SANDBOX_UID = 1000
+
+
+def sandbox_procs():
+    """Các tiến trình của bài nộp: danh sách (pid, trạng thái, ppid). Trạng thái 'Z' = zombie."""
+    out = []
+    for d in os.listdir("/proc"):
+        if not d.isdigit():
+            continue
+        try:
+            if os.stat(f"/proc/{d}").st_uid != SANDBOX_UID:
+                continue
+            with open(f"/proc/{d}/stat") as fh:
+                rest = fh.read().rsplit(")", 1)[1].split()
+            out.append((int(d), rest[0], int(rest[1])))
+        except (OSError, IndexError, ValueError):
+            pass
+    return out
+
+
 class Ctx:
-    def __init__(self, port, server, workdir, launcher=None):
+    def __init__(self, port, server, workdir, launcher=None, seed="njudge"):
         self.port = port
         self.server = server
         self.workdir = workdir
         self._conns = []
         self._launcher = launcher
         self.client = None
+        # Seed cố định theo tên test: test ngẫu nhiên nhưng tái lập được giữa các lần chấm.
+        self.rng = random.Random(int(hashlib.sha256(seed.encode()).hexdigest()[:16], 16))
 
-    def connect(self, name=None, timeout=1.0):
-        c = Conn(self.port, name or f"client{len(self._conns) + 1}", timeout)
+    def connect(self, name=None, timeout=1.0, rcvbuf=None):
+        c = Conn(self.port, name or f"client{len(self._conns) + 1}", timeout, rcvbuf=rcvbuf)
         self._conns.append(c)
         return c
+
+    def expect_alive(self, what=""):
+        """Server phải còn sống (không crash vì SIGPIPE, không tự thoát)."""
+        if self.server is None:
+            return
+        code = self.server.proc.poll()
+        if code is not None:
+            sig = f"tín hiệu {-code}" if code < 0 else f"mã {code}"
+            raise Fail(RE, f"server đã kết thúc ({sig}){' ' + what if what else ''}")
+
+    def zombies(self):
+        """Số tiến trình con zombie của server (chưa được waitpid)."""
+        if self.server is None:
+            return 0
+        pid = self.server.proc.pid
+        return sum(1 for _, st, ppid in sandbox_procs() if st == "Z" and ppid == pid)
+
+    def close_quietly(self, conn):
+        conn.close()
+        with contextlib.suppress(ValueError):
+            self._conns.remove(conn)
 
     def udp(self, name=None):
         c = UdpConn(self.port, name or f"udp{len(self._conns) + 1}")

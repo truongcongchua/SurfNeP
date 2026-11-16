@@ -1,0 +1,30 @@
+- id: mask-172-too-narrow
+  why: "Dùng /16 cho 172.16.0.0/12: 172.17-172.31 bị coi là PUBLIC"
+  replace: [["(a & 0xFFF00000u) == 0xAC100000u", "(a & 0xFFFF0000u) == 0xAC100000u"]]
+- id: mask-172-too-wide
+  why: "Dùng /8 cho 172.16.0.0/12"
+  replace: [["(a & 0xFFF00000u) == 0xAC100000u", "(a & 0xFF000000u) == 0xAC000000u"]]
+- id: mask-192-too-wide
+  why: "Coi mọi 192.x.x.x là PRIVATE"
+  replace: [["(a & 0xFFFF0000u) == 0xC0A80000u", "(a & 0xFF000000u) == 0xC0000000u"]]
+- id: loopback-only-one
+  why: "Chỉ 127.0.0.1 là LOOPBACK, quên cả dải /8"
+  replace: [["(a & 0xFF000000u) == 0x7F000000u", "a == 0x7F000001u"]]
+- id: no-zero-pad
+  why: "In 0x%X thay vì 0x%08X"
+  replace: [["0x%08X", "0x%X"]]
+- id: lowercase-hex
+  why: "In hex chữ thường"
+  replace: [["0x%08X", "0x%08x"]]
+- id: keep-cr
+  why: "Chỉ cắt \\n, giữ lại \\r của dòng CRLF"
+  replace: [['line[strcspn(line, "\r\n")] = 0;', 'line[strcspn(line, "\n")] = 0;']]
+- id: inet-aton
+  why: "Dùng inet_aton (dễ dãi: nhận 10.1, 0x7f.0.0.1, số bát phân)"
+  replace: [["inet_pton(AF_INET, line, &in) != 1", "inet_aton(line, &in) == 0"]]
+- id: line-buffer-15
+  why: "Bộ đệm vừa khít 15 ký tự: không còn chỗ cho \\n nên dòng dài nhất bị cắt làm hai"
+  replace: [["char line[256];", "char line[16];"]]
+- id: special-before-private-wrong
+  why: "Quên SPECIAL cho 255.255.255.255"
+  replace: [["a == 0 || a == 0xFFFFFFFFu", "a == 0"]]

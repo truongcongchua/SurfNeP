@@ -26,6 +26,15 @@ Một client có thể gửi **nhiều bản ghi** liên tiếp trên cùng kế
 - **Không hợp lệ** (`name_len = 0` hoặc > 100, tháng/ngày/gpa ngoài khoảng): gửi `ERROR\n` rồi
   **đóng** kết nối với client đó.
 
+## Ràng buộc và bộ chấm kiểm tra
+- Kiểm tra đủ biên: tháng 1–12, ngày 1–31 (không cần kiểm tra ngày có tồn tại trong tháng), gpa 0–400,
+  `name_len` 1–100; `mssv` tới 4294967295 (in như số không dấu); năm in đủ 4 chữ số (`0999`).
+- Bản ghi có thể đến từng byte, hoặc hàng trăm bản ghi dính nhau trong một lần gửi.
+- Tệp log có thể **đã có nội dung** từ trước: ghi nối tiếp. Dòng log phải xuất hiện trong tệp và trên màn
+  hình **ngay** sau khi gửi `OK` (đóng tệp / `fflush`).
+- Client có thể đóng giữa bản ghi hoặc RST; chương trình chạy với giới hạn 256 file descriptor (300 bản ghi trên
+  một kết nối, 300 client lần lượt).
+
 ## Ví dụ dòng log
 
 ```

@@ -19,6 +19,12 @@ Phía **client** của các bài chat: vừa đọc bàn phím để gửi, vừ
 Client này không cần biết giao thức chat: nó chỉ chuyển byte hai chiều. Bạn có thể thử nó với server của bài
 *chat-select* / *chat-poll* của chính mình.
 
+## Ràng buộc
+- Dữ liệu hai chiều là byte bất kỳ (có `0x00`, nửa dòng chưa có `\n`): chuyển ngay và nguyên vẹn.
+- Sau EOF của stdin, chương trình phải **ngủ** trong `poll` (bộ chấm đo CPU: lặp bận 100% là trượt).
+- Server có thể đóng thường, RST, hoặc đóng trong lúc stdin vẫn đổ dữ liệu: thoát (mã 0 khi server đóng),
+  không treo, không chết vì `SIGPIPE`. Server có thể dồn vài MB một lúc.
+
 ## Bộ chấm kiểm tra
 Bộ chấm dựng server giả, chạy chương trình của bạn với stdin là pipe và stdout là tệp, rồi kiểm tra:
 tin từ server phải hiện ra stdout **trong lúc stdin đang im lặng**, tin từ stdin phải đến server

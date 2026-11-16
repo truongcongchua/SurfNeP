@@ -1,0 +1,27 @@
+- id: seat-accepts-garbage
+  why: "Không kiểm tra từng ký tự là chữ số: 'BOOK 1x' thành ghế 1"
+  replace: [["        if (*p < '0' || *p > '9') return 0;\n", ""]]
+- id: last-seat-invalid
+  why: "Ghế S bị coi là không hợp lệ (g < nseats)"
+  replace: [["return g >= 1 && g <= nseats ? g : 0;", "return g >= 1 && g < nseats ? g : 0;"]]
+- id: name-32-rejected
+  why: "Tên dài đúng 32 ký tự bị từ chối"
+  replace: [["strlen(tok[1]) <= NAME_MAX_LEN)", "strlen(tok[1]) < NAME_MAX_LEN)"]]
+- id: name-not-reset
+  why: "Không xoá tên khi chỗ được dùng lại cho kết nối mới"
+  replace: [["                        cl[i].name[0] = 0;\n", ""]]
+- id: drop-clears-seats
+  why: "Client rời đi thì huỷ luôn ghế của tên đó"
+  replace: [["static void drop(Client *c) {\n    close(c->fd);", "static void drop(Client *c) {\n    for (int g = 1; g <= nseats; g++)\n        if (c->name[0] && !strcmp(owner[g], c->name)) owner[g][0] = 0;\n    close(c->fd);"]]
+- id: cancel-free-seat-ok
+  why: "CANCEL ghế trống trả CANCELLED"
+  replace: [["        } else if (!strcmp(owner[g], c->name)) {", "        } else if (!owner[g][0] || !strcmp(owner[g], c->name)) {"]]
+- id: keep-cr
+  why: "Không bỏ '\\r' cuối dòng"
+  replace: [["    if (n && line[n - 1] == '\\r') line[--n] = 0;\n", ""]]
+- id: limit-off-by-one
+  why: "So sánh > N"
+  replace: [["if (fd >= 0 && nclients >= limit) {", "if (fd >= 0 && nclients > limit) {"]]
+- id: small-list-buffer
+  why: "Bộ đệm danh sách ghế quá nhỏ (cắt cụt LIST khi S lớn)"
+  replace: [["    char tail[1024] = \"\";", "    char tail[128] = \"\";"]]

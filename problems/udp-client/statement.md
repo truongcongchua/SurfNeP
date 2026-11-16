@@ -28,6 +28,12 @@ stdin          stdout
 5 % 0          ERROR div0
 ```
 
+## Ràng buộc
+- Phản hồi có thể **rỗng** (in một dòng trống — đó không phải TIMEOUT), dài đúng 2048 byte, hoặc chứa `0x00`
+  (in đúng từng byte bằng `fwrite`).
+- Dòng nhập giữ nguyên dấu cách/tab ở đầu và cuối (chỉ bỏ `\n`, `\r`); dòng chỉ có `\r` là dòng rỗng; dòng
+  cuối có thể không có `\n`. Có thể nhiều lần TIMEOUT liên tiếp.
+
 ## Bộ chấm kiểm tra
 Bộ chấm dựng server UDP giả, chạy chương trình của bạn và kiểm tra: mỗi dòng đến server thành **đúng một**
 datagram **không có `\n`**; phản hồi được in đúng; im lặng thì in `TIMEOUT` sau khoảng 1 giây (không sớm,

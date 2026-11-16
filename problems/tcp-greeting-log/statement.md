@@ -15,6 +15,14 @@ Với **mỗi** client kết nối đến (phục vụ lần lượt từng clie
 3. Ghi xong phần dữ liệu của một client thì dữ liệu phải **nằm trong tệp** ngay (`fflush`/`fclose`
    hoặc dùng `write`), không đợi server kết thúc.
 
+## Ràng buộc và bộ chấm kiểm tra
+- Câu chào có thể rỗng, lớn tới 300 KB, hoặc chứa dữ liệu nhị phân (byte `0x00`, không có `\n` cuối): gửi
+  **đúng từng byte** (đừng dùng `fgets`/`strlen`). Tệp có thể bị thay đổi giữa hai client.
+- Dữ liệu client gửi là nhị phân bất kỳ; client không gửi gì thì log không được thêm byte nào.
+- Client có thể gửi dữ liệu trước khi đọc câu chào, gửi từng mảnh nhỏ, hoặc đóng đột ngột (RST).
+- Chương trình chạy với giới hạn **256 file descriptor**: bộ chấm cho 300 client lần lượt (nhớ đóng cả tệp câu
+  chào lẫn tệp log mỗi lần).
+
 ## Ví dụ
 
 ```

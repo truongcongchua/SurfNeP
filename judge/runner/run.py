@@ -39,6 +39,7 @@ BINARY = os.path.join(BUILD, "sol")
 WORK = "/tmp/w"               # root-owned 0755; mỗi test một thư mục con chown cho sandbox
 SANDBOX_UID = SANDBOX_GID = 1000
 OUTPUT_LIMIT = 16 << 20       # RLIMIT_FSIZE cho bài nộp: ghi quá 16 MB vào một tệp -> SIGXFSZ -> OLE
+FD_LIMIT = 256                # RLIMIT_NOFILE cho bài nộp: quên close() socket thì vài trăm client là hết fd
 SANDBOX_KW = {"user": SANDBOX_UID, "group": SANDBOX_GID, "extra_groups": []}
 CFLAGS = ["-std=gnu11", "-O2", "-Wall", "-Wextra", "-pthread"]
 GENOUT = os.environ.get("NJ_GENOUT") == "1"
@@ -56,6 +57,8 @@ DEBUG_CFLAGS = ["-std=gnu11", "-O0", "-g", "-Wall", "-Wextra", "-pthread", "-fno
                 "-fsanitize=address,undefined"]
 SAN_ENV = {**os.environ, "ASAN_OPTIONS": "detect_leaks=0:abort_on_error=0:color=never",
            "UBSAN_OPTIONS": "print_stacktrace=1:color=never"}
+# selftest với bản sai/mutant: dừng ở test sai đầu tiên cho nhanh.
+FAIL_FAST = os.environ.get("NJ_FAIL_FAST") == "1"
 SHOW_IO = SAMPLES_ONLY or CUSTOM or DEBUG  # Chạy thử: trả kèm input / output / mong đợi để hiện như LeetCode
 
 
@@ -75,6 +78,7 @@ def sandbox_limits():
     """preexec_fn của mọi tiến trình bài nộp (chạy sau khi đã đổi sang user sandbox)."""
     resource.setrlimit(resource.RLIMIT_FSIZE, (OUTPUT_LIMIT, OUTPUT_LIMIT))
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+    resource.setrlimit(resource.RLIMIT_NOFILE, (FD_LIMIT, FD_LIMIT))
 
 
 def kill_sandbox():
@@ -257,6 +261,7 @@ def _alarm(signum, frame):
 
 
 def load_tests():
+    """Danh sách (tên hiển thị, hàm(ctx), hàm gốc mang thuộc tính nj_*). @cases được bung thành nhiều test."""
     tests = []
     for path in sorted(glob.glob(os.path.join(PROBLEM, "tests", "test_*.py"))):
         name = os.path.splitext(os.path.basename(path))[0]
@@ -265,8 +270,16 @@ def load_tests():
         spec.loader.exec_module(mod)
         for key, val in vars(mod).items():
             if key.startswith("test_") and callable(val):
-                tests.append(val)
+                tests += njlib.expand(val)
     return tests
+
+
+def stdio_group(name):
+    """Nhóm của test stdio suy từ tên tệp: sample* -> sample; chứa _edge_/_stress_... -> nhóm đó; còn lại basic."""
+    if name.startswith("sample"):
+        return "sample"
+    parts = name.lower().replace("-", "_").split("_")
+    return next((g for g in njlib.GROUPS if g in parts), "basic")
 
 
 def prepare_workdir(i):
@@ -291,17 +304,17 @@ def run_scripted_tests(meta):
     kind = meta.get("type", "server")
     proto = meta.get("protocol", "tcp")
     results = []
-    per_test = float(meta.get("test_timeout", 5))
+    default_timeout = float(meta.get("test_timeout", 5))
     signal.signal(signal.SIGALRM, _alarm)
-    for i, fn in enumerate(pick_samples(load_tests(), lambda f: getattr(f, "nj_sample", False)), 1):
-        title = (fn.__doc__ or fn.__name__).strip().splitlines()[0]
+    for i, (title, fn, orig) in enumerate(pick_samples(load_tests(), lambda t: getattr(t[2], "nj_sample", False)), 1):
+        per_test = getattr(orig, "nj_timeout", default_timeout)
         wd = prepare_workdir(i)
         procs = []
         port = None
         server = None
         if kind == "server":
             port = free_port(socket.SOCK_DGRAM if proto == "udp" else socket.SOCK_STREAM)
-            argv = [a.replace("{port}", str(port)) for a in getattr(fn, "nj_args", meta.get("args", ["{port}"]))]
+            argv = [a.replace("{port}", str(port)) for a in getattr(orig, "nj_args", meta.get("args", ["{port}"]))]
             server = Proc(argv, wd)
             procs.append(server)
 
@@ -310,7 +323,7 @@ def run_scripted_tests(meta):
             procs.append(p)
             return p.proc
 
-        ctx = njlib.Ctx(port, server, wd, launcher)
+        ctx = njlib.Ctx(port, server, wd, launcher, seed=f"{meta.get('id', '')}/{title}")
         verdict, msg = njlib.AC, ""
         t0 = time.monotonic()
         signal.setitimer(signal.ITIMER_REAL, per_test)
@@ -320,7 +333,7 @@ def run_scripted_tests(meta):
             fn(ctx)
             if server:
                 code = server.proc.poll()
-                if code is not None and not getattr(fn, "nj_expects_exit", False):
+                if code is not None and not getattr(orig, "nj_expects_exit", False):
                     verdict, msg = signal_verdict(code), f"server {describe_exit(code)} giữa chừng"
         except Timeout:
             verdict, msg = njlib.TLE, f"test chạy quá {per_test}s"
@@ -330,10 +343,13 @@ def run_scripted_tests(meta):
                 code = p.proc.poll()
                 if code is not None and code < 0:
                     verdict, msg = signal_verdict(code), f"chương trình {describe_exit(code)} — {msg}"
-            if server and verdict not in (njlib.RE, njlib.OLE) and not getattr(fn, "nj_expects_exit", False):
+            if server and verdict not in (njlib.RE, njlib.OLE) and not getattr(orig, "nj_expects_exit", False):
                 code = server.proc.poll()
                 if code is not None:
                     verdict, msg = njlib.RE, f"server {describe_exit(code)} giữa chừng — {msg}"
+        except (ConnectionResetError, BrokenPipeError, ConnectionAbortedError) as e:
+            # bài nộp reset/đóng kết nối giữa chừng: lỗi của bài nộp, không phải của bộ chấm
+            verdict, msg = njlib.WA, f"kết nối bị đóng đột ngột từ phía chương trình ({e.strerror or e})"
         except Exception:
             verdict, msg = njlib.IE, traceback.format_exc(limit=3)
         finally:
@@ -344,7 +360,8 @@ def run_scripted_tests(meta):
             kill_sandbox()  # tiến trình con đã setsid / mồ côi không được sống sang test sau
         r = {
             "name": title, "verdict": verdict, "message": msg,
-            "sample": getattr(fn, "nj_sample", False),
+            "sample": getattr(orig, "nj_sample", False),
+            "group": getattr(orig, "nj_group", "basic"),
             "time_ms": int((time.monotonic() - t0) * 1000),
         }
         if DEBUG:
@@ -360,6 +377,8 @@ def run_scripted_tests(meta):
                     r["message"] = "Sanitizer phát hiện lỗi bộ nhớ / hành vi không xác định"
             r["debug_log"] = log[-6000:].replace(BUILD + "/", "")
         results.append(r)
+        if FAIL_FAST and r["verdict"] != njlib.AC:
+            break
     return results
 
 
@@ -432,6 +451,7 @@ def run_stdio_tests(meta):
                    f"\n--- nhận được:\n{got[:600]}")
         r = {"name": name, "verdict": verdict, "message": msg,
              "sample": CUSTOM or name.startswith("sample"),
+             "group": "custom" if CUSTOM else stdio_group(name),
              "time_ms": elapsed}
         if DEBUG:
             r["debug_log"] = err_text[-6000:].replace(BUILD + "/", "")
@@ -442,6 +462,8 @@ def run_stdio_tests(meta):
         if SHOW_IO:
             r["io"] = {"input": data.decode(errors="replace")[:4000], "output": got[:4000], "expected": want[:4000]}
         results.append(r)
+        if FAIL_FAST and verdict != njlib.AC:
+            break
     return results
 
 

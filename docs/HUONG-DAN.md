@@ -109,8 +109,20 @@ python judge/judge.py check                                         # chỉ ki�
 Mỗi bài là một thư mục trong `problems/<id>/` (xem [README.md](../README.md) để biết cấu trúc). Web đọc thẳng từ thư mục này,
 **chỉ cần tải lại trang**, không cần build lại. Để bài xuất hiện trong plan, thêm một dòng vào `plans/giua-ky.yaml`.
 
-Quy tắc: mỗi bài mới phải có `solution.c` và ít nhất một `wrong/*.c`, rồi chạy
-`python judge/judge.py selftest problems/<id>`. Lời giải mẫu phải AC và mọi lời giải sai phải trượt.
+Quy tắc: test phải được thiết kế theo [TEST-DESIGN.md](TEST-DESIGN.md) (cách LeetCode làm, áp vào bài mạng: nhóm
+sample/basic/edge/stream/robust/concurrency/stress, mô hình chuẩn + test ngẫu nhiên có seed, mutation testing).
+Mỗi bài mới phải có `solution.c`, ít nhất một `wrong/*.c` và `mutants.yaml`, rồi chạy:
+
+```powershell
+python judge/judge.py selftest -j 6 problems/<id>            # lời giải mẫu AC, mọi bản sai/mutant phải trượt
+python judge/judge.py selftest -j 6 --repeat 3 problems/<id> # chạy lời giải mẫu 3 lần để soi test chập chờn
+python judge/judge.py gentests problems/<id>                 # bài stdio: sinh tests/g_*.in từ tests/gen.py, đối chiếu oracle
+```
+
+Selftest in "ma trận bắt lỗi": mỗi bản sai bị test nào giết đầu tiên. Bản nào **SỐNG SÓT** nghĩa là bộ test còn lỗ
+hổng — viết thêm test cho tới khi nó chết (hoặc bỏ mutant nếu nó thực sự tương đương với lời giải đúng).
+Bộ test dùng chung cho các họ bài nằm ở `judge/runner/suites.py` (echo, tối đa N client), `suite_telnet.py`,
+`suite_chat.py`.
 
 Khi sửa file trong `judge/runner/` (thư viện test hoặc runner), chạy `python judge/judge.py ensure` (hoặc `start.ps1`). Tên image là `netjudge-runner:<mã băm 12 ký tự>` của Dockerfile + runner/, nên image cũ không bao giờ bị dùng nhầm; `build` dựng lại cưỡng bức và xoá các bản tag khác.
 

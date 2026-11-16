@@ -1,0 +1,35 @@
+# Bản sai sinh từ solution.c; xem docs/TEST-DESIGN.md
+- id: printf-s
+  why: 'In phản hồi bằng printf("%s"): dừng ở byte 0x00'
+  replace:
+  - - '                fwrite(reply, 1, (size_t)k, stdout);'
+    - "                reply[k] = 0;\n                fputs(reply, stdout);"
+- id: empty-reply-timeout
+  why: Coi datagram rỗng như không có phản hồi
+  replace:
+  - - '            if (k >= 0) {'
+    - '            if (k > 0) {'
+  - - '            ssize_t k = recvfrom('
+    - '            ssize_t k = recvfrom('
+- id: small-reply-buffer
+  why: Bộ đệm phản hồi 1024 byte
+  replace:
+  - - char line[4096], reply[2049];
+    - char line[4096], reply[1025];
+- id: short-timeout
+  why: Chỉ đợi 0.3 giây
+  replace:
+  - - if (poll(&p, 1, 1000) > 0) {
+    - if (poll(&p, 1, 300) > 0) {
+- id: keep-cr
+  why: Không bỏ '\r'
+  replace:
+  - - '        line[strcspn(line, "\r\n")] = 0;'
+    - '        line[strcspn(line, "\n")] = 0;'
+- id: send-empty
+  why: Không bỏ qua dòng rỗng
+  replace:
+  - - '        if (n == 0) continue;
+
+      '
+    - ''

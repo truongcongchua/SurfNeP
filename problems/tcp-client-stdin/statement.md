@@ -14,6 +14,11 @@ Viết chương trình **client** chạy bằng:
   thoát với mã **khác 0**, không treo.
 - Dữ liệu gửi đi phải **giống hệt** dữ liệu nhập vào, kể cả ký tự xuống dòng.
 
+## Ràng buộc
+- Dữ liệu nhập là byte bất kỳ (có thể chứa `0x00`, `\r`, dòng rất dài tới 200 KB, tổng tới vài MB): gửi **đúng
+  từng byte** (đừng dùng `fgets` + `strlen`). stdin rỗng thì kết nối rồi đóng, không gửi gì.
+- Server có thể ngừng đọc một lúc: `send` sẽ chặn hoặc gửi thiếu — phải gửi cho đủ, không được bỏ dữ liệu.
+
 ## Bộ chấm kiểm tra
 Bộ chấm dựng một server giả, chạy chương trình của bạn với tham số `127.0.0.1 <cổng>`, rồi ghi
 vào stdin của nó. Server giả kiểm tra từng dòng có đến kịp thời hay không và toàn bộ dữ liệu có

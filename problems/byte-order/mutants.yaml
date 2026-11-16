@@ -1,0 +1,28 @@
+# Bản sai sinh tự động từ solution.c (xem docs/TEST-DESIGN.md). Mỗi bản phải bị ít nhất một test giết.
+- id: off-by-one-u16-max
+  why: "So sánh < thay vì <= nên 65535 bị coi là ERROR"
+  replace: [["v <= 0xFFFF)", "v < 0xFFFF)"]]
+- id: off-by-one-u32-max
+  why: "Giới hạn u32 lệch một"
+  replace: [["v <= 0xFFFFFFFFULL", "v < 0xFFFFFFFFULL"]]
+- id: signed-print
+  why: "In giá trị u32 bằng %d: số có bit cao thành số âm"
+  replace: [['printf(" | %u\n", net);', 'printf(" | %d\n", (int)net);']]
+- id: allow-sign
+  why: "Chấp nhận dấu +/- trước số (strtoull tự hiểu '+5', '-0')"
+  replace: [["num[0] >= '0' && num[0] <= '9' && ", ""]]
+- id: ignore-extra-words
+  why: "Không bắt lỗi thừa từ trên dòng"
+  replace: [["int numok = k == 2", "int numok = k >= 2"]]
+- id: case-insensitive
+  why: "So tên kiểu không phân biệt hoa thường"
+  replace: [['!strcmp(type, "u16")', '!strcasecmp(type, "u16")'], ['#include <string.h>', "#include <string.h>\n#include <strings.h>"]]
+- id: small-line-buffer
+  why: "Bộ đệm dòng 16 byte: dòng có nhiều khoảng trắng bị fgets cắt đôi"
+  replace: [["char line[256];", "char line[16];"]]
+- id: blank-line-error
+  why: "In ERROR cho dòng trống thay vì bỏ qua"
+  replace: [["if (k == 0 || k == EOF) continue;", "if (k == 0 || k == EOF) { puts(\"ERROR\"); continue; }"]]
+- id: no-range-check-u16
+  why: "Ép kiểu thẳng (uint16_t)v không kiểm tra tràn"
+  replace: [["v <= 0xFFFF)", "1)"]]
