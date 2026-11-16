@@ -1,5 +1,5 @@
 id: telnet-select
-title: telnet_server đăng nhập và chạy lệnh
+title: Server Telnet đăng nhập và xử lý lệnh
 difficulty: hard
 chapter: 3
 topics: [TCP, Stream Framing, select, Authentication, Process]

@@ -1,4 +1,4 @@
-# telnet_server đa tiến trình (Bài tập 3.4)
+# Server Telnet đa tiến trình
 
 Viết `./telnet_server <cổng>` với **cùng giao thức** như bài *telnet-select* (đăng nhập bằng
 `accounts.txt`, `OUTPUT <n>` + kết quả, `exit` → `BYE`), nhưng mỗi client được phục vụ bởi

@@ -37,7 +37,7 @@ thẳng `start.bat` (gõ `start`, hoặc bấm đúp trong Explorer) thay cho l�
 
 `start.ps1` tự làm các việc sau, bạn không phải gõ riêng:
 1. bật Docker Desktop nếu chưa chạy (đợi tối đa ~3 phút);
-2. dựng image chấm bài `netjudge-runner:1` nếu chưa có (lần đầu mất vài phút);
+2. dựng image chấm bài nếu chưa có bản khớp với `judge/runner/` hiện tại (lần đầu mất vài phút; image được tag theo mã băm nội dung nên sửa runner thì tự dựng lại);
 3. `npm install` và `next build` nếu chưa có;
 4. chạy web ở **http://localhost:3000**. Nhấn `Ctrl+C` để dừng.
 
@@ -54,7 +54,7 @@ thẳng `start.bat` (gõ `start`, hoặc bấm đúp trong Explorer) thay cho l�
 4. Bấm một bài, đọc đề ở khung trái (có mục "Kiến thức nền" trỏ về lecture notes), viết code ở khung phải, bấm **Nộp bài**.
    Kéo các thanh chia giữa các khung để đổi kích thước (trang tự nhớ lại).
    Nút **Chạy thử** (cạnh Nộp bài) chỉ biên dịch và chạy test mẫu, trả kết quả nhanh và **không** tính là một lần nộp.
-   Bài không có test mẫu thì chạy thử test đầu tiên. Sau khi sửa `judge/runner/`, nhớ `python judge/judge.py build`.
+   Bài không có test mẫu thì chạy thử test đầu tiên. Sau khi sửa `judge/runner/`, chạy `start.ps1` lại hoặc `python judge/judge.py ensure`; chưa dựng lại thì lượt chấm báo Internal Error kèm hướng dẫn, không chấm nhầm bằng bản cũ.
 5. Kết quả hiện ở khung **Kết quả** dưới editor sau khoảng 5–30 giây, kèm từng test. Mở tab **Lịch sử nộp** ở khung trái
    và bấm "Xem" để nạp lại code cũ.
 6. Nút mặt trời/mặt trăng ở góc phải header để chuyển **Sáng / Tối / Theo hệ thống**.
@@ -68,6 +68,7 @@ thẳng `start.bat` (gõ `start`, hoặc bấm đúp trong Explorer) thay cho l�
 | CE | Lỗi biên dịch | Đọc log hiện bên dưới |
 | RE | Chương trình bị crash | `SIGSEGV`, hoặc server tự thoát giữa chừng |
 | TLE | Quá thời gian | Vòng lặp vô hạn, hoặc treo ở `recv` |
+| OLE | In quá nhiều output | Vòng lặp vô hạn có `printf` (giới hạn 16 MB mỗi tệp) |
 | NL | Server không mở cổng | Quên `listen`, hoặc cổng lấy từ `argv[1]` sai |
 | BLOCKED | Một client làm treo client khác | Server chưa phục vụ đồng thời (server lặp, `recv` chặn) |
 | LIMIT | Sai giới hạn N client | Kiểm tra `>=` và `>`, hoặc chưa giải phóng chỗ khi client rời |
@@ -99,7 +100,8 @@ Hữu ích khi muốn thử nhanh một file `.c` bất kỳ:
 ```powershell
 python judge/judge.py run problems/chat-select C:\duong\dan\bai.c   # chấm một bài nộp
 python judge/judge.py selftest                                      # kiểm tra toàn bộ ngân hàng bài
-python judge/judge.py build                                         # dựng lại image sau khi sửa judge/runner/
+python judge/judge.py ensure                                        # dựng image nếu thiếu/cũ so với judge/runner/ (tag = mã băm nội dung)
+python judge/judge.py check                                         # chỉ kiểm tra: exit 0 nếu image khớp
 ```
 
 ## 6. Thêm hoặc sửa bài
@@ -110,7 +112,7 @@ Mỗi bài là một thư mục trong `problems/<id>/` (xem [README.md](../READM
 Quy tắc: mỗi bài mới phải có `solution.c` và ít nhất một `wrong/*.c`, rồi chạy
 `python judge/judge.py selftest problems/<id>`. Lời giải mẫu phải AC và mọi lời giải sai phải trượt.
 
-Khi sửa file trong `judge/runner/` (thư viện test hoặc runner), nhớ chạy `python judge/judge.py build` rồi mới chấm lại.
+Khi sửa file trong `judge/runner/` (thư viện test hoặc runner), chạy `python judge/judge.py ensure` (hoặc `start.ps1`). Tên image là `netjudge-runner:<mã băm 12 ký tự>` của Dockerfile + runner/, nên image cũ không bao giờ bị dùng nhầm; `build` dựng lại cưỡng bức và xoá các bản tag khác.
 
 ## 7. Sửa giao diện web
 

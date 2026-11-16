@@ -16,6 +16,7 @@ WA = "WA"            # Wrong Answer
 CE = "CE"            # Compile Error
 RE = "RE"            # Runtime Error (server crash / thoát bất thường)
 TLE = "TLE"          # Time Limit Exceeded
+OLE = "OLE"          # Output Limit Exceeded — ghi quá nhiều output
 NL = "NL"            # Not Listening — server không mở cổng
 BLOCKED = "BLOCKED"  # Server bị chặn bởi một client khác (không phục vụ đồng thời)
 LIMIT = "LIMIT"      # Sai giới hạn số client

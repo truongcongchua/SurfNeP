@@ -1,4 +1,4 @@
-# Hàm recv_line
+# Đọc dữ liệu theo từng dòng qua TCP
 
 Hầu hết giao thức trong môn học trao đổi theo **dòng**. Viết hàm (không viết `main`):
 

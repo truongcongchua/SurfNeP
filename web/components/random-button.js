@@ -7,8 +7,7 @@ export function RandomButton({ ids }) {
   const router = useRouter();
   return (
     <button
-      type="button" className="btn ghost" title="Bài ngẫu nhiên" aria-label="Bài ngẫu nhiên" disabled={!ids.length}
-      style={{ padding: "0 10px" }}
+      type="button" className="icon-btn" title="Bài ngẫu nhiên" aria-label="Bài ngẫu nhiên" disabled={!ids.length}
       onClick={() => router.push(`/problems/${ids[Math.floor(Math.random() * ids.length)]}`)}
     >
       <Shuffle className="size-4" />

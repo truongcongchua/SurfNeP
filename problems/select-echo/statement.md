@@ -1,4 +1,4 @@
-# select() echo server
+# Echo server dùng select
 
 Viết echo server `./server <cổng>` giống bài *tcp-echo*: gửi trả nguyên vẹn mọi byte nhận được.
 Khác biệt là server phải phục vụ **đồng thời** nhiều client (tối thiểu 50) trong **một tiến trình,

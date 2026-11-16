@@ -1,5 +1,5 @@
 id: sv-struct
-title: sv_server nhận hồ sơ sinh viên nhị phân
+title: Nhận hồ sơ sinh viên qua dữ liệu nhị phân
 difficulty: hard
 chapter: 2
 topics: [TCP, Stream Framing, Serialization, Byte Order, File I/O]

@@ -1,5 +1,5 @@
 id: select-echo
-title: select() echo server
+title: Echo server dùng select
 difficulty: medium
 chapter: 3
 topics: [TCP, select]

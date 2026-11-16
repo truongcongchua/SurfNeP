@@ -1,5 +1,5 @@
 id: chat-select
-title: Phòng chat với select()
+title: Phòng chat đa client với select
 difficulty: hard
 chapter: 3
 topics: [TCP, Stream Framing, select, Broadcast]

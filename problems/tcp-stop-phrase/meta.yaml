@@ -1,5 +1,5 @@
 id: tcp-stop-phrase
-title: Chuỗi dừng bị cắt vụn
+title: Chuỗi dừng bị phân mảnh
 difficulty: medium
 chapter: 2
 topics: [TCP, Stream Framing]

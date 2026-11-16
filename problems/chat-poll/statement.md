@@ -1,4 +1,4 @@
-# chat_server với poll() (Bài tập 3.3)
+# Phòng chat đa client với poll
 
 Viết lại **chat_server** của bài *chat-select* bằng **`poll()`** thay cho `select()`, cùng giao thức.
 **Không được dùng:** `select`, `epoll`, `fork`, `pthread`.

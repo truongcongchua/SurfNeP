@@ -1,4 +1,4 @@
-# tcp_client gửi dữ liệu từ bàn phím (Bài tập 2.2)
+# Gửi dữ liệu từ bàn phím qua TCP
 
 Viết chương trình **client** chạy bằng:
 

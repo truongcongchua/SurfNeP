@@ -33,4 +33,8 @@ function DropdownMenuItem({ className, ...props }) {
   );
 }
 
-export { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem };
+function DropdownMenuSeparator({ className, ...props }) {
+  return <DropdownMenuPrimitive.Separator className={cn("-mx-1 my-1 h-px bg-[var(--line)]", className)} {...props} />;
+}
+
+export { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator };

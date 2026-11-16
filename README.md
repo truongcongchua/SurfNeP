@@ -7,7 +7,7 @@ giới hạn tiến trình/bộ nhớ). Kịch bản Python đóng vai client đ
 ## Dùng ngay (cần Docker Desktop đang chạy)
 
 ```bash
-python judge/judge.py build                                   # 1 lần
+python judge/judge.py ensure                                  # dựng image nếu thiếu/cũ (tag theo mã băm judge/runner)
 python judge/judge.py run problems/chat-select bai_cua_toi.c  # chấm
 python judge/judge.py selftest                                # kiểm tra bộ test
 ```
@@ -21,6 +21,7 @@ python judge/judge.py selftest                                # kiểm tra bộ 
 | CE | Lỗi biên dịch |
 | RE | Server crash (SIGSEGV…) hoặc thoát giữa chừng |
 | TLE | Quá thời gian |
+| OLE | In quá nhiều output (một tệp vượt 16 MB) |
 | NL | Server không listen trên cổng được giao |
 | BLOCKED | Một client làm treo client khác (server chưa phục vụ đồng thời) |
 | LIMIT | Sai giới hạn N client |
@@ -77,4 +78,33 @@ cd web; npm run dev                                          # khi sửa giao di
 **Cho người thứ hai truy cập:** cài [Tailscale](https://tailscale.com/download) trên cả hai máy, đăng nhập cùng một
 tài khoản, rồi mở `http://<tên-máy-hoặc-IP-tailscale>:3000`. Không cần mở cổng ra Internet. Máy chạy server phải bật.
 
-Mỗi người tối đa 2 bài đang chờ chấm; hàng đợi chấm tuần tự để kết quả ổn định.
+Mỗi người tối đa 2 bài đang chờ chấm. Hàng đợi chạy song song (số lượt tính theo CPU/RAM của Docker, tối đa 6) (chỉnh bằng biến `NJ_WORKERS`; đặt `NJ_WORKERS=1` nếu muốn chấm tuần tự).
+
+Bài nộp chạy bằng user `sandbox` riêng; đề, test và đáp án nằm trong `/judge` (chỉ root của runner đọc được).
+
+## Mở cho nhiều người dùng (web)
+
+Web cho phép **đăng ký mở** tại `/register` (tên `a-z0-9_` 3–20 ký tự, mật khẩu ≥ 8), như LeetCode.
+
+| Biến môi trường | Tác dụng |
+|---|---|
+| `NJ_SIGNUP=0` | Tắt hẳn đăng ký |
+| `NJ_INVITE_CODE=<mã>` | Đăng ký phải nhập mã mời (đóng cửa tạm thời) |
+| `NJ_HTTPS=1` | Cookie phiên có cờ `secure` — bật khi chạy sau HTTPS |
+| `NJ_TRUST_PROXY=1` | Lấy IP thật từ `X-Forwarded-For` — chỉ bật khi đứng sau reverse proxy (Caddy/Nginx) |
+
+Giới hạn tự động: đăng nhập sai 5 lần/15 phút/tên (20 lần/IP) thì khoá tạm; 5 lượt đăng ký/giờ/IP;
+nộp bài 1 lượt/10 giây và 60 lượt/giờ/người, tối đa 2 bài chờ chấm; chạy thử 1 lượt/3 giây; mã nguồn ≤ 100 KB.
+
+Quản trị: `node scripts/seed.mjs --admin ten:matkhau` tạo/đổi mật khẩu và cấp quyền admin; admin vào `/admin`
+(menu avatar → Quản trị) để xem người dùng, khoá/mở khoá, xoá. Sau khi cập nhật code cần `npx next build` lại
+trước khi chạy `start.ps1` (script chỉ build khi chưa có `.next`).
+
+**Hàng đợi chấm song song:** web chấm đồng thời tối đa `NJ_WORKERS` bài (mặc định = min(6, số CPU của Docker − 1, 75% RAM của Docker / 512 MB), đọc từ `docker info` lúc khởi động; mỗi bài một
+container 1 CPU / 512 MB). "Chạy thử" được ưu tiên hơn bài nộp khi có chỗ trống; trang bài hiện "vị trí trong hàng đợi".
+
+**Chạy ổn định trên một máy Windows:** `start.ps1` dùng bản build (tự build lại khi mã nguồn mới hơn) và tự chạy lại server nếu sập.
+Sao lưu: tác vụ Task Scheduler `NetJudge-Backup` chạy `web/scripts/backup.mjs` lúc 3:00 sáng mỗi ngày (chạy bù nếu máy tắt lúc đó),
+lưu ở `backups/`, giữ 14 bản. Khôi phục: dừng server rồi chép một bản `backups/netjudge-*.db` đè lên `data/netjudge.db`
+(xoá `netjudge.db-wal` và `netjudge.db-shm` kèm theo).
+Mở ra internet miễn phí: `tailscale funnel 3000`, đặt `NJ_HTTPS=1` và `NJ_TRUST_PROXY=1` trước khi chạy `start.ps1`.

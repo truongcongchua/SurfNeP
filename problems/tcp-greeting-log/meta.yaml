@@ -1,5 +1,5 @@
 id: tcp-greeting-log
-title: tcp_server chào và ghi log
+title: Server chào hỏi và ghi log
 difficulty: medium
 chapter: 2
 topics: [TCP, File I/O]

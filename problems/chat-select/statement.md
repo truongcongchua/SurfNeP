@@ -1,4 +1,4 @@
-# Phòng chat với select()
+# Phòng chat đa client với select
 
 Viết **chat_server** chạy bằng `./chat_server <cổng>`, dùng **`select()`** để phục vụ nhiều
 client trong **một tiến trình, một luồng** (không dùng `fork`, `pthread`, `poll`).

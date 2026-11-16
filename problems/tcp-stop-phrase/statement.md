@@ -1,4 +1,4 @@
-# Chuỗi dừng bị cắt vụn
+# Chuỗi dừng bị phân mảnh
 
 Viết chương trình **server TCP** chạy bằng lệnh:
 

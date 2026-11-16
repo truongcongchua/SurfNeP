@@ -1,5 +1,5 @@
 id: tcp-client-stdin
-title: tcp_client gửi dữ liệu từ bàn phím
+title: Gửi dữ liệu từ bàn phím qua TCP
 difficulty: easy
 chapter: 2
 topics: [TCP]

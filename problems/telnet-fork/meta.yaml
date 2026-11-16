@@ -1,5 +1,5 @@
 id: telnet-fork
-title: telnet_server đa tiến trình
+title: Server Telnet đa tiến trình
 difficulty: hard
 chapter: 3
 topics: [TCP, Stream Framing, Multiprocessing, Authentication, Process]

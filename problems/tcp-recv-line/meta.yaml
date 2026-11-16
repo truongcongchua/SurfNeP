@@ -1,5 +1,5 @@
 id: tcp-recv-line
-title: Hàm recv_line
+title: Đọc dữ liệu theo từng dòng qua TCP
 difficulty: medium
 chapter: 2
 topics: [TCP, Stream Framing]

@@ -1,4 +1,4 @@
-# telnet_server đăng nhập và chạy lệnh (Bài tập 3.2)
+# Server Telnet đăng nhập và xử lý lệnh
 
 Viết `./telnet_server <cổng>` dùng **`select()`** phục vụ nhiều client.
 **Không được dùng:** `fork` (trực tiếp), `pthread`, `poll`, `epoll`. Gọi `system()` thì được.
