@@ -8,8 +8,8 @@ import { useTheme } from "next-themes";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import {
-  ArrowLeft, Check, ChevronLeft, ChevronRight, ChevronsLeft, CloudUpload, Code2, FileText, History,
-  List, Loader2, Lock, LogOut, Maximize2, Minimize2, PanelLeftOpen, Play, RotateCcw, Shuffle, SquareCheck,
+  ArrowLeft, Check, ChevronLeft, ChevronRight, CloudUpload, Code2, FileText, History,
+  List, Loader2, Lock, LogOut, Maximize, Minimize, PanelLeftOpen, Play, RotateCcw, Shuffle, SquareCheck,
   SquarePen, Tag, Terminal, Timer, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -54,37 +54,86 @@ function Handle({ vertical }) {
   );
 }
 
-function TabBar({ children, right }) {
+// Thanh tab kiểu LeetCode: tab nhiều hơn chỗ chứa thì cuộn ngang (không hiện thanh cuộn), con lăn chuột
+// cuộn ngang, mép bị che thì mờ dần, và tab vừa được chọn tự cuộn vào vùng nhìn thấy.
+// activeKey đổi (chọn tab khác, mở tab mới) mới cuộn, nên không giành quyền với người đang tự cuộn.
+function TabBar({ children, right, activeKey }) {
+  const ref = useRef(null);
+  const [edge, setEdge] = useState({ l: false, r: false });
+
+  const measure = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    const l = el.scrollLeft > 2, r = el.scrollLeft + el.clientWidth < el.scrollWidth - 2;
+    setEdge((e) => (e.l === l && e.r === r ? e : { l, r }));
+  }, []);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const onWheel = (e) => {
+      if (el.scrollWidth <= el.clientWidth || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      el.scrollLeft += e.deltaY;
+      e.preventDefault();
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    el.addEventListener("scroll", measure, { passive: true });
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    if (el.firstElementChild) ro.observe(el.firstElementChild);
+    return () => { el.removeEventListener("wheel", onWheel); el.removeEventListener("scroll", measure); ro.disconnect(); };
+  }, [measure]);
+
+  useEffect(() => {
+    const el = ref.current;
+    const t = el?.querySelector('[data-active="true"]');
+    if (!t) return;
+    const pad = 32; // chừa chỗ cho vùng mờ ở mép
+    const from = t.offsetLeft - pad, to = t.offsetLeft + t.offsetWidth + pad;
+    if (from < el.scrollLeft) el.scrollTo({ left: Math.max(0, from), behavior: "smooth" });
+    else if (to > el.scrollLeft + el.clientWidth) el.scrollTo({ left: to - el.clientWidth, behavior: "smooth" });
+    measure();
+  }, [activeKey, measure]);
+
+  const mask = `linear-gradient(to right, ${edge.l ? "transparent 0, #000 32px" : "#000 0"}, ${edge.r ? "#000 calc(100% - 32px), transparent 100%" : "#000 100%"})`;
   return (
-    <div className="flex h-10 shrink-0 items-center border-b border-[var(--line)] px-1.5">
-      <div className="flex min-w-0 flex-1 items-center overflow-x-auto">{children}</div>
-      {right && <div className="flex items-center gap-0.5 pr-1">{right}</div>}
+    <div className="flex h-11 shrink-0 items-center border-b border-[var(--line)] pl-2 pr-1.5">
+      <div
+        ref={ref} style={{ maskImage: mask, WebkitMaskImage: mask }}
+        className="tab-scroll relative flex min-w-0 flex-1 items-center overflow-x-auto"
+      >
+        {children}
+      </div>
+      {right && (
+        <div className="ml-1 flex shrink-0 items-center gap-0.5 border-l border-[var(--line)] pl-1.5">{right}</div>
+      )}
     </div>
   );
 }
 
+// Icon luôn có màu riêng; tab không được chọn thì icon và chữ nhạt đi, tab được chọn có nền đặc.
 function Tab({ active, onClick, icon: Icon, iconClass, children, onClose }) {
   return (
-    <div className="flex items-center">
+    <div className="flex shrink-0 items-center">
       <button
-        onClick={onClick}
+        onClick={onClick} data-active={active ? "true" : "false"}
         className={cn(
-          "flex h-7 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 text-sm font-medium transition-colors hover:text-foreground",
-          active ? "bg-[var(--raised)] text-foreground" : "text-[color:var(--faint)]"
+          "group flex h-8 items-center gap-2 whitespace-nowrap rounded-lg px-3 text-sm font-medium transition-colors",
+          active ? "bg-[var(--raised)] text-foreground" : "text-[color:var(--muted)] hover:bg-[var(--raised)]/60 hover:text-foreground"
         )}
       >
-        <Icon className={cn("size-3.5", active ? iconClass : "")} />
+        <Icon className={cn("size-4 transition-opacity", iconClass, !active && "opacity-60 group-hover:opacity-100")} />
         {children}
       </button>
       {onClose && (
-        <button onClick={onClose} className="rounded p-0.5 text-muted-foreground hover:bg-[var(--chip)]" aria-label="Đóng tab">
+        <button onClick={onClose} className="ml-0.5 rounded-md p-1 text-muted-foreground transition-colors hover:bg-[var(--raised)] hover:text-foreground" aria-label="Đóng tab">
           <X className="size-3.5" />
         </button>
       )}
     </div>
   );
 }
-const Sep = () => <span className="mx-0.5 h-4 w-px shrink-0 bg-[var(--line)]" />;
+const Sep = () => <span className="mx-1 h-4 w-px shrink-0 bg-[var(--line)]" />;
 
 function IconBtn({ label, onClick, children, disabled }) {
   return (
@@ -394,8 +443,10 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
   const [bottomTab, setBottomTab] = useState("cases");
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [bottomCollapsed, setBottomCollapsed] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(false);
   const leftRef = useRef(null);
   const bottomRef = useRef(null);
+  const rightRef = useRef(null);
   const { resolvedTheme } = useTheme();
   const [left, setLeft] = useState(null); // giây còn lại trong chế độ thi
   const timer = useRef(null);
@@ -488,6 +539,11 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
     setCode(originalStarter);
   }
 
+  // Phóng to khung đề bài = thu gọn cả khung code + testcase (như nút mở rộng của LeetCode).
+  function toggleLeftMax() {
+    if (rightRef.current?.isCollapsed()) rightRef.current.expand();
+    else rightRef.current?.collapse();
+  }
   const maximized = leftCollapsed && bottomCollapsed;
   function toggleMax() {
     if (maximized) { leftRef.current?.expand(); bottomRef.current?.expand(); }
@@ -512,7 +568,16 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
           <Panel ref={leftRef} defaultSize={45} minSize={22} collapsible collapsedSize={0}
             onCollapse={() => setLeftCollapsed(true)} onExpand={() => setLeftCollapsed(false)}
             className="lc-panel">
-            <TabBar right={<IconBtn label="Thu gọn" onClick={() => leftRef.current?.collapse()}><ChevronsLeft className="size-4" /></IconBtn>}>
+            <TabBar
+              activeKey={`${leftTab}|${detail ? 1 : 0}`}
+              right={
+                <>
+                  <IconBtn label={rightCollapsed ? "Thu nhỏ" : "Phóng to khung đề"} onClick={toggleLeftMax}>
+                    {rightCollapsed ? <Minimize className="size-4" /> : <Maximize className="size-4" />}
+                  </IconBtn>
+                  {!rightCollapsed && <IconBtn label="Thu gọn" onClick={() => leftRef.current?.collapse()}><ChevronLeft className="size-4" /></IconBtn>}
+                </>
+              }>
               <Tab active={leftTab === "desc"} onClick={() => setLeftTab("desc")} icon={FileText} iconClass="text-[var(--accent)]">Đề bài</Tab>
               <Sep />
               {detail && (
@@ -525,7 +590,7 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
                   <Sep />
                 </>
               )}
-              <Tab active={leftTab === "subs"} onClick={() => setLeftTab("subs")} icon={History} iconClass="text-[var(--accent)]">Lịch sử nộp</Tab>
+              <Tab active={leftTab === "subs"} onClick={() => setLeftTab("subs")} icon={History} iconClass="text-[#5b8def]">Lịch sử nộp</Tab>
             </TabBar>
             <div className="min-h-0 flex-1 overflow-y-auto">
               {leftTab === "desc" && <Description problem={problem} html={html} solved={past.some((s) => s.verdict === "AC")} />}
@@ -544,14 +609,15 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
           <Handle />
 
           {/* ---- Phải ---- */}
-          <Panel defaultSize={55} minSize={30}>
+          <Panel ref={rightRef} defaultSize={55} minSize={30} collapsible collapsedSize={0}
+            onCollapse={() => setRightCollapsed(true)} onExpand={() => setRightCollapsed(false)}>
             <PanelGroup direction="vertical" autoSaveId="nj-lc-v">
               <Panel defaultSize={62} minSize={20} className="lc-panel">
-                <TabBar right={
+                <TabBar activeKey="code" right={
                   <>
                     {leftCollapsed && !maximized && <IconBtn label="Mở khung đề bài" onClick={() => leftRef.current?.expand()}><PanelLeftOpen className="size-4" /></IconBtn>}
                     <IconBtn label={maximized ? "Thu nhỏ" : "Phóng to"} onClick={toggleMax}>
-                      {maximized ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+                      {maximized ? <Minimize className="size-4" /> : <Maximize className="size-4" />}
                     </IconBtn>
                   </>
                 }>
@@ -590,7 +656,7 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
               <Panel ref={bottomRef} defaultSize={38} minSize={12} collapsible collapsedSize={0}
                 onCollapse={() => setBottomCollapsed(true)} onExpand={() => setBottomCollapsed(false)}
                 className="lc-panel">
-                <TabBar>
+                <TabBar activeKey={bottomTab}>
                   <Tab active={bottomTab === "cases"} onClick={() => setBottomTab("cases")} icon={SquareCheck} iconClass="text-[var(--green)]">Testcase</Tab>
                   <Sep />
                   <Tab active={bottomTab === "result"} onClick={() => setBottomTab("result")} icon={Terminal} iconClass="text-[var(--green)]">

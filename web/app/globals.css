@@ -380,3 +380,7 @@ table.list tbody tr:hover td { background: var(--raised); }
 /* logo SurfNeP: ô màu nhấn phẳng, biểu tượng màu nền thẻ (giữ từ lần đổi logo). */
 .logo { background: var(--accent); border-radius: 5px; }
 .logo svg { color: var(--panel); }
+
+/* Thanh tab cuộn ngang nhưng ẩn thanh cuộn (rule `*` ở trên không nằm trong layer nên class Tailwind không thắng được). */
+.tab-scroll { scrollbar-width: none; }
+.tab-scroll::-webkit-scrollbar { display: none; }
