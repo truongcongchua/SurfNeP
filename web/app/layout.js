@@ -20,8 +20,8 @@ export default async function RootLayout({ children }) {
               <div className="bar">
                 <Link href="/" className="brand"><span className="logo"><Logo size={22} strokeWidth={2.2} /></span>SurfNeP</Link>
                 <nav>
-                  <NavLink href="/">Bài tập</NavLink>
-                  <NavLink href="/plans">Study Plan</NavLink>
+                  <NavLink href="/problems" also={["/plans"]}>Bài tập</NavLink>
+                  <NavLink href="/contest">Cuộc thi</NavLink>
                   <NavLink href="/learn">Ôn tập</NavLink>
                 </nav>
                 <div className="right">

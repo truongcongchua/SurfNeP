@@ -20,7 +20,7 @@ async function remove(formData) {
   if (!me) return;
   const id = Number(formData.get("id"));
   if (id === me.id) return;
-  for (const t of ["sessions", "submissions", "plan_start", "reactions", "favorites"])
+  for (const t of ["sessions", "submissions", "plan_start", "reactions", "favorites", "contest_reg"])
     db.prepare(`DELETE FROM ${t} WHERE user_id=?`).run(id);
   db.prepare("DELETE FROM users WHERE id=?").run(id);
   revalidatePath("/admin");
