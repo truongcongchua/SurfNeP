@@ -22,6 +22,7 @@ export default async function RootLayout({ children }) {
                 <nav>
                   <NavLink href="/">Bài tập</NavLink>
                   <NavLink href="/plans">Study Plan</NavLink>
+                  <NavLink href="/learn">Ôn tập</NavLink>
                 </nav>
                 <div className="right">
                   <ThemeToggle />

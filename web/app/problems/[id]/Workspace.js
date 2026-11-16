@@ -11,7 +11,7 @@ import { useTheme } from "next-themes";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import {
-  Bookmark, Braces, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Code2, Expand, FileText, History,
+  BookOpen, Bookmark, Lightbulb, Braces, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Code2, Expand, FileText, History,
   Loader2, Lock, Maximize, Minimize, NotebookPen, PanelLeftOpen, RotateCcw, Settings, Shrink,
   SquareCheck, Terminal, X,
 } from "lucide-react";
@@ -24,6 +24,7 @@ import { SettingsDialog } from "@/components/workspace/settings-dialog";
 import { LayoutsMenu } from "@/components/workspace/layouts-menu";
 import { Stopwatch } from "@/components/workspace/stopwatch";
 import { NoteEditor } from "@/components/workspace/note-editor";
+import { HintsPanel, KnowledgePanel } from "@/components/workspace/knowledge-panel";
 import { Description, DescFooter, LABEL, SubmissionDetail, SubmissionList, TestResult, Testcases, vColor } from "@/components/workspace/panels";
 
 const Monaco = dynamic(() => import("@monaco-editor/react"), {
@@ -159,7 +160,7 @@ function IconBtn({ label, onClick, children, disabled, active, className }) {
 
 /* ---------- trang ---------- */
 
-export default function Workspace({ problemId, problem, nav, user, samples, html, starter, originalStarter, examMinutes, history, stats, similar, lastSubmitted, social, streak, examDays }) {
+export default function Workspace({ problemId, problem, nav, user, samples, html, knowledge = [], hints = [], bugs = [], starter, originalStarter, examMinutes, history, stats, similar, lastSubmitted, social, streak, examDays }) {
   const router = useRouter();
   const [settings, setSettings] = useSettings();
   const [timerCfg, setTimerCfg] = useLocal("nj-timer-cfg", { byDifficulty: false, autoReset: false, alarm: false });
@@ -424,7 +425,7 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
       {verdictTab}
     </Tab>
   );
-  const detailView = <SubmissionDetail sub={detail?.code != null ? detail : null} user={user}
+  const detailView = <SubmissionDetail bugs={bugs} sub={detail?.code != null ? detail : null} user={user}
     onBack={() => { setLeftTab("subs"); if (leftRef.current?.isCollapsed()) leftRef.current.expand(); }} onLoad={loadIntoEditor} />;
   const dropFor = (panel, label) => <DropOverlay show={dragging && !!detail} label={label} onDrop={(zone) => moveDetail(panel, zone)} />;
 
@@ -466,6 +467,14 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
           {!rightCollapsed && <IconBtn label="Thu gọn" onClick={() => leftRef.current?.collapse()}><ChevronLeft className="size-4" /></IconBtn>}
         </>}>
         <Tab active={leftTab === "desc"} onClick={() => setLeftTab("desc")} icon={FileText} iconClass="text-[var(--accent)]">Đề bài</Tab>
+        {hints.length > 0 && (<>
+          <Sep />
+          <Tab active={leftTab === "hint"} onClick={() => setLeftTab("hint")} icon={Lightbulb} iconClass="text-[var(--brand)]">Gợi ý</Tab>
+        </>)}
+        {knowledge.length > 0 && (<>
+          <Sep />
+          <Tab active={leftTab === "know"} onClick={() => setLeftTab("know")} icon={BookOpen} iconClass="text-[var(--accent)]">Kiến thức</Tab>
+        </>)}
         <Sep />
         <Tab active={leftTab === "subs"} onClick={() => setLeftTab("subs")} icon={History} iconClass="text-[var(--accent)]">Lịch sử nộp</Tab>
         {detail && detailDock === "left" && (<>
@@ -480,6 +489,8 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
       </TabBar>
       <div className="min-h-0 flex-1 overflow-y-auto">
         {leftTab === "desc" && <Description problem={problem} html={html} solved={acCount > 0} stats={stats} similar={similar} />}
+        {leftTab === "hint" && hints.length > 0 && <HintsPanel problemId={problemId} hints={hints} />}
+        {leftTab === "know" && knowledge.length > 0 && <KnowledgePanel cards={knowledge} />}
         {leftTab === "subs" && <SubmissionList past={past} onOpen={openSubmission} />}
         {leftTab === "detail" && detail && detailView}
         {leftTab === "note" && <NoteEditor value={note} onChange={setNote} />}
@@ -579,7 +590,7 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
       </TabBar>
       <div className="min-h-0 flex-1 overflow-y-auto">
         {bottomTab === "cases" && <Testcases editable={editable} cases={cases} setCases={setCases} defaults={defaultCases} sel={caseSel} setSel={setCaseSel} />}
-        {bottomTab === "result" && <TestResult r={result} error={error} busy={busy || running || debugging} note={waitNote} />}
+        {bottomTab === "result" && <TestResult bugs={bugs} r={result} error={error} busy={busy || running || debugging} note={waitNote} />}
         {bottomTab === "detail" && detail && detailView}
       </div>
       </>)}

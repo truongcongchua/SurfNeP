@@ -66,3 +66,15 @@ export function verifyPassword(pw, stored) {
   const t = crypto.scryptSync(pw, salt, 32);
   return crypto.timingSafeEqual(t, Buffer.from(h, "hex"));
 }
+
+// Ôn tập: nhật ký làm quiz / tìm bug (kind = quiz | bug) và lịch ôn flashcard (SM-2 rút gọn).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS learn_events (
+    id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, kind TEXT NOT NULL, ref TEXT NOT NULL,
+    concept TEXT, ok INTEGER NOT NULL, ts INTEGER NOT NULL);
+  CREATE INDEX IF NOT EXISTS learn_events_user ON learn_events(user_id, kind, ref);
+  CREATE TABLE IF NOT EXISTS srs (
+    user_id INTEGER NOT NULL, card_id TEXT NOT NULL, due INTEGER NOT NULL, interval REAL NOT NULL DEFAULT 0,
+    ease REAL NOT NULL DEFAULT 2.5, reps INTEGER NOT NULL DEFAULT 0, lapses INTEGER NOT NULL DEFAULT 0,
+    last INTEGER NOT NULL, PRIMARY KEY (user_id, card_id));
+`);

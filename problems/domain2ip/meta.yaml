@@ -7,3 +7,4 @@ prerequisites: [inet-addr]
 ref: "Lecture notes §2.2 — getaddrinfo; code mẫu 2-Chap2/domain2ip.c"
 type: stdio
 test_timeout: 3
+concepts: [socket-address]

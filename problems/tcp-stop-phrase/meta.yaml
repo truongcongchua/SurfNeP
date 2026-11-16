@@ -8,3 +8,4 @@ ref: "Lecture notes §2.3 (tr.22), §2.5 Bài tập 2.1"
 type: server
 args: ["{port}"]
 test_timeout: 5
+concepts: [tcp-stream]

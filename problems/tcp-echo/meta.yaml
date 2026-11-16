@@ -8,3 +8,4 @@ ref: "Lecture notes §2.3 (tr.22); code mẫu 2-Chap2/tcp_server.c"
 type: server
 args: ["{port}"]
 test_timeout: 6
+concepts: [tcp-lifecycle]

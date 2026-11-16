@@ -11,3 +11,4 @@ test_timeout: 8
 constraints:
   require_any: [fcntl, ioctl]
   forbid: [select, poll, epoll_wait, fork, pthread_create]
+concepts: [nonblocking]

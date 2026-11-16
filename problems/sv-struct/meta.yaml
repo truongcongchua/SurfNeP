@@ -8,3 +8,4 @@ ref: "Lecture notes §2.5 Bài tập 2.4–2.5; lab10 (padding của struct)"
 type: server
 args: ["{port}", "sv_log.txt"]
 test_timeout: 6
+concepts: [length-prefix-struct, byte-order, file-io]

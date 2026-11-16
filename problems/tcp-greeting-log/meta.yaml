@@ -8,3 +8,4 @@ ref: "Lecture notes §2.3, §2.5 Bài tập 2.3"
 type: server
 args: ["{port}", "greeting.txt", "log.txt"]
 test_timeout: 6
+concepts: [tcp-lifecycle, file-io]

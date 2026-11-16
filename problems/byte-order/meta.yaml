@@ -7,3 +7,4 @@ prerequisites: []
 ref: "Lecture notes §2.2 (tr.16) — hàm htons/htonl/ntohs/ntohl"
 type: stdio
 test_timeout: 2
+concepts: [byte-order]

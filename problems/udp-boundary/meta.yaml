@@ -9,3 +9,4 @@ type: server
 protocol: udp
 args: ["{port}"]
 test_timeout: 5
+concepts: [udp-basics]

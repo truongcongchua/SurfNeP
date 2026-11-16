@@ -11,3 +11,4 @@ test_timeout: 8
 constraints:
   require_any: [fork]
   forbid: [select, poll, epoll_wait, pthread_create]
+concepts: [fork-server, telnet-auth]

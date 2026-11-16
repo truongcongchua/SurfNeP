@@ -7,3 +7,4 @@ prerequisites: [byte-order]
 ref: "Lecture notes §2.2 (tr.16) — struct in_addr, inet_pton/inet_ntop"
 type: stdio
 test_timeout: 2
+concepts: [socket-address, byte-order]

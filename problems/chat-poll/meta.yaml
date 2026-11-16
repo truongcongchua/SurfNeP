@@ -11,3 +11,4 @@ test_timeout: 6
 constraints:
   require_any: [poll]
   forbid: [select, epoll_wait, fork, pthread_create]
+concepts: [select-poll, client-management]

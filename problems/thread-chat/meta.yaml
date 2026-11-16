@@ -11,3 +11,4 @@ test_timeout: 6
 constraints:
   require_any: [pthread_create]
   forbid: [select, poll, epoll_wait, fork]
+concepts: [threads-mutex, client-management]

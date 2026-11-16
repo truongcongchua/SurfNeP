@@ -1,0 +1,195 @@
+# Gợi ý theo bậc cho từng bài: mỗi bài một danh sách, hiện lần lượt từ trên xuống.
+# Bậc 1 = hướng nghĩ (chưa lộ cách làm) -> bậc 2 = hàm/cấu trúc cần dùng -> bậc 3 = chi tiết dễ sai nhất.
+# Không viết lời giải đầy đủ. Bài thi thử (mock-*) không có gợi ý.
+
+byte-order:
+  - |-
+    Hãy hỏi: "một số 16 hoặc 32 bit nằm trong bộ nhớ thành những byte nào, theo thứ tự nào?". Phần 1 là thứ tự **mạng**, phần 2 là cách **máy này** đọc lại chính dãy byte đó.
+  - |-
+    Đổi sang thứ tự mạng bằng `htons`/`htonl`, rồi `memcpy` kết quả vào mảng `unsigned char` để đọc từng byte. Phần 2 chính là giá trị mà `htons`/`htonl` trả về (đọc ngược lại dãy byte đó trên máy little-endian).
+  - |-
+    Kiểm tra định dạng **trước** khi đổi: đúng 2 từ, kiểu là `u16` hoặc `u32`, số không âm, không có ký tự thừa, và nằm trong khoảng của kiểu (`u16` ≤ 65535). Dùng `strtoull` kèm `endptr` và `errno == ERANGE`, đừng dùng `atoi`. In hex bằng `%02X`.
+
+inet-addr:
+  - |-
+    Việc khó nhất là nhận biết địa chỉ hợp lệ, nhưng bạn không cần tự viết bộ phân tích: thư viện đã có hàm trả lời "hợp lệ hay không" và hàm in lại dạng chuẩn.
+  - |-
+    `inet_pton(AF_INET, s, &addr)` trả `1` nếu hợp lệ; `inet_ntop` in lại dạng chuẩn. `addr.s_addr` đang ở thứ tự mạng, nên muốn so với mặt nạ phải `ntohl` trước.
+  - |-
+    Dạng LOẠI xét **theo thứ tự** trong bảng (loopback trước, rồi private, rồi special). `172.16.0.0/12` là `(a & 0xFFF00000) == 0xAC100000`. In giá trị 32 bit bằng `0x%08X` **sau** `ntohl`. Nhớ `inet_pton` từ chối cả số 0 đứng đầu như `01.2.3.4`.
+
+domain2ip:
+  - |-
+    Đây là bài "dùng đúng một hàm thư viện": tên miền → danh sách địa chỉ. Chú ý kết quả là một **danh sách liên kết**, không phải một địa chỉ.
+  - |-
+    Đặt `hints.ai_family = AF_INET` và `hints.ai_socktype = SOCK_STREAM`, gọi `getaddrinfo(name, NULL, &hints, &res)`, rồi duyệt `res->ai_next`. Với mỗi nút, ép `ai_addr` sang `struct sockaddr_in *` và dùng `inet_ntop`.
+  - |-
+    `SOCK_STREAM` giúp mỗi địa chỉ chỉ xuất hiện **một lần** (nếu bỏ trống sẽ lặp lại cho TCP, UDP, RAW). Hàm trả khác `0` là thất bại → in `NOT_FOUND`. Nhớ `freeaddrinfo(res)` và bỏ dòng trống/ký tự xuống dòng ở cuối tên.
+
+tcp-echo:
+  - |-
+    Hai vòng lặp lồng nhau: vòng ngoài chờ client mới, vòng trong phục vụ **một** client đến khi nó đóng.
+  - |-
+    `socket` → (`setsockopt SO_REUSEADDR`) → `bind` → `listen` → vòng `accept`. Trong vòng trong: `recv` vào bộ đệm, rồi `send` lại đúng số byte nhận được. Xem thẻ **Vòng đời socket TCP**.
+  - |-
+    Dùng số byte `recv` trả về (không dùng `strlen`: dữ liệu có thể chứa `0x00`). `send` có thể gửi ít hơn yêu cầu → bọc trong hàm `send_all` lặp đến đủ. `recv == 0` là client đã đóng: `close(fd)` rồi quay lại `accept`, đừng thoát server.
+
+tcp-client-stdin:
+  - |-
+    Ngược với server: bạn chủ động `connect`. Phần đáng nghĩ là **khi nào** gửi: ngay khi có một dòng, không đợi hết stdin.
+  - |-
+    `socket` → điền `sockaddr_in` bằng `inet_pton` và `htons(port)` → `connect` (kiểm tra kết quả) → vòng đọc stdin từng dòng (`fgets`) và `send` ngay. EOF thì `close` và `exit(0)`.
+  - |-
+    Gửi **đúng** số byte đọc được (`strlen` của dòng, giữ cả `\n`), và dùng `send_all`. `connect` thất bại: in lỗi ra `stderr` bằng `perror`, `exit(1)`. Nếu stdout bị đệm thì không liên quan, nhưng đừng in gì lên stdout làm lẫn dữ liệu.
+
+tcp-greeting-log:
+  - |-
+    Mỗi client có hai pha: gửi lời chào (đọc tệp), rồi nhận dữ liệu và ghi vào tệp log. Cả hai đều là bài toán **tệp**, không chỉ socket.
+  - |-
+    Mỗi lần có client mới: `fopen(greeting, "rb")`, `fread` + `send_all` đến hết. Sau đó vòng `recv` và `fwrite` vào tệp mở bằng `"ab"` (append).
+  - |-
+    Đọc lại tệp câu chào **mỗi lần** có client mới (đề nói nó có thể đổi). Phải `fflush`/`fclose` ngay khi xong một client để dữ liệu nằm trong tệp. Dùng `"ab"` chứ không phải `"wb"`, nếu không sẽ ghi đè dữ liệu client trước.
+
+tcp-recv-line:
+  - |-
+    Bạn đang viết lại `fgets` cho socket. Vấn đề cốt lõi: một lần `recv` có thể trả về **nhiều dòng** hoặc **nửa dòng**. Phần dư sẽ đi đâu?
+  - |-
+    Cần một **bộ đệm lưu qua các lần gọi** (biến `static`, hoặc mảng theo `fd`). Mỗi lần gọi: nếu bộ đệm đã có dòng đầy đủ thì trả luôn, nếu chưa thì `recv` thêm vào bộ đệm.
+  - |-
+    Dùng `memchr` tìm `'\n'` (không dùng `strchr`: dữ liệu có thể chứa `0x00`). Khi trả một dòng, `memmove` phần còn lại lên đầu bộ đệm. Dừng khi gặp `'\n'`, hoặc đã lưu `cap-1` byte, hoặc `recv` trả `0`. Luôn kết thúc `buf` bằng `'\0'`.
+
+tcp-stop-phrase:
+  - |-
+    Chuỗi cần tìm có thể bị cắt đôi giữa hai lần `recv` (`"Ky th"` + `"uat May tinh"`). Vậy chỉ tìm trong **từng mảnh** là không đủ.
+  - |-
+    Gom dữ liệu nhận được vào **một bộ đệm tích luỹ** từ đầu kết nối, rồi mới tìm chuỗi trong bộ đệm đó sau mỗi lần `recv`. Thêm `'\0'` trước khi dùng `strstr`.
+  - |-
+    Có hai kiểu làm đều đúng: (a) giữ **toàn bộ** dữ liệu (cấp phát đủ lớn, hoặc `realloc`), (b) chỉ giữ `strlen(phrase)-1` byte cuối của bộ đệm cũ. Bộ đệm không được tràn khi client gửi nhiều dữ liệu. Tìm thấy thì gửi `BYE\n`, `close`, `exit(0)`; client đóng mà chưa thấy thì thoát **không** gửi gì.
+
+length-prefix:
+  - |-
+    Mỗi thông điệp có hai phần: 4 byte độ dài, rồi đúng L byte dữ liệu. Cả hai phần đều có thể đến **từng byte một**.
+  - |-
+    Viết hàm `recv_all(fd, buf, n)` lặp `recv` đến khi đủ `n` byte (trả lỗi nếu `recv <= 0`). Đọc 4 byte, `ntohl` được `L`, rồi `recv_all` L byte. Trả lời bằng `htonl(L)` + dữ liệu đã đổi hoa. Xem thẻ **Thông điệp có độ dài tiền tố**.
+  - |-
+    Kiểm tra `L > 65536` **trước khi** cấp phát hoặc đọc dữ liệu; vượt thì `close` ngay, không trả lời, quay lại `accept`. `L = 0` hợp lệ (trả lại thông điệp rỗng). Chỉ đổi `a`–`z` thành hoa, các byte khác (kể cả `0x00`, `'\n'`) giữ nguyên.
+
+sv-struct:
+  - |-
+    Bản ghi có độ dài **thay đổi** (do `name_len`), nên không thể đọc đúng `sizeof(struct)`. Bạn phải đọc **theo từng trường**, trường nào cần độ dài thì đọc độ dài trước.
+  - |-
+    Dùng `recv_all` cho từng phần: 4 byte `mssv`, 1 byte `name_len`, `name_len` byte `name`, rồi 2+1+1+2 byte còn lại. Số nhiều byte đổi bằng `ntohl`/`ntohs`. Một client có thể gửi nhiều bản ghi liên tiếp: lặp đến khi `recv_all` báo đóng.
+  - |-
+    Kiểm tra từng trường (ví dụ `month` 1…12, `gpa100` ≤ 400, `name_len` 1…100) rồi mới quyết định `OK` hay lỗi theo đề. Tên không có `'\0'` ở cuối: tự thêm vào bản sao trước khi in. Ghi log bằng `"ab"` + `fflush`, định dạng giờ bằng `localtime` + `strftime`, gpa in `%.2f` từ `gpa100 / 100.0` (hoặc in nguyên/phần dư để tránh sai số).
+
+udp-echo:
+  - |-
+    UDP không có kết nối, nên không có `listen`/`accept`. Mỗi lần nhận một datagram, bạn phải biết **ai gửi** để trả lời đúng người.
+  - |-
+    `socket(AF_INET, SOCK_DGRAM, 0)` → `bind` → vòng lặp: `recvfrom(..., &from, &fromlen)` rồi `sendto(..., &from, fromlen)`. Xem thẻ **UDP**.
+  - |-
+    Khởi tạo lại `fromlen = sizeof from` **trước mỗi** `recvfrom`. Bộ đệm ≥ 2048 byte. `recvfrom` trả `0` là datagram rỗng hợp lệ, vẫn phải gửi lại datagram rỗng (không coi là đóng kết nối). `n < 0` mới là lỗi.
+
+udp-boundary:
+  - |-
+    Hai việc tách rời: (1) nhận được datagram **dài tối đa**, không bị cắt; (2) đếm thứ tự theo **người gửi**.
+  - |-
+    Bộ đệm `recvfrom` phải đủ 65507 byte (đặt 65536). Cần một bảng ánh xạ `(IP, cổng)` → bộ đếm; mảng các cấu trúc (địa chỉ, cổng, count) là đủ cho 100 người gửi, tìm tuyến tính.
+  - |-
+    So sánh người gửi bằng **cả** `sin_addr.s_addr` và `sin_port` (không so `memcmp` cả struct vì `sin_zero`). Trả lời bằng `snprintf("LEN %zd %d", n, count)`, trong đó `n` là giá trị `recvfrom` trả về (không dùng `strlen`: datagram có thể rỗng hoặc chứa `0x00`).
+
+udp-calc:
+  - |-
+    Mỗi datagram là một yêu cầu hoàn chỉnh nên không cần ghép dòng. Phần việc là **phân tích cú pháp chặt** và một bộ đếm riêng cho từng người gửi.
+  - |-
+    Thêm `'\0'` vào cuối datagram rồi phân tích. Dùng `strtoll` với `endptr` và `errno == ERANGE`; sau số thứ nhất phải là đúng một dấu cách, rồi toán tử một ký tự, rồi đúng một dấu cách, rồi số thứ hai và hết xâu. Bảng `(địa chỉ, cổng) → count` giống bài `udp-boundary`.
+  - |-
+    `COUNT` chỉ đếm phép tính **thành công** (không đếm `ERROR`). Chia/lấy dư cho 0 thì trả `ERROR div0` (đừng thực hiện phép chia, sẽ crash). Cẩn thận `INT64_MIN / -1` tràn số. `5+3` hay thừa/thiếu dấu cách đều là `ERROR syntax`.
+
+looping-server:
+  - |-
+    Server lặp: `accept` → đọc **một** yêu cầu → trả lời → `close` → quay lại. Phần chính là hiểu và kiểm tra dòng yêu cầu HTTP.
+  - |-
+    Đọc vào bộ đệm đến khi gặp `\r\n\r\n` (có thể nhiều mảnh, tối đa 8 KB). Tách dòng đầu bằng `sscanf("%s %s %s")` ra METHOD, PATH, VERSION. Xem thẻ **Server lặp & thiết kế giao thức**.
+  - |-
+    Thứ tự kiểm tra: dòng đầu đủ 3 phần (400) → METHOD là `GET` (405) → PATH không chứa `..` (403) → tệp tồn tại và là tệp thường (404, dùng `stat` + `S_ISREG`). Bỏ phần sau `?` **trước** các kiểm tra; PATH kết thúc `/` thì thêm `index.html`. `Content-Length` phải đúng số byte thân, header phân cách bằng `\r\n`.
+
+nonblock-accept:
+  - |-
+    Không có `select`, không có luồng: bạn phải liên tục tự hỏi từng socket "có việc chưa?" mà không bị chặn.
+  - |-
+    Đặt cả socket nghe và từng socket client sang non-blocking bằng `fcntl(fd, F_SETFL, flags | O_NONBLOCK)`. Mỗi vòng: thử `accept`, rồi duyệt mảng client thử `recv`. Xem thẻ **Socket non-blocking**.
+  - |-
+    `-1` kèm `errno == EAGAIN` hoặc `EWOULDBLOCK` là "chưa có dữ liệu", **không phải lỗi**; `0` là client đóng; lỗi khác mới đóng client. Vòng lặp không có việc nào thì `usleep(1000)` để khỏi ăn 100% CPU. `accept` cũng trả `-1`/`EAGAIN` khi chưa có ai kết nối.
+
+select-echo:
+  - |-
+    Khi `select` trả về, hệ điều hành đã nói cho bạn biết fd nào **chắc chắn không chặn**. Việc của bạn là quản lý danh sách fd và dựng lại tập mỗi vòng.
+  - |-
+    Giữ một `fd_set master` và `maxfd`. Mỗi vòng: `rd = master`; `select(maxfd + 1, &rd, NULL, NULL, NULL)`; nếu `FD_ISSET(listen_fd)` thì `accept` và thêm vào `master`; còn lại thì `recv` rồi `send` lại. Xem thẻ **select và poll**.
+  - |-
+    `select` **ghi đè** tập truyền vào → luôn dùng bản sao. Tham số đầu là `maxfd + 1`. Khi `recv == 0`: `close(fd)` **và** `FD_CLR(fd, &master)`. Cập nhật `maxfd` khi nhận client mới. `EINTR` thì thử lại.
+
+chat-select:
+  - |-
+    Mỗi client có **trạng thái riêng**: chưa đăng ký hay đã đăng ký (kèm `id`), và một bộ đệm riêng để ghép dòng (client có thể gửi nửa dòng).
+  - |-
+    Khai báo `struct Client { int fd; char buf[...]; size_t len; int registered; char id[...]; }` và mảng các client. Khi một fd có dữ liệu: `recv` thêm vào `buf` của chính nó, rồi lặp cắt từng dòng (`memchr '\n'`). Chưa đăng ký thì phân tích `id: name`; đã đăng ký thì broadcast. Xem thẻ **Quản lý nhiều client**.
+  - |-
+    Đăng ký hợp lệ khi có đúng `": "`, cả id và name **khác rỗng và không chứa dấu cách**. Broadcast `"<id>: <dòng>\n"` tới các client **đã đăng ký** trừ người gửi. Bỏ `\r` cuối dòng. Client đóng đột ngột: `close`, `FD_CLR`, đánh dấu ô trống, không gửi cho fd đã đóng.
+
+chat-poll:
+  - |-
+    Giao thức và cấu trúc dữ liệu giống `chat-select`; chỉ khác cơ chế chờ sự kiện. Làm xong bài kia thì phần lớn là dịch lại.
+  - |-
+    Mảng `struct pollfd fds[]` với `fds[0]` là socket nghe, `events = POLLIN`. `poll(fds, nfds, -1)`, rồi duyệt `revents`. Client mới thêm vào cuối mảng; client đóng thì **xoá** ô đó (đổi chỗ với phần tử cuối, hoặc đặt `fd = -1`, vì `poll` bỏ qua fd âm).
+  - |-
+    Kiểm tra `revents & (POLLIN | POLLHUP | POLLERR)`, không chỉ `POLLIN`. Nếu hoán đổi phần tử khi xoá trong lúc đang duyệt, nhớ **không tăng chỉ số** để xử lý phần tử vừa được dời vào. Thông tin đăng ký (`id`) và bộ đệm dòng phải đi theo phần tử khi dời.
+
+fork-echo:
+  - |-
+    Cha chỉ làm một việc: `accept`. Mỗi client được giao cho một tiến trình con. Hai việc dễ quên là dọn zombie và đóng fd.
+  - |-
+    Sau `accept`: `fork()`. Trong con (`pid == 0`): `close(listen_fd)`, phục vụ echo, `close(client)`, `exit(0)`. Trong cha: `close(client)` rồi quay lại `accept`. Xem thẻ **Server đa tiến trình**.
+  - |-
+    Dọn zombie bằng handler `SIGCHLD` chứa `while (waitpid(-1, NULL, WNOHANG) > 0);`. Tín hiệu có thể làm `accept` trả `-1` với `errno == EINTR` → `continue`, đừng thoát. Con quên `exit(0)` sẽ rơi xuống vòng `accept` của cha.
+
+telnet-fork:
+  - |-
+    Giao thức giống `telnet-select`, nhưng mỗi client có tiến trình riêng nên trạng thái đăng nhập chỉ là biến cục bộ của con. Điểm mới là một lệnh chậm không chặn client khác.
+  - |-
+    Cha `accept` + `fork` giống `fork-echo`. Trong con: vòng đọc dòng (ghép dòng như bài `tcp-recv-line`), kiểm tra đăng nhập bằng `accounts.txt`, chạy lệnh bằng `popen(cmd "2>&1", "r")` hoặc `system` ghi vào tệp tạm rồi đọc lại. Xem thẻ **Telnet server**.
+  - |-
+    Cái bẫy chính: con **thừa hưởng** handler `SIGCHLD` đang `waitpid(-1)` và sẽ thu mất tiến trình của `system()`, làm `system()` lỗi. Trong con đặt lại `signal(SIGCHLD, SIG_DFL)`. Phản hồi phải là `OUTPUT <n>\n` rồi đúng `n` byte; nhớ gộp stderr vào stdout.
+
+telnet-select:
+  - |-
+    Mỗi client có một **máy trạng thái** nhỏ: chưa đăng nhập → đã đăng nhập. Mọi thứ khác là ghép dòng và chạy lệnh.
+  - |-
+    Dùng cấu trúc client giống `chat-select` (bộ đệm dòng + cờ `logged_in`). Đăng nhập: đọc `accounts.txt` mỗi lần, so `user pass`. Lệnh: `popen(cmd, "r")` (gộp stderr bằng `2>&1`), `fread` hết, gửi `OUTPUT <n>\n` rồi `n` byte. `exit` → `BYE` và đóng.
+  - |-
+    Cắt `\r` cuối dòng trước khi so sánh. Dòng nào gửi trước khi đăng nhập thành công cũng bị coi là một lần đăng nhập. `n` là số byte **thật** của kết quả (dùng số `fread` trả về, kết quả có thể rỗng hoặc chứa `0x00`). Nhớ `pclose` để không rò rỉ tiến trình con.
+
+thread-echo:
+  - |-
+    Mỗi client một luồng; các luồng dùng chung bộ nhớ, nên điều nguy hiểm không phải echo mà là **cách bạn đưa `fd` cho luồng**.
+  - |-
+    Hàm luồng nhận `void *`. Cấp phát `int *p = malloc(sizeof *p); *p = client;`, truyền `p` cho `pthread_create`; trong luồng lấy giá trị ra rồi `free(p)`. Gọi `pthread_detach(tid)`. Biên dịch có `-pthread`. Xem thẻ **Server đa luồng**.
+  - |-
+    Truyền `&client` của biến cục bộ là lỗi kinh điển: vòng sau ghi đè trước khi luồng đọc. Luồng phải tự `close(fd)` khi `recv == 0`. Nếu `pthread_create` thất bại thì `close` và `free` tại chỗ.
+
+thread-chat:
+  - |-
+    Giao thức giống `chat-select`, nhưng danh sách client giờ là **dữ liệu dùng chung** của mọi luồng: ai đụng vào cũng phải qua khoá.
+  - |-
+    Một mảng/danh sách client toàn cục kèm `pthread_mutex_t`. Luồng của mỗi client có ghép dòng riêng (biến cục bộ), phần đăng ký thêm vào danh sách dưới khoá, broadcast thì khoá, duyệt, gửi, mở khoá.
+  - |-
+    Khi client thoát phải **gỡ khỏi danh sách dưới khoá** trước khi `close(fd)`, nếu không luồng khác có thể `send` vào fd đã đóng (hoặc đã được cấp lại cho client mới). Mọi nhánh `return`/`break` phải mở khoá (tránh deadlock). Không giữ khoá khi `recv`. Không gửi cho chính người gửi và cho client chưa đăng ký.
+
+kv-max-n:
+  - |-
+    Có hai yêu cầu độc lập: (1) phục vụ đồng thời nhiều client **dùng chung một bảng key-value**, (2) từ chối client thứ N+1. Đề nói rõ `fork` không phù hợp, hãy nghĩ vì sao.
+  - |-
+    Chọn `select`/`poll` (một luồng, không cần khoá) cho gọn. Bảng key-value là mảng `{key, value, used}` tối đa 1000 phần tử. Mỗi client có bộ đệm dòng riêng. Khi `accept`: nếu `nclients >= N` thì gửi `FULL\n` rồi `close`, ngược lại gửi `WELCOME\n` và tăng `nclients`. Xem thẻ **Quản lý nhiều client**.
+  - |-
+    Giảm `nclients` ở **mọi** đường client rời đi (`QUIT`, `recv == 0`, lỗi). Lệnh sai tên hoặc **thừa/thiếu tham số** đều trả `ERROR` (kiểm tra bằng số trường `sscanf` đọc được cộng với việc không còn ký tự thừa). `SET` ghi đè nếu key đã có; bảng đầy 1000 key thì quyết định xử lý theo đề. `QUIT` trả `BYE` rồi đóng. Bỏ `\r` cuối dòng.

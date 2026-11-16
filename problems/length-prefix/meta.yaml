@@ -8,3 +8,4 @@ ref: "Lecture notes §2.3; §4.3 (thiết kế giao thức tự định nghĩa)"
 type: server
 args: ["{port}"]
 test_timeout: 6
+concepts: [tcp-stream, length-prefix-struct, byte-order]

@@ -6,6 +6,8 @@ import {
   ArrowLeft, BookOpen, Check, ChevronDown, CircleDashed, CircleHelp, Clock, Code2, Lightbulb, Link2, ListTree, Loader2, Plus,
   SquareArrowOutUpRight, SquareCheckBig, SquarePen, SquareX, Star, Tag, ThumbsDown, ThumbsUp, Timer, X,
 } from "lucide-react";
+import { marked } from "marked";
+import { VERDICT_HELP } from "@/lib/verdicts";
 import { cn } from "@/lib/utils";
 
 export const LABEL = {
@@ -201,7 +203,34 @@ export function SubmissionList({ past, onOpen }) {
   );
 }
 
-export function SubmissionDetail({ sub, user, onBack, onLoad }) {
+// Giải thích verdict không phải AC: nguyên nhân thường gặp + các lỗi hay mắc ở đúng bài này (link sang bài "Tìm bug").
+function VerdictHelp({ verdict, bugs = [] }) {
+  const text = VERDICT_HELP[verdict];
+  if (!verdict || verdict === "AC" || !text) return null;
+  // Lỗi cùng verdict với kết quả này xếp trước.
+  const list = [...bugs].sort((a, b) => (b.verdict === verdict) - (a.verdict === verdict));
+  return (
+    <div className="mb-4 rounded-lg border border-[var(--line)] bg-[var(--fill-3)] p-3 text-sm">
+      <div className="mb-1 flex items-center gap-1.5 font-medium text-[var(--title)]"><Lightbulb className="size-4 text-[var(--brand)]" />Vì sao có thể bị {LABEL[verdict] || verdict}?</div>
+      <div className="lc-prose" dangerouslySetInnerHTML={{ __html: marked.parseInline(text, { async: false }) }} />
+      {list.length > 0 && (
+        <div className="mt-2">
+          <div className="text-xs text-[var(--muted)]">Lỗi hay gặp ở bài này (bấm để tập tìm bug):</div>
+          <ul className="mt-1 space-y-1">
+            {list.map((b) => (
+              <li key={b.id}>
+                <a href={`/learn/bugs/${b.id}`} target="_blank" rel="noreferrer" className="text-[var(--accent)] hover:underline">{b.title}</a>
+                {b.verdict === verdict && <span className="ml-1.5 text-xs text-[var(--muted)]">· khớp verdict</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function SubmissionDetail({ sub, user, onBack, onLoad, bugs }) {
   if (!sub) return <div className="flex items-center gap-2 p-5 text-sm text-[var(--muted)]"><Loader2 className="size-4 animate-spin" />Đang tải…</div>;
   const r = sub.result || {};
   const firstBad = (r.tests || []).find((t) => t.verdict !== "AC" && t.message);
@@ -226,6 +255,8 @@ export function SubmissionDetail({ sub, user, onBack, onLoad }) {
           <button onClick={onLoad} title="Nạp code này vào editor" aria-label="Sửa code"
             className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#2db55d] text-white hover:bg-[#28a352]"><SquarePen className="size-4" /></button>
         </div>
+
+        <VerdictHelp verdict={sub.verdict} bugs={bugs} />
 
         {r.tests?.length > 0 && (
           <div className="mt-4 rounded-xl border border-[var(--line)] p-3">
@@ -331,7 +362,7 @@ export function Testcases({ editable, cases, setCases, defaults, sel, setSel, ma
 
 /* ---------- Test Result ---------- */
 
-export function TestResult({ r, error, busy, note }) {
+export function TestResult({ r, error, busy, note, bugs }) {
   const tests = r?.tests || [];
   const firstBad = Math.max(0, tests.findIndex((t) => t.verdict !== "AC"));
   const [sel, setSel] = useState(firstBad);
@@ -358,6 +389,7 @@ export function TestResult({ r, error, busy, note }) {
 
       {r.verdict === "CE" && <Box tone="bad">{r.compile_log}</Box>}
       {r.message && <Box tone={r.verdict === "AC" ? undefined : "bad"}>{r.message}</Box>}
+      <VerdictHelp verdict={r.verdict} bugs={bugs} />
 
       {tests.length > 0 && (
         <>

@@ -23,6 +23,7 @@ export function listProblems() {
       chapter: m.chapter,
       topics: m.topics || [],
       prerequisites: m.prerequisites || [],
+      concepts: m.concepts || [],
       ref: m.ref || "",
       type: m.type,
       exam: !!m.hide_details,
@@ -78,3 +79,29 @@ export function getPlan(id) {
 }
 
 export const planProblemIds = (plan) => plan.sections.flatMap((s) => s.problems.map((p) => p.id));
+
+// Thẻ kiến thức: knowledge/<id>.md có front matter (title, chapter, ref) rồi đến nội dung Markdown.
+const KNOWLEDGE = path.join(ROOT, "knowledge");
+
+export function getConcept(id) {
+  if (!safeId(id)) return null;
+  const f = path.join(KNOWLEDGE, id + ".md");
+  if (!fs.existsSync(f)) return null;
+  const m = fs.readFileSync(f, "utf8").replace(/\r\n/g, "\n").match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+  if (!m) return null;
+  const meta = YAML.parse(m[1]) || {};
+  return { id, title: meta.title || id, chapter: meta.chapter, ref: meta.ref || "", body: m[2] };
+}
+
+export function getConcepts(ids) {
+  return ids.map(getConcept).filter(Boolean);
+}
+
+// Gợi ý theo bậc: knowledge/hints.yaml, mỗi bài một danh sách Markdown (bậc 1 -> bậc cuối).
+export function getHints(id) {
+  if (!safeId(id)) return [];
+  const f = path.join(KNOWLEDGE, "hints.yaml");
+  if (!fs.existsSync(f)) return [];
+  const all = YAML.parse(fs.readFileSync(f, "utf8")) || {};
+  return Array.isArray(all[id]) ? all[id].map(String) : [];
+}

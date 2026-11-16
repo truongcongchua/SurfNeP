@@ -1,0 +1,452 @@
+# Ngân hàng quiz. type: mcq (answer = chỉ số đáp án đúng, từ 0) | order (items = thứ tự ĐÚNG) | fill (code có {{1}}, {{2}}...; blanks = các đáp án chấp nhận cho từng chỗ trống).
+# concept phải trùng tên một tệp knowledge/<concept>.md. id duy nhất. Văn bản hỗ trợ Markdown (`code`, **đậm**).
+
+# ---------- Chương 2 ----------
+- id: sa-mcq-pton
+  type: mcq
+  concept: socket-address
+  q: "`inet_pton(AF_INET, \"256.1.1.1\", &addr.sin_addr)` trả về giá trị nào?"
+  options: ["`1`", "`0`", "`-1` và đặt `errno`", "Không xác định (hàm không kiểm tra)"]
+  answer: 1
+  why: "`inet_pton` trả `1` nếu hợp lệ, **`0` nếu xâu không phải địa chỉ hợp lệ** (không đặt `errno`), và `-1` chỉ khi họ địa chỉ không hỗ trợ. Vì vậy phải so sánh kết quả với `1`, không chỉ kiểm tra `< 0`."
+
+- id: sa-mcq-gai
+  type: mcq
+  concept: socket-address
+  q: "`getaddrinfo` trả về kết quả dưới dạng nào, và phải làm gì sau khi dùng xong?"
+  options:
+    - "Một `struct sockaddr_in` duy nhất, không cần giải phóng"
+    - "Danh sách liên kết `addrinfo` (`ai_next`), phải gọi `freeaddrinfo`"
+    - "Một mảng cố định 4 phần tử, phải `free` từng phần tử"
+    - "Chuỗi IP, phải `free` chuỗi đó"
+  answer: 1
+  why: "Một tên miền có thể ứng với nhiều địa chỉ nên kết quả là danh sách liên kết; giải phóng cả danh sách bằng `freeaddrinfo(res)`."
+
+- id: sa-fill-sockaddr
+  type: fill
+  concept: socket-address
+  q: "Điền vào chỗ trống để server nghe trên **mọi giao diện** ở cổng `port`:"
+  code: |
+    struct sockaddr_in addr;
+    memset(&addr, 0, sizeof addr);
+    addr.sin_family = {{1}};
+    addr.sin_port   = {{2}}(port);
+    addr.sin_addr.s_addr = {{3}}(INADDR_ANY);
+  blanks:
+    - ["AF_INET"]
+    - ["htons"]
+    - ["htonl"]
+  why: "`sin_family = AF_INET`; cổng 16 bit dùng `htons`; địa chỉ 32 bit dùng `htonl` (`INADDR_ANY` thực chất là 0 nên không đổi kết quả, nhưng viết `htonl` là đúng quy ước)."
+
+- id: bo-mcq-little
+  type: mcq
+  concept: byte-order
+  q: "Trên máy little-endian, `uint32_t x = 0x12345678;`. Byte nằm ở địa chỉ thấp nhất của `x` là gì?"
+  options: ["`0x12`", "`0x34`", "`0x78`", "`0x56`"]
+  answer: 2
+  why: "Little-endian lưu **byte thấp trước**: bộ nhớ là `78 56 34 12`. Thứ tự mạng (big-endian) mới là `12 34 56 78`."
+
+- id: bo-mcq-which
+  type: mcq
+  concept: byte-order
+  q: "Cần đổi **độ dài 32 bit** của một thông điệp sang thứ tự mạng trước khi gửi. Dùng hàm nào?"
+  options: ["`htons`", "`htonl`", "`ntohs`", "`ntohl`"]
+  answer: 1
+  why: "`h`ost **to** `n`etwork, `l` = long (32 bit) nên `htonl`. `htons` dành cho 16 bit (cổng). Khi nhận thì dùng `ntohl`."
+
+- id: bo-fill-recv-len
+  type: fill
+  concept: byte-order
+  q: "Nhận 4 byte độ dài (đã đọc đủ vào `net`) và đổi về thứ tự máy:"
+  code: |
+    uint32_t net;
+    recv_all(fd, &net, 4);
+    uint32_t len = {{1}}(net);
+  blanks:
+    - ["ntohl"]
+  why: "Dữ liệu từ mạng ở thứ tự mạng; về máy dùng `ntohl` (32 bit)."
+
+- id: tl-order-server
+  type: order
+  concept: tcp-lifecycle
+  q: "Sắp xếp các lời gọi hàm của một **TCP server** theo đúng thứ tự:"
+  items: ["socket()", "bind()", "listen()", "accept()", "recv() / send()", "close()"]
+  why: "Tạo socket → gán địa chỉ (`bind`) → chuyển sang chế độ nghe (`listen`) → chờ client (`accept`, trả socket **mới**) → trao đổi dữ liệu → `close`."
+
+- id: tl-order-client
+  type: order
+  concept: tcp-lifecycle
+  q: "Sắp xếp các lời gọi hàm của một **TCP client**:"
+  items: ["socket()", "connect()", "send()", "recv()", "close()"]
+  why: "Client không cần `bind`/`listen`/`accept`: chỉ `socket` rồi `connect` tới server."
+
+- id: tl-mcq-recv0
+  type: mcq
+  concept: tcp-lifecycle
+  q: "`recv` trên socket TCP trả về `0`. Điều đó nghĩa là gì?"
+  options: ["Chưa có dữ liệu, thử lại sau", "Đối phương đã đóng kết nối (EOF)", "Có lỗi, xem `errno`", "Nhận được một gói rỗng"]
+  answer: 1
+  why: "Với TCP, `0` = EOF: bên kia đã đóng. Lỗi là `-1`. (Với UDP, `recvfrom` trả `0` chỉ là datagram rỗng.)"
+
+- id: tl-mcq-accept
+  type: mcq
+  concept: tcp-lifecycle
+  q: "`accept` trả về một descriptor mới. Descriptor đó dùng để làm gì?"
+  options: ["Tiếp tục `accept` client kế tiếp", "Trao đổi dữ liệu với đúng client vừa kết nối", "Gọi lại `listen`", "Đại diện cho mọi client đang kết nối"]
+  answer: 1
+  why: "Socket nghe chỉ để `accept`; mỗi client có một socket kết nối riêng do `accept` trả về."
+
+- id: tl-fill-reuse
+  type: fill
+  concept: tcp-lifecycle
+  q: "Dòng nào giúp chạy lại server ngay mà không gặp lỗi `Address already in use`?"
+  code: |
+    int yes = 1;
+    setsockopt(s, SOL_SOCKET, {{1}}, &yes, sizeof yes);
+  blanks:
+    - ["SO_REUSEADDR"]
+  why: "`SO_REUSEADDR` cho phép `bind` lại cổng đang ở trạng thái TIME_WAIT."
+
+- id: ts-mcq-fragment
+  type: mcq
+  concept: tcp-stream
+  q: "Client gọi `send` 3 lần, mỗi lần 10 byte. Server gọi `recv(fd, buf, 100, 0)`. Điều nào là **có thể** xảy ra?"
+  options:
+    - "Luôn nhận đúng 10 byte mỗi lần, 3 lần"
+    - "Có thể nhận 30 byte một lần, hoặc 10+20, hoặc từng byte một"
+    - "Luôn nhận 30 byte một lần"
+    - "`recv` báo lỗi vì dữ liệu chia thành 3 gói"
+  answer: 1
+  why: "TCP là luồng byte, không bảo toàn ranh giới `send`. Số lần `recv` và kích thước mỗi lần không liên hệ với số lần `send`, nên giao thức ứng dụng phải tự đóng khung."
+
+- id: ts-mcq-phrase
+  type: mcq
+  concept: tcp-stream
+  q: "Tìm chuỗi `Ky thuat May tinh` trong dữ liệu client gửi. Cách nào **đúng**?"
+  options:
+    - "`strstr` trên từng lần `recv`"
+    - "`strstr` trên bộ đệm tích luỹ toàn bộ dữ liệu đã nhận (đã thêm `'\\0'`)"
+    - "So sánh `n == 17` sau mỗi `recv`"
+    - "Dùng `strlen` rồi so sánh"
+  answer: 1
+  why: "Chuỗi có thể nằm vắt qua hai lần `recv`. Phải tìm trên bộ đệm cộng dồn (hoặc giữ lại phần đuôi của lần trước)."
+
+- id: ts-order-readline
+  type: order
+  concept: tcp-stream
+  q: "Sắp xếp các bước của hàm **đọc một dòng** từ socket có bộ đệm lưu giữa các lần gọi:"
+  items:
+    - "Tìm `'\\n'` trong bộ đệm bằng `memchr`"
+    - "Nếu chưa có thì `recv` thêm vào cuối bộ đệm"
+    - "Lặp lại cho đến khi có `'\\n'` hoặc đối phương đóng"
+    - "Cắt dòng ra và trả về cho người gọi"
+    - "`memmove` phần dư lên đầu bộ đệm"
+  why: "Tìm → (chưa có) nhận thêm → lặp → khi có, cắt dòng → dồn phần dư lên đầu để lần gọi sau không mất dữ liệu."
+
+- id: ts-fill-recvall
+  type: fill
+  concept: tcp-stream
+  q: "Hàm đọc **đủ n byte** từ socket:"
+  code: |
+    int recv_all(int fd, void *p, size_t n) {
+        size_t got = 0;
+        while (got {{1}} n) {
+            ssize_t r = recv(fd, (char *)p + {{2}}, n - got, 0);
+            if (r <= 0) return -1;
+            got {{3}} r;
+        }
+        return 0;
+    }
+  blanks:
+    - ["<"]
+    - ["got"]
+    - ["+="]
+  why: "Lặp khi `got < n`; vùng ghi tiếp bắt đầu từ `p + got`; cộng dồn `got += r`. Gặp `r <= 0` (đóng hoặc lỗi) thì trả lỗi."
+
+- id: lp-mcq-prefix
+  type: mcq
+  concept: length-prefix-struct
+  q: "Đọc 4 byte độ dài bằng một lần `recv(fd, &n, 4, 0)` có vấn đề gì?"
+  options:
+    - "Không có vấn đề, TCP luôn trả đủ 4 byte"
+    - "Có thể nhận ít hơn 4 byte; phải đọc đủ bằng vòng lặp"
+    - "Phải dùng `read` thay cho `recv`"
+    - "Không thể đọc số nguyên qua TCP"
+  answer: 1
+  why: "`recv` có thể trả ít byte hơn yêu cầu. Dùng `recv_all` để đọc đủ 4 byte trước khi `ntohl`."
+
+- id: lp-mcq-struct
+  type: mcq
+  concept: length-prefix-struct
+  q: "Vì sao không nên `send(fd, &sv, sizeof sv, 0)` với một `struct` có trường `int`, `float` và mảng ký tự?"
+  options:
+    - "TCP không gửi được struct"
+    - "Padding, byte order và độ lớn kiểu có thể khác nhau giữa hai đầu"
+    - "Struct luôn quá lớn cho một gói"
+    - "Vì phải gửi từng byte một"
+  answer: 1
+  why: "Trình biên dịch chèn padding, số nhiều byte theo thứ tự máy, `sizeof` có thể khác giữa hai hệ. Hãy tuần tự hoá từng trường (kèm `htonl`/`htons`)."
+
+- id: lp-fill-send
+  type: fill
+  concept: length-prefix-struct
+  q: "Gửi thông điệp có tiền tố độ dài `len` (rồi đến dữ liệu):"
+  code: |
+    uint32_t n = {{1}}(len);
+    send_all(fd, &n, {{2}});
+    send_all(fd, data, {{3}});
+  blanks:
+    - ["htonl"]
+    - ["4", "sizeof n", "sizeof(n)", "sizeof n "]
+    - ["len"]
+  why: "Độ dài 32 bit đổi bằng `htonl`; tiền tố dài 4 byte; sau đó gửi đúng `len` byte dữ liệu."
+
+- id: udp-mcq-boundary
+  type: mcq
+  concept: udp-basics
+  q: "Client UDP gọi `sendto` hai lần (5 byte, rồi 3 byte). Server gọi `recvfrom` với bộ đệm đủ lớn. Server nhận được gì?"
+  options: ["Một datagram 8 byte", "Hai datagram: 5 byte rồi 3 byte (nếu cả hai đến nơi)", "Từng byte một", "Tuỳ hệ điều hành, có thể gộp"]
+  answer: 1
+  why: "UDP bảo toàn ranh giới thông điệp: mỗi `sendto` là một datagram và mỗi `recvfrom` nhận đúng một datagram (không gộp, không tách)."
+
+- id: udp-mcq-trunc
+  type: mcq
+  concept: udp-basics
+  q: "`recvfrom` với bộ đệm 100 byte nhận một datagram dài 500 byte. Chuyện gì xảy ra?"
+  options: ["`recvfrom` trả `-1`, datagram được giữ lại", "Trả 100 byte, **400 byte còn lại bị bỏ** mà không báo lỗi", "Trả 100 byte, lần sau nhận tiếp 400 byte", "Chương trình bị crash"]
+  answer: 1
+  why: "Khác với TCP, phần dư của datagram bị loại bỏ âm thầm. Phải dùng bộ đệm đủ lớn (tới 65507 byte)."
+
+- id: udp-order-server
+  type: order
+  concept: udp-basics
+  q: "Sắp xếp các lời gọi của một **UDP echo server**:"
+  items: ["socket(AF_INET, SOCK_DGRAM, 0)", "bind()", "recvfrom()", "sendto()"]
+  why: "Không có `listen`/`accept`. `recvfrom` cho biết địa chỉ người gửi để `sendto` trả lời đúng người."
+
+- id: udp-fill-echo
+  type: fill
+  concept: udp-basics
+  q: "Điền vào để echo lại datagram cho đúng người gửi:"
+  code: |
+    struct sockaddr_in from;
+    socklen_t fl = sizeof from;
+    ssize_t n = {{1}}(s, buf, sizeof buf, 0, (struct sockaddr *)&from, &fl);
+    {{2}}(s, buf, n, 0, (struct sockaddr *)&from, fl);
+  blanks:
+    - ["recvfrom"]
+    - ["sendto"]
+  why: "`recvfrom` ghi địa chỉ người gửi vào `from`; `sendto` gửi tới đúng địa chỉ đó."
+
+- id: fio-mcq-append
+  type: mcq
+  concept: file-io
+  q: "Server cần ghi nối tiếp dữ liệu của nhiều client vào một tệp log. Chế độ `fopen` nào đúng?"
+  options: ["`\"r\"`", "`\"w\"`", "`\"a\"` hoặc `\"ab\"`", "`\"r+\"`"]
+  answer: 2
+  why: "`\"w\"` xoá nội dung cũ mỗi lần mở. `\"a\"`/`\"ab\"` ghi vào cuối tệp và tạo mới nếu chưa có."
+
+- id: fio-mcq-flush
+  type: mcq
+  concept: file-io
+  q: "Server `fwrite` vào log nhưng khi mở tệp thấy rỗng (server vẫn đang chạy). Nguyên nhân?"
+  options: ["Dữ liệu còn trong bộ đệm stdio, chưa `fflush`/`fclose`", "`fwrite` không ghi được vào tệp", "Phải dùng `printf`", "Hệ điều hành chặn ghi"]
+  answer: 0
+  why: "stdio đệm dữ liệu trong bộ nhớ. Gọi `fflush` (hoặc `fclose`) sau khi xong một client để dữ liệu thực sự nằm trong tệp."
+
+# ---------- Chương 3 ----------
+- id: it-mcq-iterative
+  type: mcq
+  concept: iterative-server
+  q: "Nhược điểm chính của **server lặp** (iterative) là gì?"
+  options: ["Không dùng được TCP", "Client sau phải chờ client trước xong; một client chậm làm chặn tất cả", "Tốn nhiều bộ nhớ", "Cần mutex"]
+  answer: 1
+  why: "Server lặp chỉ `accept` client kế sau khi phục vụ xong client hiện tại, nên một client treo sẽ chặn mọi client khác."
+
+- id: it-mcq-http
+  type: mcq
+  concept: iterative-server
+  q: "Header của yêu cầu HTTP kết thúc bằng gì?"
+  options: ["`\\n`", "`\\r\\n\\r\\n` (một dòng trống)", "Ký tự `\\0`", "Khi `recv` trả `0`"]
+  answer: 1
+  why: "Header kết thúc bằng một dòng trống, tức là `\\r\\n\\r\\n`. Phải ghép các mảnh `recv` cho đến khi gặp chuỗi này."
+
+- id: it-fill-http
+  type: fill
+  concept: iterative-server
+  q: "Điền vào dòng trạng thái và header bắt buộc của phản hồi (tệp 120 byte):"
+  code: |
+    HTTP/1.1 200 OK\r\n
+    Content-Type: text/html; charset=utf-8\r\n
+    {{1}}: {{2}}\r\n
+    Connection: close\r\n
+    \r\n
+  blanks:
+    - ["Content-Length"]
+    - ["120"]
+  why: "`Content-Length` là số byte của **thân** (120). Sai giá trị này thì trình duyệt treo hoặc cắt cụt nội dung."
+
+- id: nb-mcq-eagain
+  type: mcq
+  concept: nonblocking
+  q: "`recv` trên socket non-blocking trả `-1` với `errno == EAGAIN`. Cách xử lý đúng?"
+  options: ["Đóng client vì có lỗi", "Bỏ qua, thử lại sau: chưa có dữ liệu", "Thoát chương trình", "Gọi lại `accept`"]
+  answer: 1
+  why: "`EAGAIN`/`EWOULDBLOCK` nghĩa là chưa có dữ liệu, **không phải lỗi**. Chỉ đóng client khi `recv == 0` hoặc lỗi khác."
+
+- id: nb-fill-flag
+  type: fill
+  concept: nonblocking
+  q: "Đặt socket `fd` sang chế độ non-blocking:"
+  code: |
+    int fl = fcntl(fd, F_GETFL, 0);
+    fcntl(fd, F_SETFL, fl | {{1}});
+  blanks:
+    - ["O_NONBLOCK"]
+  why: "Thêm cờ `O_NONBLOCK` vào cờ hiện có (giữ các cờ khác)."
+
+- id: fk-order-fork
+  type: order
+  concept: fork-server
+  q: "Sắp xếp các bước của vòng lặp trong **server fork** (mỗi client một tiến trình):"
+  items:
+    - "Cha: `accept()` nhận client"
+    - "Cha: `fork()`"
+    - "Con: `close(listen_fd)`"
+    - "Con: phục vụ client rồi `exit(0)`"
+    - "Cha: `close(client_fd)` rồi quay lại `accept()`"
+  why: "Sau `fork`, cả hai đều giữ cả hai descriptor: con đóng socket nghe, cha đóng socket client. Con kết thúc bằng `exit`."
+
+- id: fk-mcq-zombie
+  type: mcq
+  concept: fork-server
+  q: "Làm sao để server fork **không** để lại tiến trình zombie?"
+  options: ["Gọi `sleep` trong tiến trình cha", "Handler `SIGCHLD` gọi `waitpid(-1, NULL, WNOHANG)` trong vòng `while`", "Con gọi `kill` chính nó", "Chỉ cần `close` socket"]
+  answer: 1
+  why: "Zombie là con đã kết thúc mà cha chưa `wait`. Handler `SIGCHLD` thu dọn; dùng vòng `while` vì nhiều tín hiệu có thể bị gộp."
+
+- id: fk-mcq-closefd
+  type: mcq
+  concept: fork-server
+  q: "Cha **không** `close(client_fd)` sau khi `fork`. Hậu quả?"
+  options: ["Không có gì", "Socket không thật sự đóng (vẫn còn tham chiếu ở cha), client không nhận được EOF và cha rò rỉ fd", "Con không đọc được dữ liệu", "`accept` lỗi"]
+  answer: 1
+  why: "Sau `fork`, descriptor có hai tham chiếu. Chỉ khi cả hai đóng thì kết nối mới thật sự đóng; nếu cha giữ mãi thì rò rỉ và client không thấy EOF."
+
+- id: th-mcq-arg
+  type: mcq
+  concept: threads-mutex
+  q: "`pthread_create(&t, NULL, worker, &client)` trong vòng lặp `accept` với `client` là biến cục bộ của vòng lặp. Vấn đề?"
+  options: ["Không có", "Race condition: vòng sau ghi đè `client` trước khi luồng kịp đọc", "Luồng không nhận được tham số", "Phải dùng `fork` thay thế"]
+  answer: 1
+  why: "Mọi luồng cùng trỏ tới một biến. Hãy `malloc` một ô cho mỗi luồng, hoặc truyền giá trị qua `(void *)(intptr_t)client`."
+
+- id: th-mcq-detach
+  type: mcq
+  concept: threads-mutex
+  q: "Server đa luồng muốn quay lại `accept` ngay sau khi tạo luồng. Dùng `pthread_join(t, NULL)` ngay sau `pthread_create` có đúng không?"
+  options: ["Đúng", "Sai: `join` chặn đến khi luồng con xong, thực chất phục vụ tuần tự; dùng `pthread_detach`", "Đúng nếu có mutex", "Sai vì `join` không tồn tại"]
+  answer: 1
+  why: "`pthread_join` chờ luồng kết thúc nên làm mất đồng thời. `pthread_detach` để luồng tự giải phóng khi xong."
+
+- id: th-fill-mutex
+  type: fill
+  concept: threads-mutex
+  q: "Bảo vệ bảng client dùng chung bằng mutex:"
+  code: |
+    pthread_mutex_t lock = {{1}};
+    ...
+    pthread_mutex_{{2}}(&lock);
+    /* sửa bảng client */
+    pthread_mutex_{{3}}(&lock);
+  blanks:
+    - ["PTHREAD_MUTEX_INITIALIZER"]
+    - ["lock"]
+    - ["unlock"]
+  why: "Khởi tạo tĩnh bằng `PTHREAD_MUTEX_INITIALIZER`, khoá trước và mở khoá sau vùng găng. Quên `unlock` ở nhánh thoát sớm gây deadlock."
+
+- id: sp-mcq-copy
+  type: mcq
+  concept: select-poll
+  q: "Vì sao vòng lặp `select` phải gán `rd = master` (sao lưu) trước mỗi lần gọi?"
+  options: ["Để chạy nhanh hơn", "`select` **ghi đè** tập fd truyền vào, chỉ để lại các fd sẵn sàng", "Vì `fd_set` là hằng", "Vì `select` đọc `master` hai lần"]
+  answer: 1
+  why: "Sau khi trả về, `rd` chỉ còn fd sẵn sàng. Không sao lưu thì lần sau mất danh sách fd cần theo dõi."
+
+- id: sp-mcq-maxfd
+  type: mcq
+  concept: select-poll
+  q: "Tham số đầu tiên của `select` là gì?"
+  options: ["Số lượng fd đang theo dõi", "fd lớn nhất + 1", "fd lớn nhất", "`FD_SETSIZE`"]
+  answer: 1
+  why: "`nfds` là **giá trị fd lớn nhất cộng 1**, không phải số lượng fd."
+
+- id: sp-mcq-poll
+  type: mcq
+  concept: select-poll
+  q: "So với `select`, điều nào đúng với `poll`?"
+  options: ["`poll` sửa mảng `events` truyền vào", "`poll` không cần tính `maxfd` và không bị giới hạn `FD_SETSIZE`", "`poll` chỉ dùng cho UDP", "`poll` chạy nhiều luồng"]
+  answer: 1
+  why: "`poll` dùng mảng `struct pollfd`, kết quả ghi vào `revents`, không sửa `events`, và không có giới hạn 1024 của `FD_SETSIZE`."
+
+- id: sp-fill-select
+  type: fill
+  concept: select-poll
+  q: "Khung vòng lặp `select`:"
+  code: |
+    fd_set rd = master;
+    int ready = select(maxfd {{1}} 1, &rd, NULL, NULL, NULL);
+    if (FD_{{2}}(listen_fd, &rd)) {
+        int c = accept(listen_fd, NULL, NULL);
+        FD_SET(c, &master);
+    }
+  blanks:
+    - ["+"]
+    - ["ISSET"]
+  why: "`maxfd + 1` và `FD_ISSET` để kiểm tra fd có sẵn sàng không."
+
+- id: cm-mcq-full
+  type: mcq
+  concept: client-management
+  q: "Server giới hạn N client. Khi đã đủ N mà có client thứ N+1 kết nối, cách xử lý đúng?"
+  options: ["Không `accept`, để client chờ mãi", "`accept` rồi gửi thông báo (vd. `FULL`) và `close` ngay", "Đóng toàn bộ server", "Cho vào hàng đợi vô hạn"]
+  answer: 1
+  why: "Phải `accept` để nhận kết nối (nếu không, client treo trong hàng đợi `listen`), rồi từ chối đúng giao thức và đóng."
+
+- id: cm-mcq-count
+  type: mcq
+  concept: client-management
+  q: "Bộ đếm `nclients` cần giảm ở đâu?"
+  options: ["Chỉ khi client gửi `QUIT`", "Ở **mọi** đường client rời đi (`QUIT`, `recv == 0`, lỗi)", "Chỉ khi `recv == 0`", "Không cần giảm"]
+  answer: 1
+  why: "Bỏ sót một đường thoát làm bộ đếm lớn hơn thực tế; server tưởng đầy dù client đã rời."
+
+- id: cm-mcq-fork-shared
+  type: mcq
+  concept: client-management
+  q: "Bài key-value dùng chung một bảng cho mọi client. Vì sao **không** nên dùng `fork`?"
+  options: ["`fork` không hỗ trợ TCP", "Mỗi tiến trình con có bản sao bộ nhớ riêng nên thay đổi không được chia sẻ", "`fork` chậm hơn `select`", "`fork` không giới hạn số client"]
+  answer: 1
+  why: "Tiến trình không chia sẻ biến. Với dữ liệu dùng chung hãy dùng select/poll (một luồng) hoặc thread + mutex."
+
+- id: ta-mcq-block
+  type: mcq
+  concept: telnet-auth
+  q: "Trong server dùng `select`, một client chạy lệnh `sleep 5` qua `system()`. Điều gì xảy ra với các client khác?"
+  options: ["Vẫn được phục vụ bình thường", "Bị chặn trong 5 giây vì `system()` chặn cả vòng lặp", "Bị ngắt kết nối", "Tự chuyển sang luồng khác"]
+  answer: 1
+  why: "`system()` chặn tiến trình. Với `select` (một luồng) cả server đứng; với `fork` chỉ tiến trình con tương ứng bị chặn."
+
+- id: ta-fill-popen
+  type: fill
+  concept: telnet-auth
+  q: "Chạy lệnh và lấy **cả stdout lẫn stderr**:"
+  code: |
+    snprintf(shell, sizeof shell, "%s {{1}}", cmd);
+    FILE *p = {{2}}(shell, "r");
+    size_t n = fread(out, 1, sizeof out, p);
+    pclose(p);
+  blanks:
+    - ["2>&1"]
+    - ["popen"]
+  why: "`2>&1` chuyển stderr vào stdout; `popen(cmd, \"r\")` chạy lệnh và cho đọc đầu ra của nó."

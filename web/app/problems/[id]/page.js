@@ -3,7 +3,8 @@ import { marked } from "marked";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { statusMap } from "@/lib/progress";
-import { getProblem, getSamples, listProblems, listPlans, DIFF_LABEL } from "@/lib/content";
+import { getProblem, getSamples, listProblems, listPlans, getConcepts, getHints, DIFF_LABEL } from "@/lib/content";
+import { listBugs } from "@/lib/learn";
 import Workspace from "./Workspace";
 
 export const dynamic = "force-dynamic";
@@ -57,8 +58,16 @@ export default async function ProblemPage({ params }) {
   const examDays = examDate ? Math.round((examDate - today0) / 86400000) : null;
 
   // Tiêu đề hiện riêng (kiểu "3. Tên bài"), nên bỏ dòng "# ..." đầu đề.
-  const statement = p.statement.replace(/^\s*#\s+[^\n]*\n/, "");
+  // Các mục "## Gợi ý", "## Kiến thức nền", "## Bẫy..." trong đề đã có tab Kiến thức (gợi ý theo bậc + thẻ khái niệm) thay thế,
+  // nên không hiện trong đề: tránh lộ gợi ý ngay trước khi người học tự mở. Tệp statement.md vẫn giữ nguyên.
+  const statement = p.statement
+    .replace(/^\s*#\s+[^\n]*\n/, "")
+    .replace(/^##[ \t]+(?:Gợi ý|Kiến thức nền|Bẫy(?: thường gặp| kinh điển)?)[ \t]*\r?\n[\s\S]*?(?=^##[ \t]|(?![\s\S]))/gm, "");
   const html = marked.parse(statement, { async: false });
+  // Thẻ kiến thức; bài thi thử (hide_details) không hiện để giữ nguyên điều kiện thi.
+  const hints = p.exam ? [] : getHints(id).map((h) => marked.parse(h, { async: false }));
+  const bugs = p.exam ? [] : listBugs().filter((b) => b.problem === id).map((b) => ({ id: b.id, title: b.title, verdict: b.verdict }));
+  const knowledge = p.exam ? [] : getConcepts(p.concepts).map((c) => ({ id: c.id, title: c.title, ref: c.ref, html: marked.parse(c.body, { async: false }) }));
 
   return (
     <Workspace
@@ -85,6 +94,9 @@ export default async function ProblemPage({ params }) {
       user={{ name: user.display || user.username }}
       samples={getSamples(id)}
       html={html}
+      knowledge={knowledge}
+      hints={hints}
+      bugs={bugs}
       starter={last?.code ?? p.starter}
       originalStarter={p.starter}
       examMinutes={p.examMinutes ?? null}
