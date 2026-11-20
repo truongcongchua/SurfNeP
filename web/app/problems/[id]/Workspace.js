@@ -193,7 +193,17 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
   const router = useRouter();
   const [settings, setSettings] = useSettings();
   const [timerCfg, setTimerCfg] = useLocal("nj-timer-cfg", { byDifficulty: false, autoReset: false, alarm: false });
-  const [code, setCode] = useState(starter);
+  const [code, setCodeState] = useState(starter);
+  // Monaco chạy "không điều khiển" (defaultValue): nếu truyền value={code} thì khi gõ nhanh, React render
+  // trễ một nhịp và ghi đè nội dung cũ lên editor -> mất chữ, con trỏ nhảy. setCode chỉ dùng cho thay đổi
+  // từ bên ngoài (nạp nháp, reset, lấy code đã nộp) và đẩy thẳng vào editor.
+  const editorRef = useRef(null);
+  const editorTextRef = useRef(starter);
+  const setCode = useCallback((t) => {
+    editorTextRef.current = t; setCodeState(t);
+    const ed = editorRef.current;
+    if (ed && ed.getValue() !== t) ed.setValue(t);
+  }, []);
   const [saved, setSaved] = useState(true);
   const [pos, setPos] = useState({ ln: 1, col: 1 });
   const [busy, setBusy] = useState(false);       // đang nộp bài
@@ -457,6 +467,8 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
   }, []);
 
   function onEditorMount(editor, monaco) {
+    editorRef.current = editor;
+    if (editor.getValue() !== editorTextRef.current) editor.setValue(editorTextRef.current);
     editor.onDidChangeCursorPosition((e) => setPos({ ln: e.position.lineNumber, col: e.position.column }));
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Quote, () => keys.current.settings.runShortcut && keys.current.run());
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => keys.current.settings.submitShortcut && keys.current.submit());
@@ -537,10 +549,10 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
       </div>
       <div className="min-h-0 flex-1">
         <Monaco
-          height="100%" language="c" value={code}
+          height="100%" language="c" defaultValue={editorTextRef.current}
           theme={resolvedTheme === "dark" ? "nj-dark" : "nj-light"}
           beforeMount={defineThemes} onMount={onEditorMount}
-          onChange={(v) => setCode(v ?? "")}
+          onChange={(v) => { editorTextRef.current = v ?? ""; setCodeState(v ?? ""); }}
           options={{
             minimap: { enabled: false }, fontSize: settings.fontSize, lineHeight: Math.round(settings.fontSize * 1.55),
             fontFamily: "Menlo, Monaco, Consolas, 'Courier New', monospace", fontLigatures: settings.ligatures,
