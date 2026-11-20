@@ -1,0 +1,21 @@
+# Bản sai sinh từ solution.c; xem docs/TEST-DESIGN.md
+- id: no-shutdown
+  why: 'stdin EOF thì close luôn thay vì shutdown(SHUT_WR): mất tin cuối của server'
+  replace:
+  - - "                shutdown(s, SHUT_WR);\n                fds[0].fd = -1;  // poll bỏ qua fd âm"
+    - "                close(s);\n                return 0;"
+- id: stdin-eof-spin
+  why: EOF stdin nhưng không bỏ theo dõi stdin (lặp vô hạn, vẫn chạy được nhưng 100% CPU)
+  replace:
+  - - '                fds[0].fd = -1;  // poll bỏ qua fd âm'
+    - '                ;'
+- id: stdout-printf-unflushed
+  why: In bằng fwrite ra stdout có đệm, không fflush
+  replace:
+  - - '            write_all(1, buf, (size_t)k);'
+    - '            fwrite(buf, 1, (size_t)k, stdout);'
+- id: strlen-stdout
+  why: 'In tin bằng printf("%s"): mất byte sau 0x00'
+  replace:
+  - - '            write_all(1, buf, (size_t)k);'
+    - "            buf[k < 4096 ? k : 4095] = 0;\n            write_all(1, buf, strlen(buf));"

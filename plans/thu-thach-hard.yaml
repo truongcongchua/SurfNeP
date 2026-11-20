@@ -1,0 +1,36 @@
+# Study plan "Thử thách bài khó"; bài lấy từ problems/, sắp theo bài tiên quyết.
+id: thu-thach-hard
+order: 6
+title: "Thử thách bài khó"
+subtitle: "Chỉ các bài hard và đề thi thử"
+description: >
+  10 bài, 4 chủ đề. Dành cho người đã vững nền: toàn bài hard, từ đóng gói nhị phân đến server đồng thời, kết thúc bằng hai đề thi thử tính giờ.
+suggested_days: 7
+award: "Huy hiệu \"Không ngại bài khó\""
+
+sections:
+  - title: "Giao thức nhị phân"
+    intro: "Đóng gói struct qua TCP. (§2.5)"
+    problems:
+      - {id: sv-struct, title: "Nhận hồ sơ sinh viên qua dữ liệu nhị phân", difficulty: hard, ready: true}
+
+  - title: "Chat và Telnet"
+    intro: "select, poll, pthread, fork. (§3.3–3.5)"
+    problems:
+      - {id: chat-select, title: "Phòng chat đa client với select", difficulty: hard, ready: true}
+      - {id: chat-poll, title: "Phòng chat đa client với poll", difficulty: hard, ready: true}
+      - {id: thread-chat, title: "Server chat đa luồng", difficulty: hard, ready: true}
+      - {id: telnet-select, title: "Server Telnet đăng nhập và xử lý lệnh", difficulty: hard, ready: true}
+      - {id: telnet-poll, title: "Server Telnet dùng poll", difficulty: hard, ready: true}
+      - {id: telnet-fork, title: "Server Telnet đa tiến trình", difficulty: hard, ready: true}
+
+  - title: "Tối đa N client"
+    intro: "Dạng đề giữa kỳ. (§3.4–3.5)"
+    problems:
+      - {id: kv-max-n, title: "Key-Value server tối đa N client", difficulty: hard, ready: true}
+
+  - title: "Thi thử tính giờ"
+    intro: "Hai đề, ẩn test, 90 phút mỗi đề."
+    problems:
+      - {id: mock-booking-tcp, title: "Thi thử 1: Đặt chỗ qua TCP", difficulty: hard, exam: true, ready: true}
+      - {id: mock-quiz-udp, title: "Thi thử 2: Quiz server UDP", difficulty: hard, exam: true, ready: true}

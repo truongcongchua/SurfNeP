@@ -1,0 +1,33 @@
+# Bản sai sinh từ solution.c; xem docs/TEST-DESIGN.md
+- id: buffer-8k
+  why: 'Bộ đệm 8 KB: datagram lớn bị cắt cụt im lặng'
+  replace:
+  - - static char buf[65536];
+    - static char buf[8192];
+- id: buffer-65507-minus-1
+  why: Bộ đệm 65506 byte (lệch một)
+  replace:
+  - - static char buf[65536];
+    - static char buf[65506];
+- id: compare-ip-only
+  why: Xác định người gửi chỉ bằng IP (bỏ cổng)
+  replace:
+  - - ' && peers[i].addr.sin_port == a->sin_port'
+    - ''
+- id: global-counter
+  why: Một bộ đếm chung cho mọi người gửi
+  replace:
+  - - 'p ? ++p->count : 0UL'
+    - (p = &peers[0], ++p->count)
+- id: few-peers
+  why: Bảng người gửi chỉ 50 chỗ
+  replace:
+  - - '#define MAX_PEERS 1024'
+    - '#define MAX_PEERS 50'
+- id: strlen-len
+  why: Đếm độ dài bằng strlen
+  replace:
+  - - '"LEN %zd %lu", n,'
+    - '"LEN %zu %lu", (buf[n < 65535 ? n : 65535] = 0, strlen(buf)),'
+  - - '#include <string.h>'
+    - '#include <string.h>'

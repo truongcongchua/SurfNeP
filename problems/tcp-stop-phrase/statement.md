@@ -21,6 +21,12 @@ lệnh `recv()` bên server. Chuỗi `Ky thuat May tinh` có thể đến thành
 (`"Ky th"` rồi `"uat May tinh"`), hoặc dính liền với dữ liệu khác. Lời giải chỉ gọi
 `strstr()` trên từng mảnh vừa nhận sẽ trượt.
 
+## Ràng buộc và bộ chấm kiểm tra
+- Chuỗi dừng có thể bị cắt ở **bất kỳ vị trí nào**, đến từng byte, hoặc nằm sau tới 2 MB dữ liệu khác.
+- Dữ liệu là byte bất kỳ (có thể chứa `0x00`); so khớp **phân biệt hoa thường**, đúng từng byte.
+- Dữ liệu có thể chứa nhiều **tiền tố chồng lấn** như `Ky thuat Ky thuat May tinh` — vẫn phải nhận ra.
+- Client có thể đóng (FIN hoặc RST) mà chưa gửi đủ chuỗi: server đóng socket và kết thúc bình thường.
+
 ## Ví dụ
 
 | Client gửi (mỗi dòng là một lần `send`) | Server phản hồi |

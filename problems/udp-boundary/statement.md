@@ -17,6 +17,11 @@ trong đó `<số thứ tự>` là thứ tự của datagram này **trong số c
 - Datagram rỗng là hợp lệ (`LEN 0 ...`).
 - Hỗ trợ ít nhất 100 người gửi khác nhau.
 
+## Ràng buộc và bộ chấm kiểm tra
+- Mọi kích thước 0–65507 byte (kể cả 65507 và các ranh giới 4096/8192/16384...), dữ liệu nhị phân có `0x00`.
+- Người gửi là cặp **IP + cổng**: các client của bộ chấm cùng IP `127.0.0.1` nhưng khác cổng; socket mới là
+  người gửi mới (đếm lại từ 1). Bộ đếm có thể vượt 1000.
+
 ## Ví dụ
 
 ```

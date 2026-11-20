@@ -43,5 +43,14 @@ Danh sách client (fd, id) được **mọi luồng** đọc khi broadcast và �
 Bảo vệ nó bằng `pthread_mutex_t`. Câu hỏi đáng nghĩ: có nên giữ mutex trong lúc `send`? Nếu một
 client nhận chậm thì sao?
 
+## Ràng buộc
+- `client_id`, `client_name` dài 1–32 byte, không chứa dấu cách; dòng đăng ký phải **khớp chính xác** dạng
+  `id: name` (dấu cách thừa ở đầu/cuối/giữa → `ERROR`). Mỗi dòng tối đa 1000 byte, không chứa `0x00`.
+- Nội dung tin được chuyển **nguyên vẹn** (kể cả dòng rỗng, dấu cách, dấu `:`), chỉ bỏ `\r` cuối dòng.
+- Kết nối mới luôn ở trạng thái **chưa đăng ký**, kể cả khi dùng lại chỗ của client cũ.
+- Người nhận có thể mất kết nối đột ngột (RST) **đúng lúc** server đang phát tin: server không được chết vì
+  `SIGPIPE`. Chương trình chạy với giới hạn 256 file descriptor (bộ chấm cho 300 lượt vào-ra phòng).
+- Tới 30 client cùng lúc; tới 1000 tin dồn trong một lần gửi; tin của cùng một người phải đến **đúng thứ tự**.
+
 ## Kiến thức nền
 Lecture notes §3.4; code mẫu `pthread_chatroom.c`. Bài nền: *thread-echo*, *chat-select*.

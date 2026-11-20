@@ -1,0 +1,33 @@
+# Bản sai sinh từ solution.c; xem docs/TEST-DESIGN.md
+- id: gpa-truncate
+  why: Ép kiểu thẳng điểm*100 sang số nguyên (cắt 0.29 thành 28)
+  replace:
+  - - (uint16_t)lround(strtod(gpa_s, NULL) * 100.0)
+    - (uint16_t)(strtod(gpa_s, NULL) * 100.0)
+- id: keep-cr
+  why: Chỉ bỏ '\n', giữ '\r' của dòng CRLF
+  replace:
+  - - '    buf[strcspn(buf, "\r\n")] = 0;'
+    - '    buf[strcspn(buf, "\n")] = 0;'
+- id: name-buffer-64
+  why: 'Bộ đệm tên 64 byte: tên 100 byte bị cắt'
+  replace:
+  - - char mssv_s[64], name[512], dob[64], gpa_s[64];
+    - char mssv_s[64], name[64], dob[64], gpa_s[64];
+- id: no-fflush
+  why: Quên fflush(stdout)
+  replace:
+  - - "        printf(\"%s\\n\", reply);\n        fflush(stdout);"
+    - '        printf("%s\n", reply);'
+- id: continue-after-error
+  why: Nhận ERROR vẫn gửi tiếp
+  replace:
+  - - '        if (strcmp(reply, "OK") != 0) break;
+
+      '
+    - ''
+- id: single-recv-reply
+  why: Đọc phản hồi bằng một lần recv (phản hồi bị cắt thì in thiếu)
+  replace:
+  - - '        if (recv_line(s, reply, sizeof reply) < 0) break;'
+    - "        ssize_t rk = recv(s, reply, sizeof reply - 1, 0);\n        if (rk <= 0) break;\n        reply[rk] = 0;\n        reply[strcspn(reply, \"\\n\")] = 0;"

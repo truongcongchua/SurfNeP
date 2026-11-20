@@ -1,5 +1,6 @@
 // Harness của bộ chấm cho bài tcp-recv-line.
-// stdin: dòng đầu "cap chunk delay_ms", phần còn lại là dữ liệu thô bên kia sẽ gửi.
+// stdin: dòng đầu "cap chunk delay_ms [seed]", phần còn lại là dữ liệu thô bên kia sẽ gửi.
+// chunk = 0: mỗi lần gửi một mảnh ngẫu nhiên 1..32 byte (sinh từ seed, tái lập được).
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,8 +14,10 @@ ssize_t recv_line(int fd, char *buf, size_t cap);
 int main(void) {
     size_t cap, chunk;
     int delay;
-    if (scanf("%zu %zu %d", &cap, &chunk, &delay) != 3) return 2;
-    getchar();  // bỏ '\n' sau dòng đầu
+    unsigned seed = 1;
+    char head[128];
+    if (!fgets(head, sizeof head, stdin)) return 2;
+    if (sscanf(head, "%zu %zu %d %u", &cap, &chunk, &delay, &seed) < 3) return 2;
     static char data[1 << 20];
     size_t len = fread(data, 1, sizeof data, stdin);
 
@@ -23,9 +26,15 @@ int main(void) {
     pid_t pid = fork();
     if (pid == 0) {  // phía gửi
         close(sv[0]);
-        for (size_t i = 0; i < len; i += chunk) {
-            size_t n = len - i < chunk ? len - i : chunk;
+        for (size_t i = 0; i < len;) {
+            size_t want = chunk;
+            if (want == 0) {
+                seed = seed * 1103515245u + 12345u;
+                want = 1 + (seed >> 16) % 32;
+            }
+            size_t n = len - i < want ? len - i : want;
             if (write(sv[1], data + i, n) < 0) _exit(1);
+            i += n;
             if (delay) usleep(delay * 1000);
         }
         close(sv[1]);

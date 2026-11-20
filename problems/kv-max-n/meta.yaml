@@ -3,7 +3,7 @@ title: Key-Value server tối đa N client
 difficulty: hard
 chapter: 3
 topics: [TCP, Stream Framing, Protocol Design, Client Limit, select, Multithreading]
-prerequisites: [chat-select]
+prerequisites: [chat-select, echo-max-n]
 ref: "Lecture notes §3.4–3.5; dạng đề giữa kỳ"
 type: server
 args: ["{port}", "10"]

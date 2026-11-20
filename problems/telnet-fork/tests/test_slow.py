@@ -1,8 +1,9 @@
 import time
 
-from njlib import BLOCKED, Fail, WA
+from njlib import BLOCKED, Fail, WA, group
 
 
+@group("concurrency")
 def test_slow_command_does_not_block(ctx):
     """Một client chạy lệnh chậm (sleep 1.5) không làm chậm client khác"""
     a = ctx.connect(name="A")

@@ -71,7 +71,8 @@ export function listPlans() {
   return fs
     .readdirSync(PLANS)
     .filter((f) => f.endsWith(".yaml"))
-    .map((f) => YAML.parse(fs.readFileSync(path.join(PLANS, f), "utf8")));
+    .map((f) => YAML.parse(fs.readFileSync(path.join(PLANS, f), "utf8")))
+    .sort((a, b) => (a.order ?? 100) - (b.order ?? 100) || a.title.localeCompare(b.title, "vi")); // `order` nhỏ đứng trước; plan chính = plans[0]
 }
 
 export function getPlan(id) {

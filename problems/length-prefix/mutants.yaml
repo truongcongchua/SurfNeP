@@ -1,0 +1,24 @@
+- id: signed-length
+  why: "Đọc độ dài vào int có dấu: L = 0x80000000 thành số âm, lọt qua kiểm tra L > 65536"
+  replace: [["        uint32_t len = ntohl(netlen);\n        if (len > MAX_LEN) return;", "        int len = (int)ntohl(netlen);\n        if (len > MAX_LEN) return;"], ["        for (uint32_t i = 0; i < len; i++)", "        for (int i = 0; i < len; i++)"]]
+- id: max-off-by-one
+  why: "Từ chối L = 65536 (so sánh >=)"
+  replace: [["if (len > MAX_LEN) return;", "if (len >= MAX_LEN) return;"]]
+- id: no-ntohl
+  why: "Quên ntohl: đọc độ dài theo thứ tự host"
+  replace: [["uint32_t len = ntohl(netlen);", "uint32_t len = netlen;"]]
+- id: single-recv
+  why: "Một lần recv cho phần dữ liệu (không lặp tới đủ L byte)"
+  replace: [["if (recv_exact(c, data, len) < 0) return;", "if (len && recv(c, data, len, 0) <= 0) return;"]]
+- id: upper-too-wide
+  why: "Đổi cả ký tự ngoài a–z (dải 'a'..'~')"
+  replace: [["if (data[i] >= 'a' && data[i] <= 'z') data[i] -= 32;", "if (data[i] >= 'a' && data[i] <= '~') data[i] -= 32;"]]
+- id: echo-length-wrong
+  why: "Gửi lại độ dài theo thứ tự host"
+  replace: [["if (send_all(c, &netlen, 4) < 0 || send_all(c, data, len) < 0) return;", "if (send_all(c, &len, 4) < 0 || send_all(c, data, len) < 0) return;"]]
+- id: no-close
+  why: "Quên close(c) sau khi phục vụ xong"
+  replace: [["        serve(c);\n        close(c);", "        serve(c);"]]
+- id: small-buffer
+  why: "Bộ đệm dữ liệu 4096 byte nhưng vẫn nhận L tới 65536"
+  replace: [["    static unsigned char data[MAX_LEN];", "    static unsigned char data[4096];\n    (void)data;"], ["if (recv_exact(c, data, len) < 0) return;", "if (len > 4096 || recv_exact(c, data, len) < 0) return;"]]

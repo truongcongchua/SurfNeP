@@ -1,0 +1,21 @@
+- id: overflow-cap
+  why: "Ghi tới cap byte (không chừa chỗ cho '\\0')"
+  replace: [["while (n + 1 < cap) {", "while (n < cap) {"]]
+- id: no-newline-stop
+  why: "Không dừng ở '\\n': đọc lấn sang dòng sau"
+  replace: [["        if (ch == '\\n') break;\n", ""]]
+- id: newline-not-stored
+  why: "Không lưu '\\n' vào buf"
+  replace: [["        buf[n++] = ch;\n        if (ch == '\\n') break;", "        if (ch == '\\n') break;\n        buf[n++] = ch;"]]
+- id: no-nul-terminator
+  why: "Quên kết thúc buf bằng '\\0'"
+  replace: [["    buf[n] = 0;\n", ""]]
+- id: lose-partial-last-line
+  why: "Đối phương đóng thì trả 0 luôn, mất dòng cuối không có '\\n'"
+  replace: [["if (k == 0) break;", "if (k == 0) return 0;"]]
+- id: stop-at-nul
+  why: "Coi byte 0 là hết dòng"
+  replace: [["if (ch == '\\n') break;", "if (ch == '\\n' || ch == 0) break;"]]
+- id: off-by-one-short
+  why: "Chỉ lưu cap-2 byte"
+  replace: [["while (n + 1 < cap) {", "while (n + 2 < cap) {"]]

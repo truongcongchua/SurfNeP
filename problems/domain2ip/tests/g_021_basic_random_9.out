@@ -1,0 +1,40 @@
+lab.test: NOT_FOUND
+x3.lab.test: 8.8.4.4
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.test: 10.7.7.7
+may.soict: NOT_FOUND
+dual.lab.test: 10.2.2.2
+x1.lab.test: 192.168.1.1
+may.soict: NOT_FOUND
+x.invalid: NOT_FOUND
+x1.lab.test: 192.168.1.1
+-bad-.test: NOT_FOUND
+-bad-.test: NOT_FOUND
+may.soict.test: 10.0.0.5
+may.soict: NOT_FOUND
+many.lab.test: 10.9.0.1 10.9.0.2 10.9.0.3 10.9.0.4 10.9.0.5 10.9.0.6 10.9.0.7 10.9.0.8 10.9.0.9 10.9.0.10 10.9.0.11 10.9.0.12
+dual.lab.test: 10.2.2.2
+x2.lab.test: 172.16.5.4
+x2.lab.test: 172.16.5.4
+x2.lab.test: 172.16.5.4
+v6only.lab.test: NOT_FOUND
+x2.lab.test: 172.16.5.4
+x.invalid: NOT_FOUND
+may.soict.test: 10.0.0.5
+soict.test: NOT_FOUND
+multi.lab.test: 10.1.1.1 10.1.1.2 10.1.1.3
+khong.ton.tai: NOT_FOUND
+soict.test: NOT_FOUND
+x3.lab.test: 8.8.4.4
+v6only.lab.test: NOT_FOUND
+web.hust.test: 203.162.1.2
+x.invalid: NOT_FOUND
+lab.test: NOT_FOUND
+a..b.test: NOT_FOUND
+many.lab.test: 10.9.0.1 10.9.0.2 10.9.0.3 10.9.0.4 10.9.0.5 10.9.0.6 10.9.0.7 10.9.0.8 10.9.0.9 10.9.0.10 10.9.0.11 10.9.0.12
+x2.lab.test: 172.16.5.4
+v6only.lab.test: NOT_FOUND
+a..b.test: NOT_FOUND
+x1.lab.test: 192.168.1.1
+a..b.test: NOT_FOUND
+v6only.lab.test: NOT_FOUND
+-bad-.test: NOT_FOUND

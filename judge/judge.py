@@ -9,8 +9,11 @@
     python judge/judge.py runcustom <thư-mục-bài> <file.c> <cases.json>  # chạy thử với testcase tự nhập
     python judge/judge.py rundebug <thư-mục-bài> <file.c> [cases.json]  # gỡ lỗi: -O0 -g + ASan/UBSan
     python judge/judge.py cleanup                     # xoá container chấm mồ côi (đã chạy quá 210s; web gọi khi khởi động)
-    python judge/judge.py selftest [thư-mục-bài...]   # solution.c phải AC, wrong_*.c phải trượt
+    python judge/judge.py selftest [-j N] [--repeat K] [thư-mục-bài...]
+                                                      # solution.c phải AC (K lần), wrong/*.c + mutants.yaml phải trượt;
+                                                      # in ma trận bắt lỗi (test đầu tiên giết mỗi bản sai)
     python judge/judge.py genout <thư-mục-bài>        # sinh tests/*.out từ solution.c (bài stdio/function)
+    python judge/judge.py gentests <thư-mục-bài>      # chạy tests/gen.py -> tests/g_*.in, rồi genout
 
 Chỉ dùng thư viện chuẩn; cần Docker.
 """
@@ -158,7 +161,8 @@ def extra_hosts(problem_dir):
     return args
 
 
-def judge(problem_dir, source_path, wall_timeout=180, genout=False, samples_only=False, custom=None, debug=False):
+def judge(problem_dir, source_path, wall_timeout=180, genout=False, samples_only=False, custom=None, debug=False,
+          fail_fast=False):
     """Chấm `source_path` theo bài `problem_dir`. Trả về dict kết quả.
     samples_only: chỉ chạy test mẫu (nút "Chạy thử" của web).
     custom: danh sách input tự nhập (bài stdio/function); output mong đợi lấy từ solution.c."""
@@ -179,6 +183,7 @@ def judge(problem_dir, source_path, wall_timeout=180, genout=False, samples_only
             *(["-e", "NJ_GENOUT=1"] if genout else []),
             *(["-e", "NJ_SAMPLES_ONLY=1"] if samples_only else []),
             *(["-e", "NJ_DEBUG=1"] if debug else []),
+            *(["-e", "NJ_FAIL_FAST=1"] if fail_fast else []),
             *(["-e", "NJ_CUSTOM=1", "-v", f"{cdir}:/judge/custom:ro"] if custom is not None else []),
             "--network", "none",            # không ra Internet, chỉ có loopback
             "--pids-limit", "128",          # chặn fork bomb
@@ -224,25 +229,160 @@ def show(result):
                 print("            " + line)
 
 
-def selftest(dirs):
+def load_mutants(problem_dir):
+    """mutants.yaml -> [(id, why, mã nguồn đã biến đổi)]. Mỗi chuỗi `cũ` phải xuất hiện đúng một lần trong solution.c."""
+    path = os.path.join(problem_dir, "mutants.yaml")
+    if not os.path.exists(path):
+        return []
+    import yaml  # chỉ cần cho lệnh dành cho người soạn đề
+    with open(path, encoding="utf-8") as fh:
+        items = yaml.safe_load(fh) or []
+    with open(os.path.join(problem_dir, "solution.c"), encoding="utf-8") as fh:
+        base = fh.read()
+    out = []
+    for m in items:
+        src = base
+        for old, new in m["replace"]:
+            n = src.count(old)
+            if n != 1:
+                raise ValueError(f"{os.path.basename(problem_dir)}: mutant {m['id']}: chuỗi {old!r} xuất hiện {n} lần (cần đúng 1)")
+            src = src.replace(old, new)
+        out.append((m["id"], m.get("why", ""), src))
+    return out
+
+
+def first_failure(r):
+    bad = next((t for t in r.get("tests", []) if t["verdict"] != "AC"), None)
+    if bad is None:
+        return (r.get("message") or "")[:80]
+    return f"[{bad.get('group', '?')}] {bad['name']}"
+
+
+def selftest(dirs, jobs=1, repeat=1):
+    from concurrent.futures import ThreadPoolExecutor
     dirs = dirs or sorted(d for d in glob.glob(os.path.join(ROOT, "problems", "*")) if os.path.isdir(d))
-    ok = True
-    for d in dirs:
-        name = os.path.basename(d.rstrip("/\\"))
-        sol = os.path.join(d, "solution.c")
-        r = judge(d, sol)
-        good = r["verdict"] == "AC"
-        ok &= good
-        print(f"[{'OK' if good else 'FAIL'}] {name}/solution.c -> {r['verdict']}")
-        if not good:
-            show(r)
-        for wrong in sorted(glob.glob(os.path.join(d, "wrong", "*.c"))):
-            r = judge(d, wrong)
-            good = r["verdict"] != "AC"
-            ok &= good
-            print(f"[{'OK' if good else 'FAIL'}] {name}/wrong/{os.path.basename(wrong)} -> {r['verdict']}"
-                  + (f"  ({r.get('passed')}/{r.get('total')})" if "total" in r else ""))
-    return ok
+    tmp = tempfile.mkdtemp(prefix="nj-mut-")
+    work = []  # (bài, nhãn, đường dẫn .c, phải_AC)
+    try:
+        for d in dirs:
+            name = os.path.basename(d.rstrip("/\\"))
+            for k in range(repeat):
+                work.append((d, "solution.c" + (f" #{k + 1}" if repeat > 1 else ""), os.path.join(d, "solution.c"), True))
+            for wrong in sorted(glob.glob(os.path.join(d, "wrong", "*.c"))):
+                work.append((d, "wrong/" + os.path.basename(wrong), wrong, False))
+            try:
+                mutants = load_mutants(d)
+            except ValueError as e:
+                print(f"[FAIL] {e}")
+                return False
+            for mid, why, src in mutants:
+                path = os.path.join(tmp, f"{name}--{mid}.c")
+                with open(path, "w", encoding="utf-8", newline="\n") as fh:
+                    fh.write(src)
+                work.append((d, f"mutant:{mid}", path, False))
+
+        def run(item):
+            d, label, path, want_ac = item
+            t0 = time.monotonic()
+            r = judge(d, path, fail_fast=not want_ac)
+            return item, r, time.monotonic() - t0
+
+        ok = True
+        printed = set()
+        survivors = []
+        with ThreadPoolExecutor(max_workers=max(1, jobs)) as ex:
+            for (d, label, path, want_ac), r, secs in ex.map(run, work):
+                name = os.path.basename(d.rstrip("/\\"))
+                if name not in printed:
+                    printed.add(name)
+                    print(f"── {name}", flush=True)
+                v = r["verdict"]
+                # bản sai phải biên dịch được và trượt vì hành vi sai (CE/IE không tính là "đã bắt được")
+                good = (v == "AC") if want_ac else (v not in ("AC", "IE", "CE"))
+                ok &= good
+                if want_ac:
+                    groups = {}
+                    for t in r.get("tests", []):
+                        g = t.get("group", "?")
+                        groups[g] = groups.get(g, 0) + 1
+                    summary = " ".join(f"{g}:{n}" for g, n in groups.items())
+                    print(f"  [{'OK' if good else 'FAIL'}] {label:30} {v:4} {r.get('passed', 0)}/{r.get('total', 0)}"
+                          f" {secs:5.1f}s  {summary}", flush=True)
+                    if not good:
+                        show(r)
+                    elif secs > 90:
+                        print(f"  [WARN] lời giải mẫu chấm mất {secs:.0f}s (> 90s)")
+                else:
+                    killer = first_failure(r) if v != "AC" else "SỐNG SÓT — cần thêm test!"
+                    if v == "CE":
+                        killer = "KHÔNG BIÊN DỊCH ĐƯỢC: " + (r.get("compile_log") or "").strip().splitlines()[-1][:160] \
+                            if (r.get("compile_log") or "").strip() else "KHÔNG BIÊN DỊCH ĐƯỢC"
+                    if v == "AC":
+                        survivors.append(f"{name}/{label}")
+                    if v == "IE":
+                        bad = next((t for t in r.get("tests", []) if t["verdict"] == "IE"), {})
+                        lines = ((r.get("message") or "") + "\n" + bad.get("message", "")).strip().splitlines()
+                        killer = f"Internal Error {bad.get('name', '')}: " + (lines[-1][:200] if lines else "")
+                    print(f"  [{'OK' if good else 'FAIL'}] {label:30} {v:4} <- {killer}", flush=True)
+        if survivors:
+            print("Bản sai sống sót: " + ", ".join(survivors))
+        return ok
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def gentests(d):
+    """tests/gen.py (chạy trên host, chỉ thư viện chuẩn): generate(rng) -> [(tên, input str|bytes)].
+    Ghi tests/g_<số>_<tên>.in (xoá các g_* cũ); .out sinh sau bằng solution.c (genout)."""
+    import importlib.util
+    import random
+    spec = importlib.util.spec_from_file_location("gen", os.path.join(d, "tests", "gen.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    for old in glob.glob(os.path.join(d, "tests", "g_*.in")) + glob.glob(os.path.join(d, "tests", "g_*.out")):
+        os.remove(old)
+    cases = mod.generate(random.Random(20261215))
+    for i, (name, data) in enumerate(cases, 1):
+        raw = data.encode() if isinstance(data, str) else data
+        with open(os.path.join(d, "tests", f"g_{i:03d}_{name}.in"), "wb") as fh:
+            fh.write(raw)
+    print(f"Đã ghi {len(cases)} tệp tests/g_*.in")
+    return mod
+
+
+def normalize_out(text):
+    return "\n".join(line.rstrip() for line in text.strip().splitlines())
+
+
+def write_outputs(d, oracle=None):
+    """Chạy solution.c trên mọi tests/*.in, ghi .out. Nếu có oracle (hàm Python input bytes -> output str),
+    đối chiếu từng test: hai lời giải độc lập phải cho cùng kết quả, lệch là dừng (không ghi .out sai)."""
+    r = judge(d, os.path.join(d, "solution.c"), genout=True)
+    if r["verdict"] == "CE" or not r.get("tests"):
+        show(r)
+        return False
+    bad = []
+    for t in r["tests"]:
+        if t["verdict"] == "TLE":
+            bad.append(f"{t['name']}: solution.c quá thời gian")
+        if oracle is not None:
+            with open(os.path.join(d, "tests", t["name"] + ".in"), "rb") as fh:
+                want = oracle(fh.read())
+            if normalize_out(want) != normalize_out(t["output"]):
+                a, b = normalize_out(want).splitlines(), normalize_out(t["output"]).splitlines()
+                k = next((i for i in range(min(len(a), len(b))) if a[i] != b[i]), min(len(a), len(b)))
+                bad.append(f"{t['name']}: dòng {k + 1}: oracle={a[k] if k < len(a) else '<hết>'!r} "
+                           f"solution.c={b[k] if k < len(b) else '<hết>'!r}")
+    if bad:
+        print("Oracle và solution.c KHÔNG khớp — không ghi .out:")
+        for b in bad[:20]:
+            print("  " + b)
+        return False
+    for t in r["tests"]:
+        with open(os.path.join(d, "tests", t["name"] + ".out"), "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(t["output"])
+    print(f"Đã ghi {len(r['tests'])} tệp .out" + (" (đã đối chiếu với oracle)" if oracle else ""))
+    return True
 
 
 def main():
@@ -306,7 +446,20 @@ def main():
             print(f"tests/{t['name']}.out  ({len(t['output'])} byte)")
     elif cmd == "selftest":
         ensure_image()
-        sys.exit(0 if selftest(sys.argv[2:]) else 1)
+        rest, jobs, repeat = sys.argv[2:], 1, 1
+        while rest and rest[0].startswith("-"):
+            if rest[0] == "-j":
+                jobs, rest = int(rest[1]), rest[2:]
+            elif rest[0] == "--repeat":
+                repeat, rest = int(rest[1]), rest[2:]
+            else:
+                print(__doc__)
+                sys.exit(2)
+        sys.exit(0 if selftest(rest, jobs, repeat) else 1)
+    elif cmd == "gentests" and len(sys.argv) == 3:
+        ensure_image()
+        mod = gentests(sys.argv[2])
+        sys.exit(0 if write_outputs(sys.argv[2], getattr(mod, "expected", None)) else 1)
     else:
         print(__doc__)
         sys.exit(2)

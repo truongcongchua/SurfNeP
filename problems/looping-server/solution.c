@@ -51,10 +51,10 @@ static void serve(int c, const char *root) {
         req[len] = 0;
         if (strstr(req, "\r\n\r\n")) break;
     }
-    char method[16], path[1024], version[32], extra;
+    char method[16], path[REQ_MAX + 1], version[32], extra;
     char *eol = strstr(req, "\r\n");
     if (eol) *eol = 0;
-    if (sscanf(req, "%15s %1023s %31s %c", method, path, version, &extra) != 3) return error(c, "400 Bad Request");
+    if (sscanf(req, "%15s %8192s %31s %c", method, path, version, &extra) != 3) return error(c, "400 Bad Request");
     if (strcmp(method, "GET")) return error(c, "405 Method Not Allowed");
     path[strcspn(path, "?")] = 0;
     if (strstr(path, "..")) return error(c, "403 Forbidden");

@@ -10,6 +10,11 @@
 Các IP in theo **đúng thứ tự `getaddrinfo` trả về**. Nếu phân giải thất bại thì in `<tên>: NOT_FOUND`.
 Nhớ `freeaddrinfo`.
 
+## Ràng buộc
+- Tên miền dài tối đa 253 ký tự; một tên có thể ứng với **nhiều** IP (tới 12) — in đủ tất cả.
+- Tên chỉ có bản ghi IPv6 thì là `NOT_FOUND` (chỉ lấy IPv4). Tên in ra đúng như dòng đã đọc (giữ hoa/thường).
+- Dòng có thể kết thúc bằng `\r\n`; dòng cuối có thể không có `\n`. Input có tới 1000 dòng.
+
 ## Ví dụ
 
 ```

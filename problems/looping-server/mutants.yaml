@@ -1,0 +1,30 @@
+- id: body-strlen
+  why: "Content-Length/thân tính bằng strlen: hỏng với tệp nhị phân"
+  replace: [["    respond(c, \"200 OK\", mime(file), body, n);", "    body[n] = 0;\n    respond(c, \"200 OK\", mime(file), body, strlen(body));"]]
+- id: no-fclose
+  why: "Quên fclose: rò rỉ fd mỗi yêu cầu"
+  replace: [["    fclose(f);\n    respond", "    respond"]]
+- id: no-dotdot-check
+  why: "Không chặn '..'"
+  replace: [["    if (strstr(path, \"..\")) return error(c, \"403 Forbidden\");\n", ""]]
+- id: dotdot-after-query
+  why: "Kiểm tra '..' trước khi bỏ query: '/x?q=..' bị 403 nhầm"
+  replace: [["    path[strcspn(path, \"?\")] = 0;\n    if (strstr(path, \"..\")) return error(c, \"403 Forbidden\");", "    if (strstr(path, \"..\")) return error(c, \"403 Forbidden\");\n    path[strcspn(path, \"?\")] = 0;"]]
+- id: single-recv
+  why: "Chỉ recv một lần, không chờ đủ dòng trống"
+  replace: [["        if (strstr(req, \"\\r\\n\\r\\n\")) break;", "        break;"]]
+- id: keep-alive
+  why: "Không đóng kết nối sau khi trả lời"
+  replace: [["        serve(c, argv[2]);\n        close(c);", "        serve(c, argv[2]);"]]
+- id: mime-substring
+  why: "Xác định kiểu bằng strstr (tệp 'c.txt.html' / 'd.html.txt' sai kiểu)"
+  replace: [["    if (dot && !strcmp(dot, \".html\")) return \"text/html; charset=utf-8\";", "    if (strstr(path, \".html\")) return \"text/html; charset=utf-8\";"]]
+- id: method-case-insensitive
+  why: "So METHOD không phân biệt hoa thường"
+  replace: [["if (strcmp(method, \"GET\")) return", "if (strcasecmp(method, \"GET\")) return"], ["#include <string.h>", "#include <string.h>\n#include <strings.h>"]]
+- id: small-request-buffer
+  why: "Bộ đệm yêu cầu 1 KB"
+  replace: [["#define REQ_MAX 8192", "#define REQ_MAX 1024"]]
+- id: no-extra-field-check
+  why: "Không bắt lỗi dòng đầu thừa phần"
+  replace: [["\"%15s %8192s %31s %c\", method, path, version, &extra) != 3", "\"%15s %8192s %31s\", method, path, version) != 3"]]

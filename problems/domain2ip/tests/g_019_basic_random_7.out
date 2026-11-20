@@ -1,0 +1,40 @@
+multi.lab.test: 10.1.1.1 10.1.1.2 10.1.1.3
+v6only.lab.test: NOT_FOUND
+nopezzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz.test: NOT_FOUND
+khong.ton.tai: NOT_FOUND
+x2.lab.test: 172.16.5.4
+x2.lab.test: 172.16.5.4
+lab.test: NOT_FOUND
+v6only.lab.test: NOT_FOUND
+x2.lab.test: 172.16.5.4
+dual.lab.test: 10.2.2.2
+x1.lab.test: 192.168.1.1
+dual.lab.test: 10.2.2.2
+soict.test: NOT_FOUND
+may.soict: NOT_FOUND
+many.lab.test: 10.9.0.1 10.9.0.2 10.9.0.3 10.9.0.4 10.9.0.5 10.9.0.6 10.9.0.7 10.9.0.8 10.9.0.9 10.9.0.10 10.9.0.11 10.9.0.12
+v6only.lab.test: NOT_FOUND
+many.lab.test: 10.9.0.1 10.9.0.2 10.9.0.3 10.9.0.4 10.9.0.5 10.9.0.6 10.9.0.7 10.9.0.8 10.9.0.9 10.9.0.10 10.9.0.11 10.9.0.12
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.test: 10.7.7.7
+x2.lab.test: 172.16.5.4
+a..b.test: NOT_FOUND
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.test: 10.7.7.7
+soict.test: NOT_FOUND
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.test: 10.7.7.7
+may.soict.test: 10.0.0.5
+x1.lab.test: 192.168.1.1
+nopezzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz.test: NOT_FOUND
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.test: 10.7.7.7
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.test: 10.7.7.7
+v6only.lab.test: NOT_FOUND
+may.soict: NOT_FOUND
+may.soict: NOT_FOUND
+multi.lab.test: 10.1.1.1 10.1.1.2 10.1.1.3
+may.soict: NOT_FOUND
+x.invalid: NOT_FOUND
+soict.test: NOT_FOUND
+x.invalid: NOT_FOUND
+x2.lab.test: 172.16.5.4
+soict.test: NOT_FOUND
+a..b.test: NOT_FOUND
+may.soict: NOT_FOUND

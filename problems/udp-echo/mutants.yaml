@@ -1,0 +1,36 @@
+# Bản sai sinh từ solution.c; xem docs/TEST-DESIGN.md
+- id: strlen-reply
+  why: 'Trả lời bằng strlen(buf): hỏng với byte 0x00'
+  replace:
+  - - sendto(s, buf, (size_t)n, 0, (struct sockaddr *)&from, fl);
+    - "buf[n] = 0;\n        sendto(s, buf, strlen(buf), 0, (struct sockaddr *)&from, fl);"
+  - - '#include <stdlib.h>'
+    - '#include <stdlib.h>
+
+      #include <string.h>'
+- id: small-buffer
+  why: 'Bộ đệm 1024 byte: datagram dài bị cắt cụt'
+  replace:
+  - - char buf[65536];
+    - char buf[1024];
+- id: reply-to-first-sender
+  why: Nhớ địa chỉ người gửi đầu tiên và luôn trả lời người đó
+  replace:
+  - - '    char buf[65536];
+
+      '
+    - "    char buf[65536];\n    struct sockaddr_in first;\n    int have = 0;\n"
+  - - '        if (n < 0) continue;
+
+      '
+    - "        if (n < 0) continue;\n        if (!have) { first = from; have = 1; }\n        from = first;\n"
+- id: empty-is-close
+  why: Coi recvfrom trả 0 là 'đóng kết nối' và bỏ qua
+  replace:
+  - - '        if (n < 0) continue;'
+    - '        if (n <= 0) continue;'
+- id: exit-on-empty
+  why: recvfrom trả 0 thì thoát
+  replace:
+  - - '        if (n < 0) continue;'
+    - "        if (n < 0) continue;\n        if (n == 0) return 0;"

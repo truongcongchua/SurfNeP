@@ -1,0 +1,43 @@
+# Bản sai sinh từ solution.c; xem docs/TEST-DESIGN.md
+- id: allow-plus-sign
+  why: Chấp nhận dấu '+' trước số
+  replace:
+  - - '&& s[0] != '' '' && s[0] != ''+'''
+    - '&& s[0] != '' '''
+- id: no-erange
+  why: 'Không kiểm tra errno == ERANGE: số quá lớn bị kẹp về LLONG_MAX'
+  replace:
+  - - return *end == 0 && errno == 0 &&
+    - return *end == 0 &&
+- id: count-everything
+  why: COUNT đếm cả yêu cầu lỗi
+  replace:
+  - - 'static void handle(const char *req, Peer *p, char *out, size_t cap) {
+
+      '
+    - "static void handle(const char *req, Peer *p, char *out, size_t cap) {\n    if (p && strcmp(req, \"COUNT\")) p->count++;\n"
+  - - "    if (p) p->count++;\n    snprintf(out, cap, \"%lld\", r);"
+    - '    snprintf(out, cap, "%lld", r);'
+- id: floor-division
+  why: Chia làm tròn xuống (kiểu Python) thay vì về 0
+  replace:
+  - - ': op[0] == ''/'' ? x / y : x % y;'
+    - ': op[0] == ''/'' ? (x - (((x % y) + y) % y)) / y : (((x % y) + y) % y);'
+- id: shared-counter
+  why: Người gửi xác định chỉ bằng IP
+  replace:
+  - - ' && peers[i].addr.sin_port == a->sin_port'
+    - ''
+- id: int32
+  why: Dùng số 32 bit (strtol + int)
+  replace:
+  - - '    *out = strtoll(s, &end, 10);'
+    - '    *out = (int)strtoll(s, &end, 10);'
+- id: loose-spaces
+  why: Cho phép thiếu/thừa dấu cách (sscanf)
+  replace:
+  - - "    if (!s1 || !s2 || strchr(s2 + 1, ' ') || s1 - req >= (long)sizeof a || s2 - s1 - 1 != 1 ||\n        strlen(s2 + 1) >= sizeof b) {\n        snprintf(out, cap, \"ERROR syntax\");\n        return;\n\
+      \    }"
+    - "    { long long xx, yy; char o; if (sscanf(req, \"%lld %c %lld\", &xx, &o, &yy) == 3 && strchr(\"+-*/%\", o) && !((o == '/' || o == '%') && yy == 0)) { if (p) p->count++; snprintf(out, cap, \"%lld\"\
+      , o == '+' ? xx + yy : o == '-' ? xx - yy : o == '*' ? xx * yy : o == '/' ? xx / yy : xx % yy); return; } }\n    if (!s1 || !s2 || strchr(s2 + 1, ' ') || s1 - req >= (long)sizeof a || s2 - s1 - 1\
+      \ != 1 ||\n        strlen(s2 + 1) >= sizeof b) {\n        snprintf(out, cap, \"ERROR syntax\");\n        return;\n    }"

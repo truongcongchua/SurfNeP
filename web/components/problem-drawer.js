@@ -87,7 +87,7 @@ export function ProblemDrawer({ open, onClose, list, diffLabel, currentId }) {
         )}
       >
         <div className="flex h-[69px] shrink-0 items-center gap-3 border-b border-[var(--line)] px-6">
-          <Link href="/" onClick={onClose} className="flex items-center gap-1 text-xl font-medium text-[var(--title)] hover:text-[var(--title)]">
+          <Link href="/problems" onClick={onClose} className="flex items-center gap-1 text-xl font-medium text-[var(--title)] hover:text-[var(--title)]">
             Danh sách bài <ChevronRight className="size-4 text-[var(--icon)]" />
           </Link>
           <span className="ml-auto flex items-center gap-2 text-sm font-medium tabular-nums text-[var(--text)]">

@@ -19,7 +19,7 @@ int main(void) {
         char *end;
         errno = 0;
         unsigned long long v = strtoull(num, &end, 10);
-        int numok = k == 2 && *end == 0 && num[0] != '-' && errno == 0;
+        int numok = k == 2 && num[0] >= '0' && num[0] <= '9' && *end == 0 && errno == 0;
         if (numok && !strcmp(type, "u16") && v <= 0xFFFF) {
             uint16_t net = htons((uint16_t)v);
             unsigned char b[2];

@@ -20,6 +20,11 @@ Bộ chấm gọi `recv_line` liên tục trên một socket, phía bên kia g�
 thước và độ trễ khác nhau. Mỗi lần gọi in ra `<giá trị trả về> [<nội dung>]`, trong đó `\n` hiện
 thành `\n`, `\r` thành `\r` và byte 0 thành `\0`.
 
+## Ràng buộc
+- `2 ≤ cap ≤ 4096`; tổng dữ liệu tới 300 KB; dòng có thể dài hơn `cap` rất nhiều lần.
+- Phía kia gửi thành các mảnh **ngẫu nhiên** 1–32 byte (hoặc cả khối lớn chứa hàng chục dòng), có thể có độ trễ.
+- Dữ liệu có thể chứa `\0`, `\r` đứng một mình; dòng cuối có thể không có `\n`.
+
 ## Ví dụ (cap = 5)
 
 Phía kia gửi `abcdefghij\n` rồi đóng:

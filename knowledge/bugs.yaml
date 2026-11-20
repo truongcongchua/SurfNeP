@@ -341,3 +341,121 @@
     `select` chỉ theo dõi `ls` (socket nghe), rồi `accept` xong thì **phục vụ client đó trong vòng `while (recv ...)` đến khi nó đóng kết nối**. Trong lúc đó chương trình không quay lại `select`, nên client khác không được phục vụ.
     Cần giữ **một tập fd gồm cả socket nghe lẫn mọi client**, mỗi vòng chỉ `recv` một lần ở fd sẵn sàng rồi quay lại `select`.
   fix: "Duy trì `fd_set master` chứa `ls` và các socket client; sau `select`, `accept` nếu `ls` sẵn sàng, còn lại `recv`/`send` một lần cho từng fd sẵn sàng."
+
+- id: echo-max-n-off-by-one
+  problem: echo-max-n
+  file: off_by_one.c
+  concept: client-management
+  lines: [72]
+  near: [73, 74, 75]
+  verdict: LIMIT
+  symptom: "N=2: client thứ 3 vẫn nhận `WELCOME` thay vì `FULL` (cho vào N+1 client)."
+  title: So sánh `>` thay vì `>=` với giới hạn N
+  explain: |-
+    `active` là số client **đang** kết nối, chưa tính client vừa `accept`. Điều kiện từ chối phải là `active >= limit`. Với `active > limit` thì khi đã đủ N client, `active == N` vẫn không bị từ chối nên client thứ N+1 lọt vào.
+  fix: "`if (active >= limit) { send FULL; close; }`"
+
+- id: echo-max-n-leak-on-abrupt-close
+  problem: echo-max-n
+  file: leak_on_abrupt_close.c
+  concept: client-management
+  lines: [105]
+  near: [26, 102, 103, 104]
+  verdict: LIMIT
+  symptom: "N=3: một client đóng đột ngột (không gửi `QUIT`), client mới vẫn nhận `FULL` mãi mãi."
+  title: Chỉ giảm bộ đếm khi nhận QUIT
+  explain: |-
+    Bộ đếm `active` chỉ giảm trong nhánh `QUIT`. Khi client **tắt chương trình hoặc mất mạng**, `recv` trả `0` (hoặc `-1`) và code chỉ đóng socket mà không giảm `active`, nên chỗ đó bị "rò" và không bao giờ trả lại.
+    Chỗ giảm bộ đếm phải nằm ở **một nơi duy nhất**: nơi đóng client, dùng chung cho mọi lý do rời đi.
+  fix: "Đặt `active--` ngay cạnh `close(x->fd); x->fd = -1;` (đường dọn dẹp chung), không giảm riêng trong nhánh `QUIT`."
+
+- id: chat-client-no-flush
+  problem: chat-client
+  file: no_flush.c
+  concept: tcp-stream
+  lines: [62]
+  near: [60, 61, 63]
+  verdict: WA
+  symptom: "Tin từ server chỉ hiện ra khi client thoát, dù chương trình đã nhận được ngay (bộ chấm đợi 1 giây không thấy gì)."
+  title: In bằng stdio mà không fflush khi stdout là tệp/pipe
+  explain: |-
+    Khi stdout nối vào terminal, `stdio` đệm theo dòng nên thấy ngay. Khi stdout là **tệp hoặc pipe** (như lúc chấm, hay khi bạn chạy `./chat_client > log.txt`), `stdio` đệm đầy 4–64 KB, nên `fwrite` chỉ ghi vào bộ đệm của thư viện và dữ liệu chỉ ra ngoài khi đầy hoặc khi thoát.
+  fix: "Gọi `fflush(stdout)` sau mỗi lần ghi, hoặc dùng thẳng `write(1, buf, n)`."
+
+- id: sv-client-trunc-gpa
+  problem: sv-client
+  file: trunc_gpa.c
+  concept: length-prefix-struct
+  lines: [65]
+  near: [64]
+  verdict: WA
+  symptom: "Nhập điểm `2.85` thì bản ghi chứa `284` thay vì `285` (`3.99` vẫn đúng nên khó phát hiện)."
+  title: Ép kiểu thẳng `(int)(x * 100)`
+  explain: |-
+    `2.85` không biểu diễn chính xác bằng `double`; `2.85 * 100` ra `284.99999999999994`. Ép sang `int` **cắt phần thập phân**, nên mất một đơn vị. Số `3.99` tình cờ ra `399.00000000000006` nên không lộ lỗi.
+  fix: "`lround(strtod(s, NULL) * 100.0)` (cần `#include <math.h>`), hoặc tách phần nguyên và phần thập phân khi đọc."
+
+- id: sv-client-host-order
+  problem: sv-client
+  file: host_order.c
+  concept: byte-order
+  lines: [63, 64]
+  near: [65]
+  verdict: WA
+  symptom: "Server nhận MSSV `20201234` thành một số khác hẳn; năm sinh `2002` thành `54791`."
+  title: Gửi số nguyên theo thứ tự byte của máy
+  explain: |-
+    Dòng 63–64 gán thẳng `uint32_t`/`uint16_t` rồi `memcpy` vào bản ghi, nên byte đi ra theo **little-endian** của máy x86. Giao thức quy định **big-endian** (thứ tự mạng), nên bên nhận đọc sai. Riêng `gpa` ở dòng 65 có `htons` nên đúng, và chính sự không đồng nhất đó là dấu hiệu.
+  fix: "`htonl(mssv)` cho 4 byte, `htons(year)` và `htons(gpa)` cho 2 byte, trước khi `memcpy`."
+
+- id: udp-client-keep-newline
+  problem: udp-client
+  file: keep_newline.c
+  concept: udp-basics
+  lines: [25]
+  near: [24, 26]
+  verdict: WA
+  symptom: "Server nhận datagram `12 + 30\n` (dài hơn 1 byte), `udp-calc` trả `ERROR syntax`."
+  title: Gửi cả ký tự xuống dòng của fgets
+  explain: |-
+    `fgets` giữ lại `\n` ở cuối dòng và `strlen` đếm cả nó, nên `sendto` gửi thừa 1 byte. Vì UDP bảo toàn ranh giới thông điệp, byte thừa đó **nằm trong datagram** và server thấy nó.
+  fix: "`line[strcspn(line, \"\r\n\")] = 0;` trước khi `strlen`."
+
+- id: udp-client-no-timeout
+  problem: udp-client
+  file: no_timeout.c
+  concept: udp-basics
+  lines: [29, 30]
+  near: [28]
+  verdict: TLE
+  symptom: "Khi server không trả lời (gói tin bị mất), client treo mãi thay vì in `TIMEOUT` sau 1 giây."
+  title: recvfrom chặn vô hạn
+  explain: |-
+    UDP không đảm bảo giao hàng: gói yêu cầu hoặc gói phản hồi có thể mất. `recvfrom` mặc định **chặn đến khi có datagram**, nên client không bao giờ đi tiếp. Cần một thời gian chờ.
+  fix: "`poll(&p, 1, 1000)` trước `recvfrom`; trả `0` thì in `TIMEOUT`. Hoặc đặt `SO_RCVTIMEO`."
+
+- id: telnet-poll-no-stderr
+  problem: telnet-poll
+  file: no_stderr.c
+  concept: telnet-auth
+  lines: [47]
+  near: [48]
+  verdict: WA
+  symptom: "Lệnh `cat khong_ton_tai.txt` trả `OUTPUT 0`, thông báo lỗi lại hiện trên console của server."
+  title: Quên chuyển hướng stderr
+  explain: |-
+    `> out.txt` chỉ chuyển hướng **stdout**. Thông báo lỗi của lệnh đi vào **stderr** nên không có trong tệp và không được gửi cho client.
+  fix: "Dùng `\"%s > %s 2>&1\"`."
+
+- id: chat-poll-uses-select
+  problem: chat-poll
+  file: uses_select.c
+  concept: select-poll
+  lines: [90]
+  near: [81, 82, 86, 94, 110]
+  verdict: CV
+  symptom: "Chương trình chạy đúng giao thức nhưng bị từ chối với `CV`: đề yêu cầu `poll()`."
+  title: Nộp bản select() cho bài yêu cầu poll()
+  explain: |-
+    Đề bắt dùng `poll` để luyện cách dùng `struct pollfd`: mảng `fds[]` có `events` (đăng ký) và `revents` (kết quả), **không cần dựng lại** mỗi vòng như `fd_set`, và không bị giới hạn `FD_SETSIZE`. Bản `select` dùng đúng giao thức nhưng không luyện được điều đó.
+  fix: "Thay `fd_set` bằng `struct pollfd fds[]`; kiểm tra `fds[i].revents & POLLIN` sau `poll(fds, n, -1)`."

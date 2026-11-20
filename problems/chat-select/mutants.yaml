@@ -1,0 +1,57 @@
+# Bản sai sinh từ solution.c; xem docs/TEST-DESIGN.md
+- id: sigpipe
+  why: 'send không MSG_NOSIGNAL: gửi tới client đã RST làm server chết'
+  replace:
+  - - static void send_str(int fd, const char *s) { send(fd, s, strlen(s), MSG_NOSIGNAL); }
+    - static void send_str(int fd, const char *s) { send(fd, s, strlen(s), 0); }
+- id: id-buffer-8
+  why: 'Bộ đệm id chỉ 8 byte: id dài bị từ chối'
+  replace:
+  - - char id[64];
+    - char id[8];
+- id: one-line-per-recv
+  why: Mỗi lần recv chỉ xử lý một dòng
+  replace:
+  - - while ((nl = strchr(start, '\n'))) {
+    - if ((nl = strchr(start, '\n'))) {
+- id: keep-cr
+  why: Không bỏ '\r' cuối dòng
+  replace:
+  - - "    if (n && line[n - 1] == '\\r')\n        line[--n] = 0;\n"
+    - ''
+- id: name-with-space
+  why: Chấp nhận tên có dấu cách
+  replace:
+  - - valid_word(name)
+    - '*name'
+- id: echo-to-self
+  why: Gửi lại tin cho chính người gửi
+  replace:
+  - - '&clients[i] != c && '
+    - ''
+- id: send-to-unregistered
+  why: Gửi tin cho cả client chưa đăng ký
+  replace:
+  - - ' && clients[i].id[0])'
+    - )
+- id: short-msg-buffer
+  why: 'Bộ đệm tin 256 byte: tin dài bị cắt'
+  replace:
+  - - char msg[BUF_SIZE + 128];
+    - char msg[256];
+- id: keep-registration
+  why: 'Chỗ mới không xoá id cũ: kết nối mới coi như đã đăng ký'
+  replace:
+  - - "    c->id[0] = 0;\n    c->len = 0;\n}"
+    - '    c->len = 0;
+
+      }'
+  - - '                clients[slot].id[0] = 0;
+
+      '
+    - ''
+- id: small-table
+  why: Chỉ 16 chỗ client
+  replace:
+  - - '#define MAX_CLIENTS 64'
+    - '#define MAX_CLIENTS 16'

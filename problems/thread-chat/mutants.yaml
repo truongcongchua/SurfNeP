@@ -1,0 +1,61 @@
+# Bản sai sinh từ solution.c; xem docs/TEST-DESIGN.md
+- id: sigpipe
+  why: 'send không MSG_NOSIGNAL: gửi tới client đã RST làm server chết'
+  replace:
+  - - static void send_str(int fd, const char *s) { send(fd, s, strlen(s), MSG_NOSIGNAL); }
+    - static void send_str(int fd, const char *s) { send(fd, s, strlen(s), 0); }
+- id: id-buffer-8
+  why: 'Bộ đệm id chỉ 8 byte: id dài bị từ chối'
+  replace:
+  - - char id[64];
+    - char id[8];
+- id: one-line-per-recv
+  why: Mỗi lần recv chỉ xử lý một dòng
+  replace:
+  - - while ((nl = strchr(start, '\n'))) {
+    - if ((nl = strchr(start, '\n'))) {
+- id: keep-cr
+  why: Không bỏ '\r' cuối dòng
+  replace:
+  - - '    if (n && line[n - 1] == ''\r'') line[--n] = 0;
+
+      '
+    - ''
+- id: name-with-space
+  why: Chấp nhận tên có dấu cách
+  replace:
+  - - valid_word(sep + 2)
+    - sep[2]
+- id: echo-to-self
+  why: Gửi lại tin cho chính người gửi
+  replace:
+  - - if (i != from && slots[i].fd >= 0
+    - if (slots[i].fd >= 0
+- id: send-to-unregistered
+  why: Gửi tin cho cả client chưa đăng ký
+  replace:
+  - - ' && slots[i].id[0]) send_str'
+    - ) send_str
+- id: short-msg-buffer
+  why: Bộ đệm tin 256 byte
+  replace:
+  - - char msg[BUF_SIZE + 96];
+    - char msg[256];
+- id: keep-registration
+  why: 'Luồng kết thúc không xoá id: chỗ mới coi như đã đăng ký'
+  replace:
+  - - "    slots[me].fd = -1;\n    slots[me].id[0] = 0;\n"
+    - '    slots[me].fd = -1;
+
+      '
+  - - "            slots[me].fd = c;\n            slots[me].id[0] = 0;\n"
+    - '            slots[me].fd = c;
+
+      '
+- id: worker-no-close
+  why: Luồng không close(fd)
+  replace:
+  - - "    pthread_mutex_lock(&lock);\n    close(fd);\n"
+    - '    pthread_mutex_lock(&lock);
+
+      '

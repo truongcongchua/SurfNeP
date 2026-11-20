@@ -1,0 +1,11 @@
+id: udp-client
+title: UDP client gửi từng dòng và đợi phản hồi
+difficulty: medium
+chapter: 2
+topics: [UDP, Client, Timeout]
+prerequisites: [udp-echo, tcp-client-stdin]
+ref: "Lecture notes §2.4 (sendto/recvfrom, udp_sender.c); ghép cặp với udp-echo, udp-calc"
+type: client
+protocol: udp
+test_timeout: 8
+concepts: [udp-basics]

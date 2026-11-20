@@ -1,0 +1,22 @@
+- id: only-first-address
+  why: "Chỉ in địa chỉ đầu tiên của danh sách getaddrinfo"
+  replace: [['printf(" %s", ip);', 'printf(" %s", ip);
+            break;']]
+- id: no-socktype
+  why: "Không đặt ai_socktype: mỗi IP lặp 3 lần (STREAM/DGRAM/RAW)"
+  replace: [["hints.ai_socktype = SOCK_STREAM;", ""]]
+- id: af-unspec
+  why: "AF_UNSPEC: lẫn cả IPv6 nhưng vẫn in như IPv4"
+  replace: [["hints.ai_family = AF_INET;", "hints.ai_family = AF_UNSPEC;"]]
+- id: small-name-buffer
+  why: "Bộ đệm tên 64 byte: tên miền dài bị fgets cắt làm nhiều dòng"
+  replace: [["char name[512];", "char name[64];"]]
+- id: keep-cr
+  why: "Không bỏ \\r của dòng CRLF"
+  replace: [['name[strcspn(name, "\r\n")] = 0;', 'name[strcspn(name, "\n")] = 0;']]
+- id: blank-not-skipped
+  why: "Không bỏ qua dòng trống"
+  replace: [["if (!name[0]) continue;", ""]]
+- id: no-flush-order
+  why: "In NOT_FOUND không có dấu cách"
+  replace: [['puts(" NOT_FOUND");', 'puts("NOT_FOUND");']]

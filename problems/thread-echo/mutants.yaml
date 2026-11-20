@@ -1,0 +1,14 @@
+- id: worker-no-close
+  why: "Luồng không close(c): rò rỉ fd, client không thấy server đóng"
+  replace: [["    close(c);\n    return NULL;", "    return NULL;"]]
+- id: sigpipe-kills-process
+  why: "Không MSG_NOSIGNAL và bỏ qua lỗi send: SIGPIPE giết cả tiến trình (mọi client)"
+  replace:
+    - ["ssize_t k = send(fd, buf, n, MSG_NOSIGNAL);", "ssize_t k = send(fd, buf, n, 0);"]
+    - ["if (send_all(c, buf, (size_t)k) < 0) break;", "send_all(c, buf, (size_t)k);"]
+- id: serve-in-main-thread
+  why: "Gọi worker trực tiếp trong luồng chính (không thật sự đồng thời)"
+  replace: [["if (pthread_create(&tid, NULL, worker, (void *)(intptr_t)c) != 0) {", "worker((void *)(intptr_t)c);\n        if (pthread_create(&tid, NULL, worker, (void *)(intptr_t)-1) != 0) {"]]
+- id: send-ignores-count
+  why: "Gửi cả bộ đệm thay vì đúng số byte recv trả về"
+  replace: [["if (send_all(c, buf, (size_t)k) < 0) break;", "if (send_all(c, buf, sizeof buf) < 0) break;"]]

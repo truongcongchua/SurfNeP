@@ -1,0 +1,12 @@
+- id: parent-keeps-client-fd
+  why: "Cha quên close(c) sau fork: rò rỉ fd, client không nhận được FIN khi con đóng"
+  replace: [["        }\n        close(c);\n    }", "        }\n    }"]]
+- id: eintr-is-fatal
+  why: "Không dùng SA_RESTART và coi accept lỗi (EINTR do SIGCHLD) là lỗi chết người"
+  replace: [["sa.sa_flags = SA_RESTART;", "sa.sa_flags = 0;"], ["if (c < 0) continue;  // EINTR do SIGCHLD", "if (c < 0) break;"]]
+- id: reap-only-one
+  why: "Handler SIGCHLD chỉ waitpid một lần: nhiều con chết cùng lúc thì còn zombie"
+  replace: [["while (waitpid(-1, NULL, WNOHANG) > 0) {\n    }", "waitpid(-1, NULL, WNOHANG);"]]
+- id: no-reaper
+  why: "Không cài handler SIGCHLD"
+  replace: [["sigaction(SIGCHLD, &sa, NULL);", ""]]

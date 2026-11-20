@@ -37,7 +37,17 @@ C1: QUIT           → BYE
 C3 kết nối lại    → WELCOME
 ```
 
+## Ràng buộc
+- Các từ cách nhau bởi **một hoặc nhiều dấu cách** (dấu cách thừa ở đầu/cuối dòng được bỏ qua). Tab **không**
+  phải dấu phân cách. Lệnh phân biệt hoa thường.
+- Key/value dài 1–64 ký tự; có từ nào (sau tên lệnh) dài hơn 64 → `ERROR`. Mỗi dòng tối đa 1000 byte, không có `0x00`.
+- Đã có 1000 key mà `SET` một key **mới** → `ERROR` (ghi đè key cũ vẫn `OK`).
+- `N` từ 1 tới 50; chương trình chạy với giới hạn 256 file descriptor.
+
 ## Bộ chấm kiểm tra
-- Đúng giao thức, kể cả lệnh bị cắt vụn hoặc nhiều lệnh dính nhau trong một lần gửi.
-- Một client im lặng không được làm chậm client khác.
-- Giới hạn `N` chính xác, và chỗ được giải phóng khi client rời đi.
+- Đúng giao thức, kể cả lệnh bị cắt vụn (mảnh 1 byte) hoặc hàng trăm lệnh dính nhau trong một lần gửi.
+- So sánh với **mô hình chuẩn** trên hàng nghìn lệnh ngẫu nhiên, nhiều client xen kẽ trên cùng một bảng.
+- Một client im lặng / gửi dở lệnh không được làm chậm client khác.
+- Giới hạn `N` chính xác (N=1, N=50), kết nối bị `FULL` được đóng ngay, chỗ được giải phóng khi client `QUIT`,
+  đóng thường hoặc RST; 300 lượt vào-ra và 300 lần bị `FULL` không được làm rò rỉ fd.
+- Client dồn lệnh rồi đóng đột ngột không được làm server chết (`SIGPIPE`).

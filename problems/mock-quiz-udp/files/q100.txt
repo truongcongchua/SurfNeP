@@ -1,0 +1,110 @@
+Cau 1: noi dung dai?|dap an 1A|dap an 1B|dap an 1C|dap an 1D|A
+Cau 2: noi dung dai?|dap an 2A|dap an 2B|dap an 2C|dap an 2D|A
+Cau 3: noi dung dai?|dap an 3A|dap an 3B|dap an 3C|dap an 3D|C
+Cau 4: noi dung dai?|dap an 4A|dap an 4B|dap an 4C|dap an 4D|B
+
+Cau 5: noi dung dai?|dap an 5A|dap an 5B|dap an 5C|dap an 5D|B
+Cau 6: noi dung dai?|dap an 6A|dap an 6B|dap an 6C|dap an 6D|B
+Cau 7: noi dung dai?|dap an 7A|dap an 7B|a | b|dap an 7D|A
+Cau 8: noi dung dai?|dap an 8A|dap an 8B|dap an 8C|dap an 8D|A
+Cau 9: noi dung dai?|dap an 9A|dap an 9B|dap an 9C|dap an 9D|D
+Cau 10: noi dung dai?|dap an 10A|dap an 10B|dap an 10C|dap an 10D|A
+Cau 11: noi dung dai?|dap an 11A|dap an 11B|dap an 11C|dap an 11D|A
+Cau 12: noi dung dai?|dap an 12A|dap an 12B|dap an 12C|dap an 12D|A
+Cau 13: noi dung dai?|dap an 13A|dap an 13B|dap an 13C|dap an 13D|B
+Cau 14: noi dung dai?|dap an 14A|dap an 14B|dap an 14C|dap an 14D|B
+
+Cau 15: noi dung dai?|dap an 15A|dap an 15B|dap an 15C|dap an 15D|A
+Cau 16: noi dung dai?|dap an 16A|dap an 16B|dap an 16C|dap an 16D|B
+Cau 17: noi dung dai?|dap an 17A|dap an 17B|dap an 17C|dap an 17D|D
+Cau 18: noi dung dai?|dap an 18A|dap an 18B|dap an 18C|dap an 18D|B
+Cau 19: noi dung dai?|dap an 19A|dap an 19B|dap an 19C|dap an 19D|D
+Cau 20: noi dung dai?|dap an 20A|dap an 20B|dap an 20C|dap an 20D|C
+Cau 21: noi dung dai?|dap an 21A|dap an 21B|dap an 21C|dap an 21D|A
+Cau 22: noi dung dai?|dap an 22A|dap an 22B|dap an 22C|dap an 22D|B
+Cau 23: noi dung dai?|dap an 23A|dap an 23B|dap an 23C|dap an 23D|D
+Cau 24: noi dung dai?|dap an 24A|dap an 24B|dap an 24C|dap an 24D|C
+
+Cau 25: noi dung dai?|dap an 25A|dap an 25B|dap an 25C|dap an 25D|C
+Cau 26: noi dung dai?|dap an 26A|dap an 26B|dap an 26C|dap an 26D|B
+Cau 27: noi dung dai?|dap an 27A|dap an 27B|dap an 27C|dap an 27D|B
+Cau 28: noi dung dai?|dap an 28A|dap an 28B|dap an 28C|dap an 28D|C
+Cau 29: noi dung dai?|dap an 29A|dap an 29B|dap an 29C|dap an 29D|A
+Cau 30: noi dung dai?|dap an 30A|dap an 30B|dap an 30C|dap an 30D|A
+Cau 31: noi dung dai?|dap an 31A|dap an 31B|dap an 31C|dap an 31D|D
+Cau 32: noi dung dai?|dap an 32A|dap an 32B|dap an 32C|dap an 32D|A
+Cau 33: noi dung dai?|dap an 33A|dap an 33B|dap an 33C|dap an 33D|C
+Cau 34: noi dung dai?|dap an 34A|dap an 34B|dap an 34C|dap an 34D|C
+
+Cau 35: noi dung dai?|dap an 35A|dap an 35B|dap an 35C|dap an 35D|C
+Cau 36: noi dung dai?|dap an 36A|dap an 36B|dap an 36C|dap an 36D|A
+Cau 37: noi dung dai?|dap an 37A|dap an 37B|dap an 37C|dap an 37D|D
+Cau 38: noi dung dai?|dap an 38A|dap an 38B|dap an 38C|dap an 38D|A
+Cau 39: noi dung dai?|dap an 39A|dap an 39B|dap an 39C|dap an 39D|D
+Cau 40: noi dung dai?|dap an 40A|dap an 40B|dap an 40C|dap an 40D|A
+Cau 41: noi dung dai?|dap an 41A|dap an 41B|dap an 41C|dap an 41D|C
+Cau 42: noi dung dai?|dap an 42A|dap an 42B|dap an 42C|dap an 42D|C
+Cau 43: noi dung dai?|dap an 43A|dap an 43B|dap an 43C|dap an 43D|B
+Cau 44: noi dung dai?|dap an 44A|dap an 44B|dap an 44C|dap an 44D|A
+
+Cau 45: noi dung dai?|dap an 45A|dap an 45B|dap an 45C|dap an 45D|A
+Cau 46: noi dung dai?|dap an 46A|dap an 46B|dap an 46C|dap an 46D|B
+Cau 47: noi dung dai?|dap an 47A|dap an 47B|dap an 47C|dap an 47D|C
+Cau 48: noi dung dai?|dap an 48A|dap an 48B|dap an 48C|dap an 48D|A
+Cau 49: noi dung dai?|dap an 49A|dap an 49B|dap an 49C|dap an 49D|B
+Cau 50: noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai noi dung dai?|dap an 50A|dap an 50B|dap an 50C|dap an 50D|A
+Cau 51: noi dung dai?|dap an 51A|dap an 51B|dap an 51C|dap an 51D|D
+Cau 52: noi dung dai?|dap an 52A|dap an 52B|dap an 52C|dap an 52D|C
+Cau 53: noi dung dai?|dap an 53A|dap an 53B|dap an 53C|dap an 53D|D
+Cau 54: noi dung dai?|dap an 54A|dap an 54B|dap an 54C|dap an 54D|C
+
+Cau 55: noi dung dai?|dap an 55A|dap an 55B|dap an 55C|dap an 55D|B
+Cau 56: noi dung dai?|dap an 56A|dap an 56B|dap an 56C|dap an 56D|C
+Cau 57: noi dung dai?|dap an 57A|dap an 57B|dap an 57C|dap an 57D|C
+Cau 58: noi dung dai?|dap an 58A|dap an 58B|dap an 58C|dap an 58D|B
+Cau 59: noi dung dai?|dap an 59A|dap an 59B|dap an 59C|dap an 59D|C
+Cau 60: noi dung dai?|dap an 60A|dap an 60B|dap an 60C|dap an 60D|A
+Cau 61: noi dung dai?|dap an 61A|dap an 61B|dap an 61C|dap an 61D|B
+Cau 62: noi dung dai?|dap an 62A|dap an 62B|dap an 62C|dap an 62D|B
+Cau 63: noi dung dai?|dap an 63A|dap an 63B|dap an 63C|dap an 63D|B
+Cau 64: noi dung dai?|dap an 64A|dap an 64B|dap an 64C|dap an 64D|D
+
+Cau 65: noi dung dai?|dap an 65A|dap an 65B|dap an 65C|dap an 65D|D
+Cau 66: noi dung dai?|dap an 66A|dap an 66B|dap an 66C|dap an 66D|C
+Cau 67: noi dung dai?|dap an 67A|dap an 67B|dap an 67C|dap an 67D|B
+Cau 68: noi dung dai?|dap an 68A|dap an 68B|dap an 68C|dap an 68D|C
+Cau 69: noi dung dai?|dap an 69A|dap an 69B|dap an 69C|dap an 69D|A
+Cau 70: noi dung dai?|dap an 70A|dap an 70B|dap an 70C|dap an 70D|B
+Cau 71: noi dung dai?|dap an 71A|dap an 71B|dap an 71C|dap an 71D|A
+Cau 72: noi dung dai?|dap an 72A|dap an 72B|dap an 72C|dap an 72D|C
+Cau 73: noi dung dai?|dap an 73A|dap an 73B|dap an 73C|dap an 73D|D
+Cau 74: noi dung dai?|dap an 74A|dap an 74B|dap an 74C|dap an 74D|C
+
+Cau 75: noi dung dai?|dap an 75A|dap an 75B|dap an 75C|dap an 75D|A
+Cau 76: noi dung dai?|dap an 76A|dap an 76B|dap an 76C|dap an 76D|B
+Cau 77: noi dung dai?|dap an 77A|dap an 77B|dap an 77C|dap an 77D|C
+Cau 78: noi dung dai?|dap an 78A|dap an 78B|dap an 78C|dap an 78D|B
+Cau 79: noi dung dai?|dap an 79A|dap an 79B|dap an 79C|dap an 79D|D
+Cau 80: noi dung dai?|dap an 80A|dap an 80B|dap an 80C|dap an 80D|D
+Cau 81: noi dung dai?|dap an 81A|dap an 81B|dap an 81C|dap an 81D|D
+Cau 82: noi dung dai?|dap an 82A|dap an 82B|dap an 82C|dap an 82D|B
+Cau 83: noi dung dai?|dap an 83A|dap an 83B|dap an 83C|dap an 83D|C
+Cau 84: noi dung dai?|dap an 84A|dap an 84B|dap an 84C|dap an 84D|B
+
+Cau 85: noi dung dai?|dap an 85A|dap an 85B|dap an 85C|dap an 85D|B
+Cau 86: noi dung dai?|dap an 86A|dap an 86B|dap an 86C|dap an 86D|C
+Cau 87: noi dung dai?|dap an 87A|dap an 87B|dap an 87C|dap an 87D|D
+Cau 88: noi dung dai?|dap an 88A|dap an 88B|dap an 88C|dap an 88D|D
+Cau 89: noi dung dai?|dap an 89A|dap an 89B|dap an 89C|dap an 89D|C
+Cau 90: noi dung dai?|dap an 90A|dap an 90B|dap an 90C|dap an 90D|B
+Cau 91: noi dung dai?|dap an 91A|dap an 91B|dap an 91C|dap an 91D|B
+Cau 92: noi dung dai?|dap an 92A|dap an 92B|dap an 92C|dap an 92D|D
+Cau 93: noi dung dai?|dap an 93A|dap an 93B|dap an 93C|dap an 93D|A
+Cau 94: noi dung dai?|dap an 94A|dap an 94B|dap an 94C|dap an 94D|A
+
+Cau 95: noi dung dai?|dap an 95A|dap an 95B|dap an 95C|dap an 95D|A
+Cau 96: noi dung dai?|dap an 96A|dap an 96B|dap an 96C|dap an 96D|B
+Cau 97: noi dung dai?|dap an 97A|dap an 97B|dap an 97C|dap an 97D|B
+Cau 98: noi dung dai?|dap an 98A|dap an 98B|dap an 98C|dap an 98D|D
+Cau 99: noi dung dai?|dap an 99A|dap an 99B|dap an 99C|dap an 99D|A
+Cau 100: noi dung dai?|dap an 100A|dap an 100B|dap an 100C|dap an 100D|D

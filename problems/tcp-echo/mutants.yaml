@@ -1,0 +1,14 @@
+- id: sigpipe-ignore-send-error
+  why: "send không có MSG_NOSIGNAL và bỏ qua lỗi send: client RST thì lần send sau giết server bằng SIGPIPE"
+  replace:
+    - ["ssize_t k = send(fd, buf, n, MSG_NOSIGNAL);", "ssize_t k = send(fd, buf, n, 0);"]
+    - ["if (send_all(c, buf, (size_t)n) < 0) break;", "send_all(c, buf, (size_t)n);"]
+- id: no-close-client
+  why: "Quên close(c): rò rỉ fd, client không bao giờ thấy server đóng"
+  replace: [["        close(c);\n    }\n}", "    }\n}"]]
+- id: recv-zero-not-handled
+  why: "Không dừng khi recv trả 0 (client đóng): kẹt vòng lặp vô hạn"
+  replace: [["while ((n = recv(c, buf, sizeof buf, 0)) > 0)", "while ((n = recv(c, buf, sizeof buf, 0)) >= 0)"]]
+- id: send-ignores-count
+  why: "Gửi cả bộ đệm thay vì đúng số byte recv trả về"
+  replace: [["if (send_all(c, buf, (size_t)n) < 0) break;", "if (send_all(c, buf, sizeof buf) < 0) break;"]]

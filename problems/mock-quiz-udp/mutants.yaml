@@ -1,0 +1,60 @@
+# Bản sai sinh từ solution.c; xem docs/TEST-DESIGN.md
+- id: blank-not-skipped
+  why: 'Không bỏ dòng trống: số câu hỏi sai'
+  replace:
+  - - '        if (!line[0] || !bar) continue;'
+    - '        if (!bar) { qtext[nq][0] = 0; qans[nq] = 0; nq++; continue; }'
+- id: first-bar
+  why: Tách đáp án ở dấu '|' đầu tiên
+  replace:
+  - - '        char *bar = strrchr(line, ''|'');'
+    - '        char *bar = strchr(line, ''|'');'
+- id: small-question-table
+  why: Chỉ đọc 50 câu
+  replace:
+  - - '#define MAX_Q 100'
+    - '#define MAX_Q 50'
+- id: name-32-rejected
+  why: Tên 32 ký tự bị từ chối
+  replace:
+  - - strlen(tok[1]) <= 32
+    - strlen(tok[1]) < 32
+- id: limit-off-by-one
+  why: So sánh > N
+  replace:
+  - - else if (count_players() >= limit)
+    - else if (count_players() > limit)
+- id: leave-keeps-score
+  why: JOIN lại không xoá điểm cũ
+  replace:
+  - - '                    memset(&pl[i], 0, sizeof pl[i]);
+
+      '
+    - ''
+- id: top-tie-wrong
+  why: Cùng điểm không xếp theo tên
+  replace:
+  - - '    return strcmp(a->name, b->name);'
+    - '    return 0;'
+- id: top-all
+  why: TOP liệt kê mọi người (không giới hạn 3)
+  replace:
+  - - for (int i = 0; i < n && i < 3; i++)
+    - for (int i = 0; i < n; i++)
+- id: answer-recount
+  why: Cho trả lời lại câu đã trả lời
+  replace:
+  - - '        else if (p->done[i]) snprintf(out, cap, "ANSWERED");
+
+      '
+    - ''
+- id: ip-only
+  why: Xác định người chơi chỉ bằng IP
+  replace:
+  - - ' && pl[i].addr.sin_port == a->sin_port'
+    - ''
+- id: lowercase-answer
+  why: Chấp nhận đáp án chữ thường
+  replace:
+  - - x < 'A' || x > 'D'
+    - (x < 'A' || x > 'D') && (x < 'a' || x > 'd')

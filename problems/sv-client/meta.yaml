@@ -1,0 +1,10 @@
+id: sv-client
+title: Gửi hồ sơ sinh viên dạng nhị phân
+difficulty: medium
+chapter: 2
+topics: [TCP, Client, Serialization, Byte Order]
+prerequisites: [tcp-client-stdin, byte-order]
+ref: "Lecture notes §2.5 Bài tập 2.4; lab10 (padding của struct). Ghép cặp với bài sv-struct (server)"
+type: client
+test_timeout: 6
+concepts: [length-prefix-struct, byte-order, tcp-lifecycle]

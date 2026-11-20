@@ -1,0 +1,15 @@
+- id: eagain-closes-client
+  why: "Coi recv trả -1/EAGAIN là lỗi và đóng client"
+  replace: [["            } else if (k < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {\n                continue;  // chưa có dữ liệu\n            }", "            }"]]
+- id: client-blocking
+  why: "Quên đặt socket client non-blocking: recv chặn cả server"
+  replace: [["                set_nonblock(c);\n", ""]]
+- id: send-eagain-drops
+  why: "send trả EAGAIN (bộ đệm gửi đầy) thì bỏ client"
+  replace: [["        if (k < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {\n            usleep(500);\n            continue;\n        }\n", ""]]
+- id: never-close
+  why: "Client đóng thì quên close(): rò rỉ fd"
+  replace: [["            close(clients[i]);  // k == 0 (client đóng) hoặc lỗi thật\n", ""]]
+- id: small-client-table
+  why: "Mảng client chỉ 8 phần tử"
+  replace: [["#define MAX_CLIENTS 512", "#define MAX_CLIENTS 8"]]

@@ -15,6 +15,11 @@
 | `0.0.0.0` hoặc `255.255.255.255` | `SPECIAL` |
 | còn lại | `PUBLIC` |
 
+## Ràng buộc
+- Mỗi dòng dài không quá 100 ký tự; dòng có thể kết thúc bằng `\r\n` (bỏ cả `\r`), dòng cuối có thể không có `\n`.
+- Dòng trống cũng là một xâu (rỗng) → `INVALID`. Khoảng trắng **không** được cắt: `" 1.2.3.4"` là `INVALID`.
+- Hex in hoa, đủ 8 chữ số (`0x08080808`). Input có tới 100 000 dòng.
+
 ## Ví dụ
 
 ```
