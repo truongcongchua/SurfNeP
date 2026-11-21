@@ -451,3 +451,6 @@ body:has(.lc-shell) { overflow: hidden; }
 .cal .day.today:hover, .cal .day.today.picked { background: var(--green); }
 .cal .day.idle { color: var(--muted); }
 .cal .day.today.idle { color: #fff; }
+
+/* Monaco giả định box-sizing mặc định (content-box); quy tắc `* { box-sizing: border-box }` ở trên làm vùng chọn/con trỏ lệch khỏi chữ. */
+.monaco-editor, .monaco-editor *, .monaco-editor *::before, .monaco-editor *::after { box-sizing: content-box; }

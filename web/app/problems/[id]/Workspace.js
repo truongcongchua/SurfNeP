@@ -468,6 +468,13 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
 
   function onEditorMount(editor, monaco) {
     editorRef.current = editor;
+    // Monaco đo bề rộng ký tự lúc mount; nếu font chưa nạp xong (hoặc màn hình có tỉ lệ thu phóng lẻ) thì vùng chọn/con trỏ
+    // lệch khỏi chữ. Đo lại khi font sẵn sàng và khi cửa sổ đổi kích thước/tỉ lệ.
+    const remeasure = () => monaco.editor.remeasureFonts();
+    document.fonts?.ready.then(remeasure);
+    remeasure();
+    window.addEventListener("resize", remeasure);
+    editor.onDidDispose(() => window.removeEventListener("resize", remeasure));
     if (editor.getValue() !== editorTextRef.current) editor.setValue(editorTextRef.current);
     editor.onDidChangeCursorPosition((e) => setPos({ ln: e.position.lineNumber, col: e.position.column }));
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Quote, () => keys.current.settings.runShortcut && keys.current.run());
@@ -556,6 +563,7 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
           options={{
             minimap: { enabled: false }, fontSize: settings.fontSize, lineHeight: Math.round(settings.fontSize * 1.55),
             fontFamily: "Menlo, Monaco, Consolas, 'Courier New', monospace", fontLigatures: settings.ligatures,
+            letterSpacing: 0, disableMonospaceOptimizations: true, fontVariations: false,
             tabSize: settings.tabSize, wordWrap: settings.wordWrap ? "on" : "off",
             lineNumbers: settings.relativeLines ? "relative" : "on", cursorBlinking: settings.noCursorBlink ? "solid" : "blink",
             scrollBeyondLastLine: false, automaticLayout: true, padding: { top: 8 },
