@@ -4,43 +4,68 @@ chapter: 3
 ref: "Lecture notes §3.1 (tr.48); L1-NonBlocking/non_blocking_server.c"
 ---
 
-## Tóm tắt
-Mặc định `accept`/`recv`/`send` là **blocking**: chương trình đứng chờ đến khi có việc. Socket **non-blocking** trả về ngay; nếu chưa có dữ liệu thì `-1` với `errno == EAGAIN` (hoặc `EWOULDBLOCK`), **không phải lỗi**.
+## Hiểu nhanh
+Mặc định `accept`, `recv` là **blocking** (chặn): gọi `recv` mà chưa có dữ liệu thì chương trình **đứng im chờ**, giống bạn đứng trước cửa chờ bưu tá. Trong lúc đó không làm được gì khác, kể cả phục vụ client khác.
 
+**Non-blocking** (không chặn): gọi `recv` mà chưa có dữ liệu thì hàm **trả về ngay** kèm thông báo "chưa có gì", giống liếc qua hộp thư rồi đi làm việc khác. Nhờ vậy một vòng lặp có thể lần lượt hỏi nhiều client.
+
+## Bật chế độ non-blocking
 ```c
 #include <fcntl.h>
-int fl = fcntl(fd, F_GETFL, 0);
-fcntl(fd, F_SETFL, fl | O_NONBLOCK);       // hoặc ioctl(fd, FIONBIO, &on)
-```
 
-## Ba kết quả của `recv`
-| Kết quả | Hành động |
-|---|---|
-| `> 0` | xử lý dữ liệu |
-| `0` | client đóng → `close` và bỏ khỏi danh sách |
-| `-1`, `errno == EAGAIN/EWOULDBLOCK` | chưa có dữ liệu → bỏ qua, thử client khác |
-| `-1`, lỗi khác | lỗi thật → đóng client |
-
-## Mô hình "polling" một luồng
-```c
-for (;;) {
-    int c = accept(s, NULL, NULL);          // s cũng non-blocking
-    if (c >= 0) { set_nonblock(c); add_client(c); }
-    for (each client fd) {
-        n = recv(fd, buf, sizeof buf, 0);
-        if (n > 0) send(fd, buf, n, 0);
-        else if (n == 0 || (errno != EAGAIN && errno != EWOULDBLOCK)) drop(fd);
-    }
-    usleep(1000);                            // nhường CPU nếu cả vòng không có việc
+void set_nonblock(int fd) {
+    int flags = fcntl(fd, F_GETFL, 0);         // lấy cờ hiện tại
+    fcntl(fd, F_SETFL, flags | O_NONBLOCK);    // thêm cờ O_NONBLOCK
 }
 ```
 
-## Hạn chế
-Vòng lặp **bận chờ** (busy-wait) ăn 100% CPU nếu không `usleep`, và mỗi vòng phải hỏi **tất cả** client dù không ai gửi gì. Đó là lý do cần `select`/`poll` (hệ điều hành báo fd nào sẵn sàng).
+## Đọc kết quả `recv` khi non-blocking
+Có thêm một trường hợp: trả `-1` nhưng **không phải lỗi**.
 
-## Bẫy thường gặp
-- Coi `EAGAIN` là lỗi và đóng client.
-- Quên đặt non-blocking cho **socket nghe** → `accept` vẫn chặn cả vòng lặp.
-- Quên kiểm tra `errno` ngay sau `recv` (bị lệnh khác ghi đè).
-- Không `usleep` → CPU 100%.
-- `send` non-blocking cũng có thể gửi thiếu hoặc `EAGAIN` khi bộ đệm đầy.
+| Kết quả | Nghĩa là | Nên làm |
+|---|---|---|
+| `> 0` | có dữ liệu | xử lý |
+| `0` | client đã đóng | `close(fd)`, bỏ khỏi danh sách |
+| `-1` và `errno == EAGAIN` hoặc `EWOULDBLOCK` | **chưa có dữ liệu** | bỏ qua, sang client khác |
+| `-1` và `errno` khác | lỗi thật | đóng client |
+
+`errno` là biến toàn cục (khai báo trong `<errno.h>`) chứa mã lỗi của lần gọi hệ thống **gần nhất**.
+
+## Mẫu: một vòng lặp phục vụ nhiều client
+```c
+#include <errno.h>
+
+set_nonblock(listen_fd);                       // socket nghe cũng phải non-blocking
+int clients[MAX]; int nc = 0;
+
+for (;;) {
+    // 1. Có khách mới không? (không có thì accept trả -1 ngay, không chờ)
+    int c = accept(listen_fd, NULL, NULL);
+    if (c >= 0) { set_nonblock(c); clients[nc++] = c; }
+
+    // 2. Hỏi lần lượt từng client
+    for (int i = 0; i < nc; i++) {
+        char buf[1024];
+        ssize_t n = recv(clients[i], buf, sizeof buf, 0);
+        if (n > 0) {
+            send(clients[i], buf, n, 0);
+        } else if (n == 0 || (errno != EAGAIN && errno != EWOULDBLOCK)) {
+            close(clients[i]);                 // đóng rồi xoá khỏi mảng
+            clients[i] = clients[--nc];        // đưa phần tử cuối vào chỗ trống
+            i--;                               // xét lại vị trí i
+        }
+        // còn lại: EAGAIN → chưa có gì, bỏ qua
+    }
+    usleep(1000);                              // nghỉ 1ms cho CPU đỡ quay không
+}
+```
+
+## Nhược điểm
+Vòng lặp trên phải **hỏi tất cả client liên tục**, kể cả khi không ai gửi gì: tốn CPU (gọi là **bận chờ**, busy-wait). Thêm `usleep` thì đỡ tốn nhưng phản hồi chậm hơn. Cách tốt hơn là để hệ điều hành **báo** client nào có dữ liệu: đó là `select`/`poll` (xem thẻ *select và poll*).
+
+## Lỗi hay gặp
+- **Client bị đóng vô cớ.** Coi `EAGAIN` là lỗi. `EAGAIN` chỉ nghĩa là "chưa có dữ liệu".
+- **Cả server vẫn bị treo.** Quên đặt non-blocking cho **socket nghe**, nên `accept` vẫn đứng chờ.
+- **Xét `errno` ra kết quả lạ.** Gọi hàm khác (vd. `printf`) giữa `recv` và chỗ kiểm tra `errno`, `errno` bị ghi đè. Kiểm tra **ngay sau** `recv`.
+- **CPU 100%.** Không có `usleep` trong vòng lặp.
+- `send` non-blocking cũng có thể gửi thiếu hoặc trả `EAGAIN` khi bộ đệm gửi đầy.

@@ -4,43 +4,113 @@ chapter: 2
 ref: "Lecture notes §2.3 (tr.22)"
 ---
 
-## Trình tự
-**Server:** `socket` → `bind` → `listen` → `accept` (lặp) → `recv`/`send` → `close`
-**Client:** `socket` → `connect` → `send`/`recv` → `close`
+## Hiểu nhanh
+Hãy hình dung server TCP là **tổng đài của một cửa hàng**:
 
+| Bước | Hàm | Đời thường |
+|---|---|---|
+| 1 | `socket` | mua một chiếc điện thoại |
+| 2 | `bind` | đăng ký số máy (địa chỉ IP + cổng) |
+| 3 | `listen` | bật chuông, sẵn sàng nhận cuộc gọi |
+| 4 | `accept` | nhấc máy, chuyển khách sang **một máy riêng** để nói chuyện |
+| 5 | `recv` / `send` | nghe / nói |
+| 6 | `close` | cúp máy |
+
+Client đơn giản hơn: `socket` (mua điện thoại) → `connect` (bấm số gọi) → `send`/`recv` → `close`.
+
+## Hai loại socket ở server, đừng nhầm
+- **Socket nghe** (`listen_fd`): chỉ dùng để `accept` khách mới. **Không** `recv`/`send` trên nó.
+- **Socket kết nối** (`fd` do `accept` trả về): mỗi client có **một cái riêng**. Mọi việc đọc/ghi với client đó đều dùng `fd` này.
+
+## Code mẫu: server
 ```c
-int s = socket(AF_INET, SOCK_STREAM, 0);
-int yes = 1;
-setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes);   // chạy lại server không bị "Address already in use"
-struct sockaddr_in a = {0};
-a.sin_family = AF_INET; a.sin_port = htons(port); a.sin_addr.s_addr = htonl(INADDR_ANY);
-bind(s, (struct sockaddr *)&a, sizeof a);
-listen(s, 16);
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
 
-for (;;) {
-    struct sockaddr_in c; socklen_t cl = sizeof c;
-    int fd = accept(s, (struct sockaddr *)&c, &cl);   // trả về socket MỚI cho client này
-    char buf[1024]; ssize_t n;
-    while ((n = recv(fd, buf, sizeof buf, 0)) > 0) send(fd, buf, n, 0);
-    close(fd);
+int main(int argc, char *argv[]) {
+    int port = atoi(argv[1]);
+
+    // 1. Tạo socket TCP (SOCK_STREAM = TCP)
+    int listen_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (listen_fd < 0) { perror("socket"); return 1; }
+
+    // Cho phép chạy lại server ngay, không bị "Address already in use"
+    int yes = 1;
+    setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes);
+
+    // 2. Gắn địa chỉ: mọi IP của máy (INADDR_ANY), cổng = port
+    struct sockaddr_in addr = {0};
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port);                 // htons: xem thẻ "Thứ tự byte"
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    if (bind(listen_fd, (struct sockaddr *)&addr, sizeof addr) < 0) { perror("bind"); return 1; }
+
+    // 3. Bắt đầu nghe; 16 = số client được xếp hàng chờ accept
+    listen(listen_fd, 16);
+
+    for (;;) {
+        // 4. Chờ một client. accept trả về socket MỚI dành riêng cho client này
+        int fd = accept(listen_fd, NULL, NULL);
+        if (fd < 0) continue;
+
+        // 5. Nói chuyện: nhận gì gửi lại nấy (echo)
+        char buf[1024];
+        ssize_t n;
+        while ((n = recv(fd, buf, sizeof buf, 0)) > 0)
+            send(fd, buf, n, 0);                 // gửi lại đúng n byte vừa nhận
+
+        // 6. Client đã thoát (recv trả 0) → đóng socket của client đó
+        close(fd);
+    }
 }
 ```
 
-## Hai loại socket
-- **Socket nghe** (`s`): chỉ để `accept`, không đọc/ghi dữ liệu.
-- **Socket kết nối** (`fd` do `accept` trả về): một socket cho **mỗi** client.
+## Code mẫu: client
+```c
+int fd = socket(AF_INET, SOCK_STREAM, 0);
 
-## Giá trị trả về của `recv`
-| Giá trị | Ý nghĩa |
-|---|---|
-| `> 0` | số byte nhận được (có thể **ít hơn** yêu cầu) |
-| `0` | đối phương đã **đóng** kết nối (EOF) |
-| `-1` | lỗi, xem `errno` (`EINTR` thì thử lại) |
+struct sockaddr_in srv = {0};
+srv.sin_family = AF_INET;
+srv.sin_port = htons(port);
+inet_pton(AF_INET, "127.0.0.1", &srv.sin_addr);   // đổi xâu IP sang dạng máy hiểu
 
-## Bẫy thường gặp
-- Quên `SO_REUSEADDR` → chạy lại server báo `bind: Address already in use`.
-- Nhầm socket nghe với socket kết nối khi `recv`/`close`.
-- Không kiểm tra `recv` trả `0` → vòng lặp quay vô hạn khi client đã thoát.
-- `send` cũng có thể gửi ít hơn yêu cầu; với dữ liệu lớn phải lặp cho đến hết.
-- Quên `close(fd)` → rò rỉ descriptor, server chết sau vài trăm client.
-- Dùng `strlen` thay vì số byte `n` thực nhận khi gửi lại (dữ liệu có thể chứa `\0`).
+if (connect(fd, (struct sockaddr *)&srv, sizeof srv) < 0) { perror("connect"); return 1; }
+
+char line[1024];
+while (fgets(line, sizeof line, stdin))           // đọc từng dòng bàn phím
+    send(fd, line, strlen(line), 0);              // xâu do mình gõ nên dùng strlen được
+close(fd);
+```
+
+## Đọc kết quả của `recv`
+`recv(fd, buf, size, 0)` trả về một số, và bạn **luôn** phải xét cả ba trường hợp:
+
+| Kết quả | Nghĩa là | Nên làm |
+|---|---|---|
+| `> 0` | nhận được chừng ấy byte (có thể **ít hơn** `size`) | xử lý đúng số byte đó |
+| `0` | phía bên kia đã **đóng** kết nối | thoát vòng lặp, `close(fd)` |
+| `-1` | có lỗi | in `perror`, đóng kết nối |
+
+`send` cũng trả về số byte **thực sự** đã gửi, có thể ít hơn bạn yêu cầu. Khi gửi dữ liệu lớn, dùng hàm gửi lặp cho đến hết:
+```c
+int send_all(int fd, const void *p, size_t n) {
+    size_t sent = 0;
+    while (sent < n) {
+        ssize_t r = send(fd, (const char *)p + sent, n - sent, 0);
+        if (r <= 0) return -1;
+        sent += r;
+    }
+    return 0;
+}
+```
+
+## Lỗi hay gặp
+- **Chạy lại server báo `bind: Address already in use`.** Cổng cũ vẫn bị hệ điều hành giữ vài chục giây. Sửa: thêm `setsockopt(... SO_REUSEADDR ...)` **trước** `bind`.
+- **Server không nhận được gì / báo lỗi khi `recv`.** Bạn đang `recv` trên `listen_fd`. Sửa: dùng `fd` mà `accept` trả về.
+- **Client thoát rồi mà server chạy vòng lặp vô hạn, CPU 100%.** Không kiểm tra `recv` trả `0`. Sửa: dừng vòng lặp khi `n <= 0`.
+- **Chạy được vài trăm client thì server hỏng.** Quên `close(fd)` sau mỗi client, hết số descriptor.
+- **Dữ liệu gửi lại bị cụt.** Dùng `strlen(buf)` thay vì `n`. Dữ liệu nhận về **không có** `'\0'` ở cuối và có thể chứa `'\0'` ở giữa. Luôn dùng `n`.

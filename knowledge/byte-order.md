@@ -4,31 +4,55 @@ chapter: 2
 ref: "Lecture notes §2.2"
 ---
 
-## Tóm tắt
-- **Little-endian** (x86, ARM thường gặp): byte thấp nằm ở địa chỉ thấp. `0x12345678` lưu là `78 56 34 12`.
-- **Big-endian** = **network byte order**: byte cao trước. `0x12345678` gửi đi là `12 34 56 78`.
-- Mọi số nguyên nhiều byte đi qua mạng phải đổi sang network order.
+## Hiểu nhanh
+Một số `int` 4 byte, ví dụ `0x12345678`, được cất trong bộ nhớ thành 4 ô. Nhưng **ô nào cất trước** thì mỗi loại máy một kiểu, giống như người viết ngày `21/11` còn người khác viết `11/21`:
 
-| Hàm | Kích thước | Chiều |
+| Kiểu | Cách cất `0x12345678` | Ai dùng |
 |---|---|---|
-| `htons` / `ntohs` | 16 bit (cổng) | host ↔ network |
-| `htonl` / `ntohl` | 32 bit (IPv4, độ dài) | host ↔ network |
+| **Little-endian** | `78 56 34 12` (byte nhỏ trước) | hầu hết máy tính hiện nay (Intel/AMD, ARM) |
+| **Big-endian** | `12 34 56 78` (byte lớn trước) | **mạng** quy ước dùng kiểu này |
+
+Kiểu dùng trên mạng gọi là **network byte order** (= big-endian). Kiểu của máy bạn gọi là **host byte order**. Hai máy khác kiểu vẫn hiểu nhau vì cả hai đều đổi sang network order trước khi gửi.
+
+**Quy tắc:** mọi số nguyên **từ 2 byte trở lên** đi qua mạng: đổi sang network order trước khi gửi, đổi về host order sau khi nhận.
+
+## Bốn hàm đổi
+Đọc tên hàm như một câu: `h` = host, `n` = network, `s` = short (16 bit), `l` = long (32 bit).
+
+| Hàm | Đọc là | Dùng cho |
+|---|---|---|
+| `htons(x)` | **h**ost **to** **n**etwork **s**hort | cổng, số 16 bit, **trước khi gửi** |
+| `ntohs(x)` | network to host short | số 16 bit, **sau khi nhận** |
+| `htonl(x)` | host to network long | IP, độ dài, số 32 bit, **trước khi gửi** |
+| `ntohl(x)` | network to host long | số 32 bit, **sau khi nhận** |
 
 ```c
-uint16_t port_net = htons(9000);
-uint32_t len_net  = htonl(1234);
-// nhận về: uint32_t len = ntohl(len_net);
+#include <stdint.h>
+#include <arpa/inet.h>
+
+uint16_t port_net = htons(9000);     // gán vào sin_port
+uint32_t len_net  = htonl(1234);     // gửi đi
+// bên nhận:
+uint32_t len = ntohl(len_net);       // 1234
 ```
 
-## Kiểm tra máy mình là endian nào
+Dùng kiểu có kích thước cố định `uint16_t`, `uint32_t` (trong `<stdint.h>`) thay cho `int`/`short` để chắc chắn số byte.
+
+## Xem máy mình là kiểu nào
 ```c
 uint16_t x = 1;
-int little = *(uint8_t *)&x == 1;
+int little = (*(uint8_t *)&x == 1);  // byte đầu tiên là 1 → little-endian
 ```
 
-## Bẫy thường gặp
-- Đổi sai chiều: gửi `ntohl` thay vì `htonl` (trên máy little-endian cho kết quả sai, trên máy big-endian lại "đúng" nên khó phát hiện).
-- Đổi **hai lần** một giá trị, hoặc quên đổi khi đọc lại từ socket.
-- Dùng `htons` cho số 32 bit (bị cắt mất 16 bit cao).
-- `ntohs(htons(x)) == x`: nếu kết quả bài toán đảo ngược khi chạy hai lần thì kiểm tra lại xem có đổi dư không.
-- Chuỗi ký tự (từng byte) **không** cần đổi byte order.
+## Xem từng byte của một số
+```c
+uint32_t v = htonl(0x12345678);
+uint8_t *b = (uint8_t *)&v;
+printf("%02x %02x %02x %02x\n", b[0], b[1], b[2], b[3]);   // 12 34 56 78
+```
+
+## Lỗi hay gặp
+- **Đổi sai chiều** (dùng `ntohl` khi gửi). Trên máy little-endian hai hàm cho cùng kết quả nên vẫn "chạy", nhưng đọc code sẽ khó hiểu. Gửi dùng `hton*`, nhận dùng `ntoh*`.
+- **Đổi hai lần** một giá trị → quay về giá trị ban đầu, coi như không đổi. Kiểm tra mỗi giá trị chỉ đổi **một lần** trên mỗi chiều.
+- **Dùng `htons` cho số 32 bit** → mất 2 byte cao (vd. 70000 bị cắt còn 4464 trước khi đổi).
+- **Đổi byte order cho xâu ký tự.** Không cần: mỗi ký tự chỉ 1 byte, không có chuyện thứ tự.
