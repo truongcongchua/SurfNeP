@@ -104,7 +104,7 @@ export function Description({ problem, html, solved, stats, similar }) {
           <div className="space-y-2 text-[var(--text)]">
             {problem.ref && <p className="m-0">Đọc lại: {problem.ref}</p>}
             {problem.prerequisites.length > 0 && (
-              <p className="m-0">Nên làm trước: {problem.prerequisites.map((x, i) => <span key={x}>{i > 0 && ", "}<Link href={`/problems/${x}`}>{x}</Link></span>)}</p>
+              <p className="m-0">Nên làm trước: {problem.prerequisites.map((x, i) => <span key={x.id}>{i > 0 && ", "}<Link href={`/problems/${x.id}`}>{x.title}</Link></span>)}</p>
             )}
           </div>
         </Acc>

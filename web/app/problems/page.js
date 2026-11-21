@@ -242,7 +242,7 @@ export default async function Problems({ searchParams }) {
                       <td className="title-cell">
                         <Link href={`/problems/${p.id}`} className="row-link">{p.n}. {p.title}</Link>
                         {p.exam && <span className="chip accent" style={{ marginLeft: 8 }}>Thi thử</span>}
-                        {unmet.length > 0 && <div className="lock">Cần làm trước: {unmet.join(", ")}</div>}
+                        {unmet.length > 0 && <div className="lock">Cần làm trước: {unmet.map((u) => all.find((q) => q.id === u)?.title || u).join(", ")}</div>}
                       </td>
                       <td className="chap num">Chương {p.chapter}</td>
                       <td className="acc num">{p.acRate < 0 ? "—" : `${(p.acRate * 100).toFixed(1)}%`}</td>

@@ -120,7 +120,7 @@ export default async function PlanPage({ params, searchParams }) {
                           <div className="ttl">
                             {m ? <Link href={`/problems/${p.id}`}>{p.title}</Link> : <span>{p.title} <span className="lock">(sắp có)</span></span>}
                             {p.exam && <span className="chip accent" style={{ marginLeft: 8 }}>Thi thử</span>}
-                            {unmet.length > 0 && st !== "solved" && <div className="lock">Nên làm trước: {unmet.join(", ")}</div>}
+                            {unmet.length > 0 && st !== "solved" && <div className="lock">Nên làm trước: {unmet.map((u) => meta[u]?.title || u).join(", ")}</div>}
                             {showTags && m && <div className="topics">{m.topics.map((t) => <span key={t} className="chip">{t}</span>)}</div>}
                           </div>
                           <span className={`d ${p.difficulty}`}>{DIFF_LABEL[p.difficulty]}</span>
