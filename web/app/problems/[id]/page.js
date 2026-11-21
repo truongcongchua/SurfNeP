@@ -80,7 +80,7 @@ export default async function ProblemPage({ params }) {
         chapter: p.chapter,
         topics: p.topics,
         ref: p.ref || null,
-        prerequisites: p.prerequisites,
+        prerequisites: p.prerequisites.map((q) => ({ id: q, title: problems.find((x) => x.id === q)?.title || q })),
         exam: !!p.exam,
         type: p.type,
       }}
