@@ -2,7 +2,7 @@
   "name": "surfnep-web",
   "private": true,
   "scripts": {
-    "dev": "next dev -H 0.0.0.0 -p 3000",
+    "dev": "next dev -H 0.0.0.0 -p 3001",
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p 3000",
     "seed": "node scripts/seed.mjs"
