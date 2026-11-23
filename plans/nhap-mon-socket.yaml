@@ -4,7 +4,7 @@ order: 1
 title: "Nhập môn Socket"
 subtitle: "Làm quen socket trong 3 ngày: địa chỉ, TCP, UDP"
 description: >
-  7 bài, 3 chủ đề. Khởi động cho người mới: bài dễ đi từ byte order đến cặp client/server TCP và UDP đầu tiên. Xong plan này bạn đủ nền để vào các plan còn lại.
+  9 bài, 3 chủ đề. Khởi động cho người mới: bài dễ đi từ byte order đến cặp client/server TCP và UDP đầu tiên. Xong plan này bạn đủ nền để vào các plan còn lại.
 suggested_days: 3
 award: "Huy hiệu \"Socket đầu tay\""
 
@@ -17,9 +17,11 @@ sections:
       - {id: domain2ip, title: "Phân giải tên miền", difficulty: easy, ready: true}
 
   - title: "Cặp TCP đầu tiên"
-    intro: "Server echo rồi client đọc bàn phím gửi đi. (§2.3)"
+    intro: "Server echo, hai bài khởi động cho client (read/write, connect/send), rồi client đọc bàn phím gửi đi. (§2.3)"
     problems:
       - {id: tcp-echo, title: "TCP echo server", difficulty: easy, ready: true}
+      - {id: stdin-forward, title: "Chuyển tiếp stdin ra stdout bằng read/write", difficulty: easy, ready: true}
+      - {id: tcp-client-send, title: "Client gửi một thông điệp", difficulty: easy, ready: true}
       - {id: tcp-client-stdin, title: "Gửi dữ liệu từ bàn phím qua TCP", difficulty: easy, ready: true}
 
   - title: "Cặp UDP đầu tiên"

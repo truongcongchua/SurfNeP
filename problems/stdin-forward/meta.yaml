@@ -1,0 +1,10 @@
+id: stdin-forward
+title: Chuyển tiếp stdin ra stdout bằng read/write
+difficulty: easy
+chapter: 2
+topics: [File I/O, Client]
+prerequisites: []
+ref: "Lab08 (read/write trên file descriptor); khởi động cho bài tcp-client-stdin"
+type: client
+test_timeout: 6
+concepts: [file-io]

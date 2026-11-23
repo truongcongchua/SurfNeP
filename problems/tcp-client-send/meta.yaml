@@ -1,0 +1,10 @@
+id: tcp-client-send
+title: Client gửi một thông điệp
+difficulty: easy
+chapter: 2
+topics: [TCP, Client]
+prerequisites: [inet-addr]
+ref: "Lecture notes §2.3; code mẫu 2-Chap2/tcp_client.c (connect, send); khởi động cho tcp-client-stdin"
+type: client
+test_timeout: 6
+concepts: [tcp-lifecycle]

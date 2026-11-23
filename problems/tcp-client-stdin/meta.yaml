@@ -3,7 +3,7 @@ title: Gửi dữ liệu từ bàn phím qua TCP
 difficulty: easy
 chapter: 2
 topics: [TCP]
-prerequisites: [inet-addr]
+prerequisites: [inet-addr, stdin-forward, tcp-client-send]
 ref: "Lecture notes §2.3, §2.5 Bài tập 2.2; code mẫu 2-Chap2/tcp_client.c"
 type: client
 test_timeout: 6

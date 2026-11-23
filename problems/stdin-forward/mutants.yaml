@@ -1,0 +1,21 @@
+- id: write-whole-buffer
+  why: "Ghi cả bộ đệm 4096 byte thay vì đúng n byte vừa đọc"
+  replace: [["write(STDOUT_FILENO, buffer, n);", "write(STDOUT_FILENO, buffer, sizeof(buffer));"]]
+- id: write-strlen
+  why: "Dùng strlen làm độ dài: dừng ở byte 0x00 và đọc quá phần dữ liệu thực"
+  replace: [["#include <unistd.h>", "#include <string.h>\n#include <unistd.h>"], ["write(STDOUT_FILENO, buffer, n);", "buffer[n] = 0;\n        write(STDOUT_FILENO, buffer, strlen(buffer));"]]
+- id: stop-at-newline
+  why: "Ngừng ghi ở ký tự xuống dòng đầu tiên của mỗi lần đọc: mất phần sau \\n"
+  replace: [["write(STDOUT_FILENO, buffer, n);", "for (ssize_t i = 0; i < n; i++) { write(STDOUT_FILENO, buffer + i, 1); if (buffer[i] == '\\n') break; }"]]
+- id: exit-code-one
+  why: "Thoát mã 1 sau EOF"
+  replace: [["    return 0;\n}", "    return 1;\n}"]]
+- id: print-extra-newline
+  why: "In thêm một dòng trống vào stdout khi kết thúc"
+  replace: [["    return 0;\n}", "    write(STDOUT_FILENO, \"\\n\", 1);\n    return 0;\n}"]]
+- id: drop-last-byte
+  why: "Bỏ byte cuối cùng của mỗi lần đọc"
+  replace: [["write(STDOUT_FILENO, buffer, n);", "write(STDOUT_FILENO, buffer, n > 1 ? n - 1 : n);"]]
+- id: stop-on-first-error-only
+  why: "Chỉ dừng khi read trả -1: sau EOF (0) lặp mãi, không bao giờ thoát"
+  replace: [["if (n <= 0) break;", "if (n < 0) break;"]]

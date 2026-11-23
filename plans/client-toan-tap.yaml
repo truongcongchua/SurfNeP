@@ -4,7 +4,7 @@ order: 4
 title: "Client toàn tập"
 subtitle: "Viết client: đọc bàn phím, nhận mạng, đóng gói"
 description: >
-  4 bài, 3 chủ đề. Bốn bài client đi từ đơn giản đến vừa đọc bàn phím vừa nhận từ server. Ghép cặp với server của các plan khác để tự kiểm tra chéo.
+  6 bài, 3 chủ đề. Sáu bài client đi từ đơn giản đến vừa đọc bàn phím vừa nhận từ server. Ghép cặp với server của các plan khác để tự kiểm tra chéo.
 suggested_days: 3
 award: "Huy hiệu \"Client chuyên nghiệp\""
 
@@ -12,6 +12,8 @@ sections:
   - title: "Client TCP"
     intro: "Đọc stdin, gửi ngay từng dòng. (§2.3)"
     problems:
+      - {id: stdin-forward, title: "Chuyển tiếp stdin ra stdout bằng read/write", difficulty: easy, ready: true}
+      - {id: tcp-client-send, title: "Client gửi một thông điệp", difficulty: easy, ready: true}
       - {id: tcp-client-stdin, title: "Gửi dữ liệu từ bàn phím qua TCP", difficulty: easy, ready: true}
       - {id: sv-client, title: "Gửi hồ sơ sinh viên dạng nhị phân", difficulty: medium, ready: true}
 

@@ -14,6 +14,13 @@ Viết chương trình **client** chạy bằng:
   thoát với mã **khác 0**, không treo.
 - Dữ liệu gửi đi phải **giống hệt** dữ liệu nhập vào, kể cả ký tự xuống dòng.
 
+## Bài khởi động
+Bài này ghép hai kỹ năng đã có bài luyện riêng. Nếu còn lúng túng, làm trước:
+- `stdin-forward` (Chuyển tiếp stdin ra stdout bằng read/write): vòng lặp `read(STDIN_FILENO, ...)`, xử lý đúng `n` byte, gửi ngay không đợi EOF.
+- `tcp-client-send` (Client gửi một thông điệp): `inet_addr` + `htons(atoi(...))` + `connect`, rồi `send` và `close`.
+
+Bài này chỉ thay `write(STDOUT_FILENO, ...)` của `stdin-forward` bằng `send(client_socket, ...)`, sau khi kết nối như `tcp-client-send`.
+
 ## Ràng buộc
 - Dữ liệu nhập là byte bất kỳ (có thể chứa `0x00`, `\r`, dòng rất dài tới 200 KB, tổng tới vài MB): gửi **đúng
   từng byte** (đừng dùng `fgets` + `strlen`). stdin rỗng thì kết nối rồi đóng, không gửi gì.

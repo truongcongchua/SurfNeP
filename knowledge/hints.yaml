@@ -58,6 +58,22 @@ tcp-echo:
   - |-
     Dùng số byte `recv` trả về (không dùng `strlen`: dữ liệu có thể chứa `0x00`). Gọi `recv` → `send` trong vòng lặp cho tới khi `recv` trả `<= 0` (không chỉ một lần như `tcp_server.c`). `recv == 0` là client đã đóng: `close(fd)` rồi quay lại `accept`, đừng thoát server.
 
+stdin-forward:
+  - |-
+    Đây là `cat` viết bằng hàm mức thấp. Câu hỏi cần trả lời: `read` cho bạn biết gì sau mỗi lần gọi, và bạn phải ghi lại bao nhiêu byte?
+  - |-
+    Vòng lặp `read(STDIN_FILENO, buffer, sizeof(buffer))` rồi `write(STDOUT_FILENO, buffer, n)`. `read` trả `0` khi hết stdin và `-1` khi lỗi, cả hai đều dừng vòng lặp (`n <= 0`).
+  - |-
+    Ghi **đúng `n` byte** (không `sizeof(buffer)`, không `strlen`: dữ liệu có thể chứa `0x00`). Đừng dùng `fgets`/`fread`: chúng chờ đủ dòng hoặc đủ bộ đệm nên dữ liệu đến chậm bị giữ lại.
+
+tcp-client-send:
+  - |-
+    Đây là nửa "kết nối và gửi" của bài tcp-client-stdin: bạn chủ động `connect`, gửi dữ liệu, rồi đóng. Không cần nhận gì.
+  - |-
+    `socket` → `sockaddr_in` (`inet_addr(argv[1])`, `htons(atoi(argv[2]))`) → `connect` (kiểm tra kết quả) → `send(s, argv[3], strlen(argv[3]), 0)` rồi `send(s, "\n", 1, 0)` → `close`. Hai lần `send` vẫn là một luồng byte với server. Sai số tham số: in `Usage` ra `stderr`, thoát mã 1 **trước** khi tạo socket.
+  - |-
+    Thông điệp tới 50 000 ký tự: đừng ghép `thông điệp + "\n"` vào mảng cố định nhỏ (`snprintf` sẽ cắt). Gửi đúng `strlen(argv[3])` byte (không `+ 1`, không `\0`).
+
 tcp-client-stdin:
   - |-
     Ngược với server: bạn chủ động `connect`. Phần đáng nghĩ là **khi nào** gửi: ngay khi có một dòng, không đợi hết stdin.

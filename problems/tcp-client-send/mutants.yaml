@@ -1,0 +1,36 @@
+- id: connect-error-ignored
+  why: "Không kết nối được vẫn thoát mã 0"
+  replace: [["        perror(\"connect\");\n        close(client_socket);\n        exit(EXIT_FAILURE);", "        perror(\"connect\");\n        close(client_socket);\n        exit(0);"]]
+- id: exit-code-one
+  why: "Thoát mã 1 sau khi gửi xong"
+  replace: [["    close(client_socket);\n    return 0;\n}", "    close(client_socket);\n    return 1;\n}"]]
+- id: send-nul-too
+  why: "Gửi cả byte '\\0' kết thúc xâu (strlen + 1) trước '\\n'"
+  replace: [["send(client_socket, argv[3], strlen(argv[3]), 0);", "send(client_socket, argv[3], strlen(argv[3]) + 1, 0);"]]
+- id: no-newline
+  why: "Không gửi '\\n' cuối: server đợi mãi"
+  replace: [["    send(client_socket, \"\\n\", 1, 0);\n", ""]]
+- id: newline-twice
+  why: "Gửi hai ký tự xuống dòng"
+  replace: [["send(client_socket, \"\\n\", 1, 0);", "send(client_socket, \"\\n\\n\", 2, 0);"]]
+- id: send-port-instead
+  why: "Gửi argv[2] (cổng) thay vì thông điệp argv[3]"
+  replace: [["send(client_socket, argv[3], strlen(argv[3]), 0);", "send(client_socket, argv[2], strlen(argv[2]), 0);"]]
+- id: send-fixed-length
+  why: "Gửi tối đa 1000 byte của thông điệp"
+  replace: [["strlen(argv[3]), 0);", "(strlen(argv[3]) > 1000 ? 1000 : strlen(argv[3])), 0);"]]
+- id: argc-wrong
+  why: "Chỉ chấp nhận đúng 3 phần tử argv (thiếu tham số thông điệp)"
+  replace: [["if (argc != 4) {", "if (argc != 3) {"]]
+- id: argc-too-lenient
+  why: "Chấp nhận cả khi dư tham số (argc < 4 thay cho != 4)"
+  replace: [["if (argc != 4) {", "if (argc < 4) {"]]
+- id: usage-exit-zero
+  why: "Báo Usage nhưng thoát mã 0"
+  replace: [["<message>\\n\", argv[0]);\n        return 1;", "<message>\\n\", argv[0]);\n        return 0;"]]
+- id: no-htons
+  why: "Quên htons cho cổng"
+  replace: [["htons(atoi(argv[2]))", "atoi(argv[2])"]]
+- id: port-from-argv1
+  why: "Đọc nhầm tham số: cổng lấy từ argv[1], IP từ argv[2]"
+  replace: [["htons(atoi(argv[2]))", "htons(atoi(argv[1]))"], ["inet_addr(argv[1])", "inet_addr(argv[2])"]]
