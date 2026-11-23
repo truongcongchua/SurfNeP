@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
         ssize_t n;
         while ((n = recv(c, buf, sizeof buf - 1, 0)) > 0) {
             buf[n] = 0;
-            send(c, buf, strlen(buf), MSG_NOSIGNAL);
+            send(c, buf, strlen(buf), 0);
         }
         close(c);
     }

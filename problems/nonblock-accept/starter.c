@@ -1,17 +1,13 @@
-#include <arpa/inet.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/socket.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
+// TODO: tự #include các thư viện cần dùng (gợi ý: stdio, stdlib, string, unistd, arpa/inet, sys/socket, sys/ioctl)
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
-        fprintf(stderr, "usage: %s <port>\n", argv[0]);
+        printf("Usage: %s <port>\n", argv[0]);
         return 1;
     }
     // TODO: socket -> bind -> listen
-    // TODO: đặt non-blocking (ioctl FIONBIO); vòng lặp thử accept + thử recv từng client; usleep khi rảnh
+    // TODO: ioctl(listener, FIONBIO, &io_mode) (xem non_blocking_server.c)
+    // TODO: vòng lặp: thử accept (client mới cũng đặt FIONBIO); thử recv từng client:
+    //       > 0 gửi lại, == 0 close và xoá khỏi mảng, == -1 bỏ qua
     return 0;
 }

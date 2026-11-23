@@ -1,34 +1,7 @@
-"""Sinh test cho inet-addr. Chạy: python judge/judge.py gentests problems/inet-addr"""
-import re
+"""Sinh test cho inet-addr. Chạy: python judge/judge.py gentests problems/inet-addr
 
-OCTET = r"(0|[1-9][0-9]{0,2})"
-IPV4 = re.compile(rf"^{OCTET}\.{OCTET}\.{OCTET}\.{OCTET}$")
-
-
-def classify(line):
-    m = IPV4.match(line)
-    if not m or any(int(g) > 255 for g in m.groups()):
-        return "INVALID"
-    o = [int(g) for g in m.groups()]
-    a = (o[0] << 24) | (o[1] << 16) | (o[2] << 8) | o[3]
-    if o[0] == 127:
-        k = "LOOPBACK"
-    elif o[0] == 10 or (o[0] == 172 and 16 <= o[1] <= 31) or (o[0] == 192 and o[1] == 168):
-        k = "PRIVATE"
-    elif a in (0, 0xFFFFFFFF):
-        k = "SPECIAL"
-    else:
-        k = "PUBLIC"
-    return f"VALID {'.'.join(map(str, o))} 0x{a:08X} {k}"
-
-
-def expected(data):
-    text = data.decode("utf-8", "replace")
-    lines = text.split("\n")
-    if lines and lines[-1] == "":
-        lines.pop()
-    return "".join(classify(l.split("\r")[0]) + "\n" for l in lines)
-
+Không có oracle Python: kết quả do inet_addr/inet_ntoa của glibc quyết định (bát phân, hex, dạng viết tắt,
+khoảng trắng cuối...), nên .out được sinh thẳng từ solution.c (chỉ là lời gọi libc)."""
 
 EDGES = ["126.255.255.255", "127.0.0.0", "127.255.255.255", "128.0.0.0", "9.255.255.255", "10.0.0.0",
          "10.255.255.255", "11.0.0.0", "172.15.255.255", "172.16.0.0", "172.31.255.255", "172.32.0.0",
@@ -36,6 +9,7 @@ EDGES = ["126.255.255.255", "127.0.0.0", "127.255.255.255", "128.0.0.0", "9.255.
          "191.168.0.1", "193.168.0.1", "0.0.0.0", "0.0.0.1", "0.255.255.255", "255.255.255.254",
          "255.255.255.255", "1.0.0.0", "223.255.255.255", "224.0.0.1", "100.64.0.1", "169.254.1.1"]
 
+# Các dạng "lạ": inet_addr nhận một số (10.1, 0x7f.0.0.1, 01.2.3.4, 1.2.3.4 ...) và từ chối số khác.
 INVALID = ["", " ", "01.2.3.4", "1.02.3.4", "1.2.03.4", "1.2.3.04", "00.0.0.0", "000.0.0.0", "10.1", "10",
            "10.1.1", "1.2.3.4.5", "1.2.3.", ".1.2.3", "1..2.3", "1.2..3", " 1.2.3.4", "1.2.3.4 ", "1.2.3.4\t",
            "256.0.0.0", "0.256.0.0", "0.0.0.256", "999.1.1.1", "1000.1.1.1", "1.2.3.1000", "-1.2.3.4",

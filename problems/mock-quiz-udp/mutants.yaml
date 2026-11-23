@@ -34,7 +34,7 @@
 - id: top-tie-wrong
   why: Cùng điểm không xếp theo tên
   replace:
-  - - '    return strcmp(a->name, b->name);'
+  - - '    return strcmp(a->name, b->name) < 0;'
     - '    return 0;'
 - id: top-all
   why: TOP liệt kê mọi người (không giới hạn 3)

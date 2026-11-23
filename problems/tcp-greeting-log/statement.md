@@ -19,7 +19,8 @@ Với **mỗi** client kết nối đến (phục vụ lần lượt từng clie
 - Câu chào có thể rỗng, lớn tới 300 KB, hoặc chứa dữ liệu nhị phân (byte `0x00`, không có `\n` cuối): gửi
   **đúng từng byte** (đừng dùng `fgets`/`strlen`). Tệp có thể bị thay đổi giữa hai client.
 - Dữ liệu client gửi là nhị phân bất kỳ; client không gửi gì thì log không được thêm byte nào.
-- Client có thể gửi dữ liệu trước khi đọc câu chào, gửi từng mảnh nhỏ, hoặc đóng đột ngột (RST).
+- Client có thể gửi dữ liệu trước khi đọc câu chào, gửi từng mảnh nhỏ, hoặc mất kết nối đột ngột (RST) sau khi
+  đã nhận câu chào.
 - Chương trình chạy với giới hạn **256 file descriptor**: bộ chấm cho 300 client lần lượt (nhớ đóng cả tệp câu
   chào lẫn tệp log mỗi lần).
 
@@ -35,4 +36,4 @@ Client 1 kết nối, nhận câu chào, gửi `abc\n` rồi đóng. Client 2 g�
 Khi đó `log.txt` chứa `abc\nxyz\n`.
 
 ## Kiến thức nền
-Đọc/ghi tệp: `fopen` chế độ `"rb"`/`"ab"` (lab07) hoặc `open(..., O_WRONLY|O_CREAT|O_APPEND)` (lab08).
+Đọc/ghi tệp: `fopen` chế độ `"rb"`/`"ab"` (lab07); gửi tệp bằng vòng `fread` → `send` như `html.c`.

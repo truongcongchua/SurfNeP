@@ -19,7 +19,7 @@ typedef struct {
 
 static Client clients[MAX_CLIENTS];
 
-static void send_str(int fd, const char *s) { send(fd, s, strlen(s), MSG_NOSIGNAL); }
+static void send_str(int fd, const char *s) { send(fd, s, strlen(s), 0); }
 
 static int valid_word(const char *s) { return *s && !strchr(s, ' '); }
 

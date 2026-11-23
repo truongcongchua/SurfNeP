@@ -19,7 +19,7 @@ static Client clients[MAX_FD_CLIENTS];
 static Entry table[MAX_KEYS];
 static int nkeys = 0, nclients = 0;
 
-static void reply(int fd, const char *s) { send(fd, s, strlen(s), MSG_NOSIGNAL); }
+static void reply(int fd, const char *s) { send(fd, s, strlen(s), 0); }
 
 static int find(const char *k) {
     for (int i = 0; i < nkeys; i++)

@@ -33,17 +33,14 @@ def test_send_while_server_idle(ctx):
 
 
 @sample
-def test_stdin_eof_then_drain(ctx):
-    """stdin EOF: server thấy EOF, tin cuối của server vẫn được in, client thoát mã 0"""
+def test_stdin_eof_closes(ctx):
+    """stdin EOF: client đóng kết nối (server thấy EOF) và thoát mã 0"""
     cli, conn = start(ctx)
     cli.write("lenh cuoi\n")
     conn.expect_line("lenh cuoi")
     cli.close_stdin()
-    conn.expect_closed(allow_data=True)  # server thấy client đã shutdown(SHUT_WR)
-    conn.send("tam biet\n")
-    conn.close()
-    cli.expect_stdout("tam biet\n", timeout=1.0)
-    code = cli.wait()
+    conn.expect_closed(timeout=1.5, allow_data=True)  # server thấy client đã close()
+    code = cli.wait(timeout=1.5)
     if code != 0:
         raise Fail(WA, f"client phải thoát mã 0, nhận được {code}")
 
@@ -85,7 +82,6 @@ def test_both_sides_at_once(ctx):
     to_client = "".join(f"s{i:05d} " + "y" * (i % 70) + "\n" for i in range(3000))
     conn.send(to_client)
     cli.write(to_server)
-    cli.close_stdin()
     got = b""
     deadline = time.monotonic() + 4
     while len(got) < len(to_server) and time.monotonic() < deadline:
@@ -95,6 +91,7 @@ def test_both_sides_at_once(ctx):
             break
     if got != to_server.encode():
         raise Fail(WA, f"server nhận {len(got)} byte, mong đợi {len(to_server)} byte (hoặc nội dung khác)")
+    cli.expect_stdout(to_client[-20:], timeout=2)
     conn.close()
     cli.wait(timeout=2)
     out = cli.stdout()
@@ -118,13 +115,10 @@ def test_connection_refused(ctx):
 
 @group("edge")
 def test_stdin_eof_immediately(ctx):
-    """stdin rỗng: client shutdown ngay, vẫn in tin server gửi sau đó, server đóng thì thoát 0"""
+    """stdin rỗng: client đóng kết nối ngay và thoát mã 0"""
     cli, conn = start(ctx)
     cli.close_stdin()
     conn.expect_closed(timeout=1.5)
-    conn.send("van nhan duoc\n")
-    cli.expect_stdout("van nhan duoc\n", timeout=1.0)
-    conn.close()
     if cli.wait(timeout=1.5) != 0:
         raise Fail(WA, "client phải thoát mã 0")
 
@@ -228,16 +222,17 @@ def cpu_seconds(pid):
 
 @group("robust")
 @timeout(8)
-def test_no_busy_loop_after_eof(ctx):
-    """stdin EOF rồi server im lặng 1.5 giây: client phải ngủ trong poll, không lặp 100% CPU"""
+def test_no_busy_loop_while_idle(ctx):
+    """stdin mở nhưng im lặng, server cũng im lặng 1.5 giây: client phải ngủ trong select, không lặp 100% CPU"""
     cli, conn = start(ctx)
-    cli.close_stdin()
-    conn.expect_closed(timeout=1.5)
+    cli.write("chao\n")
+    conn.expect_line("chao")
     before = cpu_seconds(cli.proc.pid)
     time.sleep(1.5)
     used = cpu_seconds(cli.proc.pid) - before
     if used > 0.5:
-        raise Fail(WA, f"client dùng {used:.2f}s CPU trong 1.5s chờ — sau EOF phải bỏ stdin khỏi poll (fd = -1)")
+        raise Fail(WA, f"client dùng {used:.2f}s CPU trong 1.5s chờ — hãy chờ trong select() (timeout NULL), "
+                       "đừng lặp thử liên tục")
     conn.send("van nhan\n")
     cli.expect_stdout("van nhan\n")
     conn.close()

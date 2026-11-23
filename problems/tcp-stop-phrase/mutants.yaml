@@ -6,10 +6,10 @@
   replace: [["        kept = total < plen - 1 ? total : plen - 1;", "        kept = total < plen - 2 ? total : plen - 2;"]]
 - id: strstr
   why: "Dùng strstr: dừng ở byte 0x00"
-  replace: [["        if (memmem(buf, total, PHRASE, plen)) {", "        buf[total] = 0;\n        if (strstr(buf, PHRASE)) {"]]
+  replace: [["        if (found) {", "        buf[total] = 0;\n        if (strstr(buf, PHRASE)) {"]]
 - id: case-insensitive
   why: "So khớp không phân biệt hoa thường"
-  replace: [["        if (memmem(buf, total, PHRASE, plen)) {", "        buf[total] = 0;\n        if (strcasestr(buf, PHRASE)) {"]]
+  replace: [["if (memcmp(buf + i, PHRASE, plen) == 0) found = 1;", "if (strncasecmp(buf + i, PHRASE, plen) == 0) found = 1;"], ["#include <string.h>", "#include <string.h>\n#include <strings.h>"]]
 - id: keep-serving-after-bye
   why: "Gửi BYE nhưng không đóng/thoát"
   replace: [["            send(client, \"BYE\\n\", 4, 0);\n            break;", "            send(client, \"BYE\\n\", 4, 0);\n            kept = 0;\n            continue;"]]

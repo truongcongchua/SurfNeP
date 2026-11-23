@@ -1,86 +1,81 @@
-#include <arpa/inet.h>
-#include <math.h>
-#include <stdint.h>
+// Lời giải mẫu theo code mẫu 2-Chap2/tcp_client.c: đóng gói bản ghi thủ công bằng htonl/htons + memcpy.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
 #include <unistd.h>
-
-static int send_all(int fd, const unsigned char *buf, size_t n) {
-    while (n > 0) {
-        ssize_t k = send(fd, buf, n, MSG_NOSIGNAL);
-        if (k <= 0) return -1;
-        buf += k;
-        n -= (size_t)k;
-    }
-    return 0;
-}
-
-// Đọc một dòng từ stdin, bỏ "\n" / "\r\n" cuối. Trả về 0 nếu EOF.
-static int read_line(char *buf, size_t size) {
-    if (!fgets(buf, (int)size, stdin)) return 0;
-    buf[strcspn(buf, "\r\n")] = 0;
-    return 1;
-}
-
-// Đọc một dòng phản hồi từ server (không kèm '\n'). Trả về -1 nếu server đóng.
-static int recv_line(int fd, char *out, size_t size) {
-    size_t n = 0;
-    while (n + 1 < size) {
-        char c;
-        if (recv(fd, &c, 1, 0) <= 0) return -1;
-        if (c == '\n') break;
-        out[n++] = c;
-    }
-    out[n] = 0;
-    return 0;
-}
+#include <arpa/inet.h>
+#include <sys/socket.h>
 
 int main(int argc, char *argv[]) {
     if (argc != 3) {
-        fprintf(stderr, "usage: %s <ip> <port>\n", argv[0]);
+        printf("Usage: %s <ip> <port>\n", argv[0]);
         return 1;
     }
-    struct sockaddr_in sa = {0};
-    sa.sin_family = AF_INET;
-    sa.sin_port = htons((unsigned short)atoi(argv[2]));
-    if (inet_pton(AF_INET, argv[1], &sa.sin_addr) != 1) {
-        fprintf(stderr, "dia chi IP khong hop le\n");
-        return 1;
-    }
-    int s = socket(AF_INET, SOCK_STREAM, 0);
-    if (connect(s, (struct sockaddr *)&sa, sizeof sa) < 0) {
+    int client_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    struct sockaddr_in addr;
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(atoi(argv[2]));
+    addr.sin_addr.s_addr = inet_addr(argv[1]);
+    if (connect(client_socket, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
         perror("connect");
-        return 1;
+        close(client_socket);
+        exit(EXIT_FAILURE);
     }
+
     char mssv_s[64], name[512], dob[64], gpa_s[64];
-    while (read_line(mssv_s, sizeof mssv_s) && read_line(name, sizeof name) &&
-           read_line(dob, sizeof dob) && read_line(gpa_s, sizeof gpa_s)) {
-        unsigned year = 0, month = 0, day = 0;
+    while (fgets(mssv_s, sizeof(mssv_s), stdin) != NULL && fgets(name, sizeof(name), stdin) != NULL &&
+           fgets(dob, sizeof(dob), stdin) != NULL && fgets(gpa_s, sizeof(gpa_s), stdin) != NULL) {
+        // fgets giữ lại "\n" (hoặc "\r\n"): bỏ đi như udp_sender.c
+        mssv_s[strcspn(mssv_s, "\r\n")] = 0;
+        name[strcspn(name, "\r\n")] = 0;
+        dob[strcspn(dob, "\r\n")] = 0;
+        gpa_s[strcspn(gpa_s, "\r\n")] = 0;
+
+        unsigned int mssv = 0, year = 0, month = 0, day = 0;
+        double gpa = 0;
+        sscanf(mssv_s, "%u", &mssv);
         sscanf(dob, "%u-%u-%u", &year, &month, &day);
-        uint32_t mssv = htonl((uint32_t)strtoul(mssv_s, NULL, 10));
-        uint16_t y = htons((uint16_t)year);
-        uint16_t gpa = htons((uint16_t)lround(strtod(gpa_s, NULL) * 100.0));
-        size_t nlen = strlen(name);  // số BYTE, đúng với UTF-8
+        sscanf(gpa_s, "%lf", &gpa);
+        // 3.99 * 100 có thể ra 398.999...: cộng 0.5 rồi mới ép kiểu để làm tròn.
+        unsigned short gpa100 = (unsigned short)(gpa * 100 + 0.5);
+        int nlen = strlen(name);  // số BYTE (UTF-8), không phải số ký tự
 
-        unsigned char rec[4 + 1 + 255 + 6];
-        size_t p = 0;
-        memcpy(rec + p, &mssv, 4), p += 4;
-        rec[p++] = (unsigned char)nlen;
-        memcpy(rec + p, name, nlen), p += nlen;
-        memcpy(rec + p, &y, 2), p += 2;
-        rec[p++] = (unsigned char)month;
-        rec[p++] = (unsigned char)day;
-        memcpy(rec + p, &gpa, 2), p += 2;
-        if (send_all(s, rec, p) < 0) break;
+        // Ghép từng trường vào mảng byte (không gửi thẳng struct: padding + thứ tự host).
+        unsigned int net_mssv = htonl(mssv);
+        unsigned short net_year = htons(year);
+        unsigned short net_gpa = htons(gpa100);
+        unsigned char record[4 + 1 + 255 + 6];
+        int p = 0;
+        memcpy(record + p, &net_mssv, 4);
+        p += 4;
+        record[p++] = nlen;
+        memcpy(record + p, name, nlen);
+        p += nlen;
+        memcpy(record + p, &net_year, 2);
+        p += 2;
+        record[p++] = month;
+        record[p++] = day;
+        memcpy(record + p, &net_gpa, 2);
+        p += 2;
+        if (send(client_socket, record, p, 0) == -1) break;
 
+        // Đọc một dòng phản hồi: có thể đến từng byte, nên recv từng byte tới khi gặp '\n'.
         char reply[128];
-        if (recv_line(s, reply, sizeof reply) < 0) break;
+        int n = 0, closed = 0;
+        while (n < (int)sizeof(reply) - 1) {
+            char c;
+            if (recv(client_socket, &c, 1, 0) <= 0) {
+                closed = 1;
+                break;
+            }
+            if (c == '\n') break;
+            reply[n++] = c;
+        }
+        if (closed) break;  // server đóng mà không trả lời
+        reply[n] = 0;
         printf("%s\n", reply);
-        fflush(stdout);
-        if (strcmp(reply, "OK") != 0) break;
+        if (strcmp(reply, "OK") != 0) break;  // ERROR: server sẽ đóng kết nối
     }
-    close(s);
+    close(client_socket);
     return 0;
 }

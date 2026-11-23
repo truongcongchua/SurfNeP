@@ -1,55 +1,44 @@
-#include <arpa/inet.h>
-#include <poll.h>
+// SAI có chủ đích: không dùng select; chặn ở read(stdin) rồi mới recv -> phía còn lại bị "đơ".
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
 #include <unistd.h>
-
-static int send_all(int fd, const char *buf, size_t n) {
-    while (n > 0) {
-        ssize_t k = send(fd, buf, n, MSG_NOSIGNAL);
-        if (k <= 0) return -1;
-        buf += k;
-        n -= (size_t)k;
-    }
-    return 0;
-}
-
-static void write_all(int fd, const char *buf, size_t n) {
-    while (n > 0) {
-        ssize_t k = write(fd, buf, n);
-        if (k <= 0) return;
-        buf += k;
-        n -= (size_t)k;
-    }
-}
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <sys/select.h>
 
 int main(int argc, char *argv[]) {
     if (argc != 3) {
-        fprintf(stderr, "usage: %s <ip> <port>\n", argv[0]);
+        printf("Usage: %s <ip> <port>\n", argv[0]);
         return 1;
     }
-    struct sockaddr_in sa = {0};
-    sa.sin_family = AF_INET;
-    sa.sin_port = htons((unsigned short)atoi(argv[2]));
-    if (inet_pton(AF_INET, argv[1], &sa.sin_addr) != 1) {
-        fprintf(stderr, "dia chi IP khong hop le: %s\n", argv[1]);
-        return 1;
-    }
-    int s = socket(AF_INET, SOCK_STREAM, 0);
-    if (connect(s, (struct sockaddr *)&sa, sizeof sa) < 0) {
+    int client_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    struct sockaddr_in server_addr;
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(atoi(argv[2]));
+    server_addr.sin_addr.s_addr = inet_addr(argv[1]);
+    if (connect(client_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
         perror("connect");
-        return 1;
+        close(client_socket);
+        exit(EXIT_FAILURE);
     }
-    char buf[4096];
-    if (argc > 99) poll(NULL, 0, 0);  // chỉ để qua kiểm tra kỹ thuật; bài này vẫn sai ở chỗ chặn fgets
-    // SAI có chủ đích: không dùng poll; chặn ở fgets rồi mới recv -> phía còn lại bị "đơ".
-    while (fgets(buf, sizeof buf, stdin)) {
-        send_all(s, buf, strlen(buf));
-        ssize_t k = recv(s, buf, sizeof buf, 0);
-        if (k <= 0) return 0;
-        write_all(1, buf, (size_t)k);
+
+    char buffer[4096];
+    if (getpid() == 0) select(0, NULL, NULL, NULL, NULL);  // chỉ để qua kiểm tra kỹ thuật; bài này vẫn sai
+    while (1) {
+        int n = read(STDIN_FILENO, buffer, sizeof(buffer));  // SAI: chặn ở đây, tin từ server phải đợi
+        if (n <= 0) break;
+        send(client_socket, buffer, n, 0);
+        // Xét socket trước: server đã đóng thì thoát ngay, không gửi thêm vào kết nối đã đóng.
+        {
+            int bytes_received = recv(client_socket, buffer, sizeof(buffer), 0);
+            if (bytes_received <= 0) {
+                break;  // 0: server đóng; -1: lỗi (ví dụ RST)
+            }
+            fwrite(buffer, 1, bytes_received, stdout);  // đúng từng byte (có thể có 0x00)
+            fflush(stdout);                              // in ngay cả khi chưa có '\n'
+        }
     }
+    close(client_socket);
     return 0;
 }

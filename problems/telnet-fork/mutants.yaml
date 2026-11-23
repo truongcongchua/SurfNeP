@@ -57,7 +57,7 @@
 - id: reap-only-one
   why: Handler chỉ waitpid một lần
   replace:
-  - - "while (waitpid(-1, NULL, WNOHANG) > 0) {\n    }"
+  - - "while (waitpid(-1, NULL, WNOHANG) > 0);"
     - waitpid(-1, NULL, WNOHANG);
 - id: parent-keeps-fd
   why: Cha không đóng socket client sau fork

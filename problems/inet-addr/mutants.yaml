@@ -19,9 +19,15 @@
 - id: keep-cr
   why: "Chỉ cắt \\n, giữ lại \\r của dòng CRLF"
   replace: [['line[strcspn(line, "\r\n")] = 0;', 'line[strcspn(line, "\n")] = 0;']]
-- id: inet-aton
-  why: "Dùng inet_aton (dễ dãi: nhận 10.1, 0x7f.0.0.1, số bát phân)"
-  replace: [["inet_pton(AF_INET, line, &in) != 1", "inet_aton(line, &in) == 0"]]
+- id: no-255-special-case
+  why: "Coi mọi INADDR_NONE là lỗi: địa chỉ hợp lệ 255.255.255.255 thành INVALID"
+  replace: [["if (in.s_addr == INADDR_NONE && strcmp(line, \"255.255.255.255\") != 0) {", "if (in.s_addr == INADDR_NONE) {"]]
+- id: zero-is-invalid
+  why: "Coi giá trị 0 là lỗi (nhầm với inet_aton trả 0): 0.0.0.0 thành INVALID"
+  replace: [["if (in.s_addr == INADDR_NONE && strcmp(line, \"255.255.255.255\") != 0) {", "if (in.s_addr == 0 || (in.s_addr == INADDR_NONE && strcmp(line, \"255.255.255.255\") != 0)) {"]]
+- id: echo-input
+  why: "In lại xâu đầu vào thay vì inet_ntoa (10.1 phải in 10.0.0.1)"
+  replace: [["inet_ntoa(in), host, kind(host)", "line, host, kind(host)"]]
 - id: line-buffer-15
   why: "Bộ đệm vừa khít 15 ký tự: không còn chỗ cho \\n nên dòng dài nhất bị cắt làm hai"
   replace: [["char line[256];", "char line[16];"]]

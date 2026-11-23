@@ -29,9 +29,11 @@ server gửi: 00 00 00 05 'H' 'E' 'L' 'L' 'O'
 - Thông điệp rỗng (`L = 0`), mọi kích thước quanh ranh giới bộ đệm, và lớn nhất 65536 byte chứa dữ liệu nhị phân
   (đủ 256 giá trị byte; chỉ `a`–`z` được đổi).
 - `L` là số **không dấu** 32 bit: `L = 65537`, `0x80000000`, `0xFFFFFFFF` đều phải đóng kết nối (đừng đọc vào `int`).
-- Client có thể đóng giữa chừng (thiếu header hoặc thiếu dữ liệu), `shutdown(SHUT_WR)`, hoặc RST khi server
-  đang gửi. Chương trình chạy với giới hạn 256 file descriptor; bộ chấm cho 300 client lần lượt.
+- Client có thể đóng giữa chừng (thiếu header hoặc thiếu dữ liệu) hoặc ngừng gửi (`shutdown`) rồi chờ đọc.
+  Chương trình chạy với giới hạn 256 file descriptor; bộ chấm cho 300 client lần lượt.
 
 ## Gợi ý
-Viết hàm `recv_exact(fd, buf, n)`: lặp `recv` cho đến khi đủ `n` byte. Đọc 4 byte, `ntohl`, rồi
-`recv_exact` thêm `L` byte.
+Khác `tcp_server.c` (gọi `recv` một lần): một lần `recv` có thể trả về **ít hơn** số byte bạn xin. Hãy gọi
+`recv` trong vòng lặp, cộng dồn số byte đã nhận, tới khi đủ 4 byte độ dài; `ntohl` ra `L` (kiểu
+`unsigned int`), rồi lại lặp `recv` tới khi đủ `L` byte. `send` trên socket blocking tự chờ gửi hết nên
+gọi một lần là đủ.

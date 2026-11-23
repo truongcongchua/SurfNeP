@@ -1,21 +1,18 @@
-# Bản sai sinh từ solution.c; xem docs/TEST-DESIGN.md
-- id: no-shutdown
-  why: 'stdin EOF thì close luôn thay vì shutdown(SHUT_WR): mất tin cuối của server'
-  replace:
-  - - "                shutdown(s, SHUT_WR);\n                fds[0].fd = -1;  // poll bỏ qua fd âm"
-    - "                close(s);\n                return 0;"
-- id: stdin-eof-spin
-  why: EOF stdin nhưng không bỏ theo dõi stdin (lặp vô hạn, vẫn chạy được nhưng 100% CPU)
-  replace:
-  - - '                fds[0].fd = -1;  // poll bỏ qua fd âm'
-    - '                ;'
-- id: stdout-printf-unflushed
-  why: In bằng fwrite ra stdout có đệm, không fflush
-  replace:
-  - - '            write_all(1, buf, (size_t)k);'
-    - '            fwrite(buf, 1, (size_t)k, stdout);'
+- id: eof-ignored
+  why: "stdin EOF (read trả 0) mà vẫn theo dõi stdin: lặp vô hạn 100% CPU, không bao giờ đóng kết nối"
+  replace: [["            if (n <= 0) {\n                break;  // EOF (Ctrl+D): đóng kết nối và thoát\n            }", "            if (n <= 0) {\n                continue;\n            }"]]
+- id: stdout-unflushed
+  why: "fwrite ra stdout có đệm mà không fflush: phần dòng chưa có '\\n' không hiện ra ngay"
+  replace: [["            fflush(stdout);                              // in ngay cả khi chưa có '\\n'\n", ""]]
 - id: strlen-stdout
   why: 'In tin bằng printf("%s"): mất byte sau 0x00'
-  replace:
-  - - '            write_all(1, buf, (size_t)k);'
-    - "            buf[k < 4096 ? k : 4095] = 0;\n            write_all(1, buf, strlen(buf));"
+  replace: [["            fwrite(buffer, 1, bytes_received, stdout);  // đúng từng byte (có thể có 0x00)", "            buffer[bytes_received < 4096 ? bytes_received : 4095] = 0;\n            printf(\"%s\", buffer);"]]
+- id: fgets-stdin
+  why: "Đọc stdin bằng fgets: nửa dòng chưa có '\\n' không được gửi, mất byte sau 0x00"
+  replace: [["            int n = read(STDIN_FILENO, buffer, sizeof(buffer));", "            int n = fgets(buffer, sizeof(buffer), stdin) ? (int)strlen(buffer) : 0;"]]
+- id: server-close-not-handled
+  why: "recv trả 0 (server đóng) mà không thoát"
+  replace: [["            if (bytes_received <= 0) {\n                break;  // 0: server đóng; -1: lỗi (ví dụ RST)\n            }", "            if (bytes_received < 0) {\n                break;\n            }"]]
+- id: max-fd-wrong
+  why: "Gọi select(max_fd, ...) thay vì max_fd + 1: không bao giờ thấy dữ liệu từ socket"
+  replace: [["select(max_fd + 1, &read_fds, NULL, NULL, NULL)", "select(max_fd, &read_fds, NULL, NULL, NULL)"]]

@@ -1,68 +1,69 @@
-#include <arpa/inet.h>
-#include <stdint.h>
+// Lời giải mẫu: server lặp như tcp_server.c; mỗi thông điệp = 4 byte độ dài (thứ tự mạng) + dữ liệu.
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/socket.h>
+#include <string.h>
 #include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
 
 #define MAX_LEN 65536
 
-static int recv_exact(int fd, void *buf, size_t n) {
-    char *p = buf;
-    while (n > 0) {
-        ssize_t k = recv(fd, p, n, 0);
-        if (k <= 0) return -1;
-        p += k;
-        n -= (size_t)k;
-    }
-    return 0;
-}
+unsigned char data[MAX_LEN];
 
-static int send_all(int fd, const void *buf, size_t n) {
-    const char *p = buf;
-    while (n > 0) {
-        ssize_t k = send(fd, p, n, MSG_NOSIGNAL);
-        if (k <= 0) return -1;
-        p += k;
-        n -= (size_t)k;
-    }
-    return 0;
-}
+void serve(int client) {
+    while (0 == 0) {
+        // 1. Đọc đủ 4 byte độ dài: recv có thể trả về ít hơn số byte yêu cầu, nên phải lặp.
+        unsigned int netlen;
+        int got = 0;
+        while (got < 4) {
+            int k = recv(client, (char *)&netlen + got, 4 - got, 0);
+            if (k <= 0) return;  // client đóng hoặc lỗi
+            got += k;
+        }
+        unsigned int len = ntohl(netlen);  // số không dấu: 0xFFFFFFFF không thành số âm
+        if (len > MAX_LEN) return;         // sai giao thức: đóng kết nối
 
-static void serve(int c) {
-    static unsigned char data[MAX_LEN];
-    for (;;) {
-        uint32_t netlen;
-        if (recv_exact(c, &netlen, 4) < 0) return;
-        uint32_t len = ntohl(netlen);
-        if (len > MAX_LEN) return;
-        if (recv_exact(c, data, len) < 0) return;
-        for (uint32_t i = 0; i < len; i++)
-            if (data[i] >= 'a' && data[i] <= 'z') data[i] -= 32;
-        if (send_all(c, &netlen, 4) < 0 || send_all(c, data, len) < 0) return;
+        // 2. Đọc đủ len byte dữ liệu, cũng bằng vòng lặp.
+        unsigned int have = 0;
+        while (have < len) {
+            int k = recv(client, data + have, len - have, 0);
+            if (k <= 0) return;
+            have += k;
+        }
+
+        for (unsigned int i = 0; i < len; i++)
+            if (data[i] >= 'a' && data[i] <= 'z') data[i] = data[i] - 'a' + 'A';
+
+        // 3. Gửi lại cùng định dạng (socket blocking: send chờ tới khi gửi hết).
+        send(client, &netlen, 4, 0);
+        if (len > 0) send(client, data, len, 0);
     }
 }
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
-        fprintf(stderr, "usage: %s <port>\n", argv[0]);
+        printf("Usage: %s <port>\n", argv[0]);
         return 1;
     }
-    int ls = socket(AF_INET, SOCK_STREAM, 0);
-    int yes = 1;
-    setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes);
-    struct sockaddr_in addr = {0};
+    int listener = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    int opt = 1;
+    setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    struct sockaddr_in addr;
     addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = htonl(INADDR_ANY);
     addr.sin_port = htons(atoi(argv[1]));
-    if (bind(ls, (struct sockaddr *)&addr, sizeof addr) < 0 || listen(ls, 5) < 0) {
-        perror("bind/listen");
+    addr.sin_addr.s_addr = INADDR_ANY;
+    if (bind(listener, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+        perror("bind() failed");
         return 1;
     }
-    for (;;) {
-        int c = accept(ls, NULL, NULL);
-        if (c < 0) continue;
-        serve(c);
-        close(c);
+    if (listen(listener, 5) == -1) {
+        perror("listen() failed");
+        return 1;
+    }
+    while (0 == 0) {
+        int client = accept(listener, NULL, NULL);
+        if (client == -1) continue;
+        serve(client);
+        close(client);
     }
 }

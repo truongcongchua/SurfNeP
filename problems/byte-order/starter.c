@@ -1,7 +1,4 @@
-#include <arpa/inet.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
+// TODO: tự #include các thư viện cần dùng (gợi ý: arpa/inet, stdint, stdio, string)
 
 int main(void) {
     char line[256];

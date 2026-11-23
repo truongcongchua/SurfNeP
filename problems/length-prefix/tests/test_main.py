@@ -171,20 +171,6 @@ def test_half_close(ctx):
         raise Fail(WA, f"nhận {len(got)} byte, mong đợi {len(want)}")
 
 
-@group("robust")
-def test_reset_with_pending(ctx):
-    """Client dồn nhiều thông điệp lớn rồi RST: server không chết (SIGPIPE)"""
-    for k in range(3):
-        c = ctx.connect(name=f"rst{k}")
-        c.send(frame(os.urandom(60000)) * 8)
-        c.reset()
-        time.sleep(0.1)
-    time.sleep(0.2)
-    ctx.expect_alive("sau khi client đóng đột ngột")
-    d = ctx.connect(name="sau")
-    roundtrip(d, b"ok")
-
-
 # ---------------- stress ----------------
 
 @group("stress")

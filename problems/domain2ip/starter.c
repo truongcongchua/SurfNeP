@@ -1,7 +1,4 @@
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <stdio.h>
-#include <string.h>
+// TODO: tự #include các thư viện cần dùng (gợi ý: arpa/inet, netdb, stdio, string)
 
 int main(void) {
     char name[512];

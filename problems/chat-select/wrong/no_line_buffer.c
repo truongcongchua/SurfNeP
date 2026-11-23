@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
             }
             char m[1200]; snprintf(m, sizeof m, "%s: %s\n", ids[i], buf);
             for (int j = 0; j < MAX; j++)
-                if (j != i && fds[j] >= 0 && ids[j][0]) send(fds[j], m, strlen(m), MSG_NOSIGNAL);
+                if (j != i && fds[j] >= 0 && ids[j][0]) send(fds[j], m, strlen(m), 0);
         }
     }
 }

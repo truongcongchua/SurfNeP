@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
         for (int i = 0; i < n; i++) {
             char buf[8192];
             ssize_t k = recv(cl[i], buf, sizeof buf, 0);
-            if (k > 0) send(cl[i], buf, (size_t)k, MSG_NOSIGNAL);
+            if (k > 0) send(cl[i], buf, (size_t)k, 0);
             else { close(cl[i]); cl[i--] = cl[--n]; }
         }
         usleep(1000);

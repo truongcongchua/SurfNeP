@@ -1,20 +1,13 @@
-#include <arpa/inet.h>
-#include <math.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <unistd.h>
+// TODO: tự #include các thư viện cần dùng (gợi ý: stdio, stdlib, string, unistd, arpa/inet, sys/socket)
 
 int main(int argc, char *argv[]) {
     if (argc != 3) {
-        fprintf(stderr, "usage: %s <ip> <port>\n", argv[0]);
+        printf("Usage: %s <ip> <port>\n", argv[0]);
         return 1;
     }
-    // TODO: socket + connect (lỗi -> stderr + return 1)
-    // TODO: lặp: đọc 4 dòng (MSSV, họ tên, ngày sinh, điểm); bỏ '\n' cuối mỗi dòng; EOF -> thoát
-    // TODO: ghép bản ghi vào mảng unsigned char (htonl/htons), send một lần
-    // TODO: đọc một dòng phản hồi, in ra stdout rồi fflush; "ERROR" -> dừng
+    // TODO: socket, inet_addr, connect như tcp_client.c (lỗi -> perror + thoát mã khác 0)
+    // TODO: lặp: fgets 4 dòng (MSSV, họ tên, ngày sinh, điểm), bỏ "\r\n" cuối bằng strcspn; EOF -> thoát
+    // TODO: sscanf từng trường; ghép bản ghi vào mảng unsigned char (htonl/htons + memcpy), send một lần
+    // TODO: recv từng byte tới '\n' để lấy một dòng phản hồi, printf ra stdout; "ERROR" -> dừng
     return 0;
 }

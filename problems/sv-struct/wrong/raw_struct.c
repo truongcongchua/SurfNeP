@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
             fprintf(f, "127.0.0.1 2000-01-01 00:00:00 %u %.*s %u-%02u-%02u %u.%02u\n", r.mssv, r.nlen,
                     r.name, r.year, r.m, r.d, r.gpa / 100, r.gpa % 100);
             fclose(f);
-            send(c, "OK\n", 3, MSG_NOSIGNAL);
+            send(c, "OK\n", 3, 0);
         }
         close(c);
     }

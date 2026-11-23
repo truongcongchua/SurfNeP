@@ -1,12 +1,6 @@
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/select.h>
-#include <sys/socket.h>
-#include <unistd.h>
+// TODO: tự #include các thư viện cần dùng (gợi ý: arpa/inet, stdio, stdlib, string, sys/select, sys/socket, unistd)
 
-// Gợi ý cấu trúc dữ liệu — có thể đổi tuỳ kỹ thuật bạn chọn (select / poll / pthread).
+// Gợi ý cấu trúc dữ liệu — có thể đổi tuỳ kỹ thuật bạn chọn (select / pthread).
 #define BUF_SIZE 4096
 #define MAX_KEYS 1000
 #define KLEN 65

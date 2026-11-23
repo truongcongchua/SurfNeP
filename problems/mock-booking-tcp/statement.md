@@ -6,7 +6,7 @@ Viết server đặt ghế cho một buổi chiếu phim: `./server <cổng> <N>
 - `N` (1 ≤ N ≤ 50): số client **kết nối đồng thời** tối đa.
 - `S` (1 ≤ S ≤ 100): số ghế, đánh số `1 … S`, ban đầu đều trống.
 
-Được dùng bất kỳ kỹ thuật nào: `select`/`poll`, đa luồng (nhớ mutex), v.v.
+Được dùng bất kỳ kỹ thuật nào trong code mẫu: `select`, đa luồng (nhớ mutex), v.v.
 
 ## Kết nối
 - Đang có ít hơn `N` client: gửi `WELCOME`. Ngược lại gửi `FULL` và đóng kết nối đó.
@@ -49,5 +49,5 @@ A: MINE                 ← MINE 1 2
 - Lệnh có thể bị cắt vụn từng byte, hoặc hàng trăm lệnh dính nhau trong một lần gửi.
 - Nhiều client có thể **cùng lúc** tranh một ghế: mỗi ghế chỉ có đúng một chủ.
 - Kết nối mới luôn ở trạng thái **chưa LOGIN**, kể cả khi dùng lại chỗ của client cũ.
-- Client có thể mất kết nối đột ngột (RST) khi server đang gửi; chương trình chạy với giới hạn 256 file
+- Client có thể mất kết nối đột ngột (RST); chương trình chạy với giới hạn 256 file
   descriptor, bộ chấm cho 300 kết nối vào-ra và 300 kết nối bị `FULL`.

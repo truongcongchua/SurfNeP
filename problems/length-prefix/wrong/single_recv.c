@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
             if (len > 65536) break;
             for (uint32_t i = 4; i < 4 + len && i < (uint32_t)n; i++)
                 if (buf[i] >= 'a' && buf[i] <= 'z') buf[i] -= 32;
-            send(c, buf, 4 + len, MSG_NOSIGNAL);
+            send(c, buf, 4 + len, 0);
         }
         close(c);
     }

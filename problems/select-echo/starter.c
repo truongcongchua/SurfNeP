@@ -1,17 +1,12 @@
-#include <arpa/inet.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/socket.h>
-#include <unistd.h>
-#include <sys/select.h>
+// TODO: tự #include các thư viện cần dùng (gợi ý: stdio, stdlib, string, unistd, arpa/inet, sys/socket, sys/select)
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
-        fprintf(stderr, "usage: %s <port>\n", argv[0]);
+        printf("Usage: %s <port>\n", argv[0]);
         return 1;
     }
     // TODO: socket -> bind -> listen
-    // TODO: vòng lặp select(): dựng lại fd_set mỗi vòng, accept client mới, echo cho client có dữ liệu
+    // TODO: vòng lặp select() (xem select_server.c): dựng lại fd_set mỗi vòng, accept client mới,
+    //       recv rồi send lại cho client có dữ liệu; recv <= 0 thì close và xoá khỏi danh sách
     return 0;
 }

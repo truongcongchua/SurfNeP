@@ -63,10 +63,10 @@ static int parse_index(const char *s) {
     return i >= 1 && i <= nq ? i : 0;
 }
 
-static int cmp_rank(const void *x, const void *y) {
-    const Player *a = *(Player *const *)x, *b = *(Player *const *)y;
-    if (a->correct != b->correct) return b->correct - a->correct;
-    return strcmp(a->name, b->name);
+// a xếp trước b? Nhiều câu đúng hơn trước; bằng nhau thì tên nhỏ hơn (strcmp) trước.
+static int ranks_before(const Player *a, const Player *b) {
+    if (a->correct != b->correct) return a->correct > b->correct;
+    return strcmp(a->name, b->name) < 0;
 }
 
 static void handle(char *req, const struct sockaddr_in *from, char *out, size_t cap) {
@@ -125,7 +125,13 @@ static void handle(char *req, const struct sockaddr_in *from, char *out, size_t 
         int n = 0;
         for (int i = 0; i < MAX_PLAYERS; i++)
             if (pl[i].used) rank[n++] = &pl[i];
-        qsort(rank, (size_t)n, sizeof rank[0], cmp_rank);
+        for (int i = 0; i < n; i++)  // sắp xếp chọn
+            for (int j = i + 1; j < n; j++)
+                if (ranks_before(rank[j], rank[i])) {
+                    Player *t = rank[i];
+                    rank[i] = rank[j];
+                    rank[j] = t;
+                }
         size_t len = (size_t)snprintf(out, cap, "TOP");
         for (int i = 0; i < n && i < 3; i++)
             len += (size_t)snprintf(out + len, cap - len, " %s:%d", rank[i]->name, rank[i]->correct);

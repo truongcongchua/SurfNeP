@@ -1,20 +1,13 @@
-#include <arpa/inet.h>
-#include <poll.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <unistd.h>
+// TODO: tự #include các thư viện cần dùng (gợi ý: stdio, stdlib, string, unistd, arpa/inet, sys/socket, sys/select)
 
 int main(int argc, char *argv[]) {
     if (argc != 3) {
-        fprintf(stderr, "usage: %s <ip> <port>\n", argv[0]);
+        printf("Usage: %s <ip> <port>\n", argv[0]);
         return 1;
     }
-    // TODO: socket + connect (lỗi -> stderr + return 1)
-    // TODO: struct pollfd fds[2] = { {0 (stdin), POLLIN}, {sock, POLLIN} };
-    // TODO: vòng lặp poll():
-    //   - stdin sẵn sàng: read -> send cho server; read trả 0 (EOF) -> shutdown(SHUT_WR), ngừng theo dõi stdin
-    //   - socket sẵn sàng: recv -> write(1, ...) ngay; recv trả 0 -> return 0
+    // TODO: socket, inet_addr, connect như tcp_client.c (lỗi -> perror + thoát mã khác 0)
+    // TODO: vòng lặp select() như select_client.c (FD_SET stdin và socket mỗi vòng, timeout NULL):
+    //   - socket sẵn sàng: recv -> fwrite ra stdout + fflush; recv <= 0 -> đóng, thoát mã 0
+    //   - stdin sẵn sàng: read(STDIN_FILENO, ...) -> send đúng số byte; read trả 0 (EOF) -> đóng, thoát mã 0
     return 0;
 }

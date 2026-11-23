@@ -3,7 +3,7 @@ title: TCP echo server
 difficulty: easy
 chapter: 2
 topics: [TCP]
-prerequisites: [inet-addr]
+prerequisites: [tcp-echo-once]
 ref: "Lecture notes §2.3 (tr.22); code mẫu 2-Chap2/tcp_server.c"
 type: server
 args: ["{port}"]

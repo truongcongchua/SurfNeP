@@ -1,11 +1,4 @@
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <pthread.h>
-#include <stdint.h>
-#include <sys/socket.h>
-#include <unistd.h>
+// TODO: tự #include các thư viện cần dùng (gợi ý: arpa/inet, stdio, stdlib, string, pthread, stdint, sys/socket, unistd)
 
 #define MAX_CLIENTS 64
 #define BUF_SIZE 4096

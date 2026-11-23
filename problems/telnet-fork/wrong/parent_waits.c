@@ -1,6 +1,5 @@
-// SAI có chủ đích: cha chờ con xong mới accept tiếp (waitpid ngay sau fork) -> BLOCKED.
+// SAI có chủ đích: cha wait() con ngay sau fork -> chỉ phục vụ được một client mỗi lúc.
 #include <arpa/inet.h>
-#include <errno.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,25 +10,12 @@
 
 #define BUF_SIZE 4096
 
-static void reap(int sig) {
-    (void)sig;
-    int saved = errno;
-    while (waitpid(-1, NULL, WNOHANG) > 0) {
-    }
-    errno = saved;
+// Như forking_server.c: thu dọn MỌI tiến trình con đã kết thúc.
+void signal_handler(int signum) {
+    while (waitpid(-1, NULL, WNOHANG) > 0);
 }
 
-static int send_all(int fd, const char *buf, size_t n) {
-    while (n > 0) {
-        ssize_t k = send(fd, buf, n, MSG_NOSIGNAL);
-        if (k <= 0) return -1;
-        buf += k;
-        n -= (size_t)k;
-    }
-    return 0;
-}
-
-static void send_str(int fd, const char *s) { send_all(fd, s, strlen(s)); }
+static void send_str(int fd, const char *s) { send(fd, s, strlen(s), 0); }
 
 // "user pass" (đúng một dấu cách) có trong accounts.txt?
 static int check_login(const char *line) {
@@ -50,7 +36,12 @@ static int check_login(const char *line) {
 static void run_command(int c, const char *cmd) {
     char out[64], shell[BUF_SIZE + 128];
     snprintf(out, sizeof out, "out_%d.txt", (int)getpid());
-    snprintf(shell, sizeof shell, "%s > %s 2>&1", cmd, out);
+    if (!*cmd) {  // dòng rỗng: không có gì để chạy
+        send_str(c, "OUTPUT 0\n");
+        return;
+    }
+    // Bọc cả dòng trong { ...; } để gom kết quả của MỌI lệnh trên dòng (echo a; echo b, a | b...).
+    snprintf(shell, sizeof shell, "{ %s\n} > %s 2>&1", cmd, out);
     system(shell);
     FILE *f = fopen(out, "rb");
     char *data = NULL;
@@ -67,7 +58,7 @@ static void run_command(int c, const char *cmd) {
     char head[64];
     snprintf(head, sizeof head, "OUTPUT %zu\n", len);
     send_str(c, head);
-    if (len) send_all(c, data, len);
+    if (len) send(c, data, len, 0);  // socket blocking: send chờ tới khi gửi hết
     free(data);
 }
 
@@ -106,10 +97,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "usage: %s <port>\n", argv[0]);
         return 1;
     }
-    struct sigaction sa = {0};
-    sa.sa_handler = reap;
-    sa.sa_flags = SA_RESTART;
-    sigaction(SIGCHLD, &sa, NULL);
+    signal(SIGCHLD, signal_handler);
 
     int ls = socket(AF_INET, SOCK_STREAM, 0);
     int yes = 1;
@@ -127,15 +115,11 @@ int main(int argc, char *argv[]) {
         if (c < 0) continue;
         if (fork() == 0) {
             close(ls);
-            // Trong tiến trình con: trả SIGCHLD về mặc định, nếu không handler reap()
-            // sẽ "cướp" tiến trình con của system() và system() trả về lỗi.
-            signal(SIGCHLD, SIG_DFL);
             session(c);
             close(c);
             _exit(0);
         }
         close(c);
-        while (wait(NULL) > 0) {
-        }
+        while (wait(NULL) > 0);
     }
 }

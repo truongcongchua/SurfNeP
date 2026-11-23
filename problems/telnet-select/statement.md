@@ -38,8 +38,7 @@ OUTPUT <n>\n
 - `n` là **số byte thật** của kết quả: kết quả có thể chứa byte `0x00` (không dùng `strlen`), có thể rỗng, hoặc
   lớn tới vài MB.
 - Lệnh có thể đến từng byte một, hoặc dòng đăng nhập + hàng chục lệnh dính nhau trong một lần gửi.
-- Client có thể đóng đột ngột (RST) khi server đang gửi kết quả. Chương trình chạy với giới hạn 256 file
-  descriptor: bộ chấm thử 300 lần đăng nhập sai và 300 phiên liên tiếp (nhớ `fclose`/`close`).
+- Chương trình chạy với giới hạn 256 file descriptor: bộ chấm thử 300 lần đăng nhập sai và 300 phiên liên tiếp (nhớ `fclose`/`close`).
 
 ## Gợi ý
 - Như lecture notes: `system("{ <lệnh>\n} > out.txt 2>&1")` rồi đọc tệp. Mỗi client nên dùng **tên tệp

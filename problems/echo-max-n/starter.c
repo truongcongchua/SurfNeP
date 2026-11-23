@@ -1,14 +1,8 @@
-#include <arpa/inet.h>
-#include <poll.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <unistd.h>
+// TODO: tự #include các thư viện cần dùng (gợi ý: stdio, stdlib, string, unistd, arpa/inet, sys/socket, sys/select)
 
 #define BUF_SIZE 4096
 
-// Gợi ý: mỗi client một bộ đệm dòng riêng. Có thể đổi sang select hoặc pthread tuỳ ý.
+// Gợi ý: dùng select() như select_server.c (hoặc pthread); mỗi client một bộ đệm dòng riêng.
 typedef struct { int fd; char buf[BUF_SIZE]; size_t len; } Client;
 
 int main(int argc, char *argv[]) {

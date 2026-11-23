@@ -1,5 +1,4 @@
 // Lời giải mẫu: giữ lại (len-1) byte cuối của lần nhận trước để bắt chuỗi vắt qua ranh giới.
-#define _GNU_SOURCE  // memmem
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,7 +38,11 @@ int main(int argc, char *argv[]) {
         if (n <= 0)
             break;
         size_t total = kept + (size_t)n;
-        if (memmem(buf, total, PHRASE, plen)) {
+        // Tìm PHRASE trong total byte đầu của buf. Không dùng strstr: dữ liệu có thể chứa byte 0x00.
+        int found = 0;
+        for (size_t i = 0; i + plen <= total && !found; i++)
+            if (memcmp(buf + i, PHRASE, plen) == 0) found = 1;
+        if (found) {
             send(client, "BYE\n", 4, 0);
             break;
         }

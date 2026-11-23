@@ -1,5 +1,4 @@
 #include <arpa/inet.h>
-#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,13 +21,26 @@ static Peer *lookup(const struct sockaddr_in *a) {
     return &peers[npeers++];
 }
 
-// Đọc số nguyên chiếm trọn xâu s. Trả về 1 nếu hợp lệ.
+// Đọc số nguyên chiếm trọn xâu s: '-' tùy chọn rồi ít nhất một chữ số, nằm trong khoảng int64.
+// Trả về 1 nếu hợp lệ.
 static int parse_ll(const char *s, long long *out) {
+    int neg = 0;
+    if (*s == '-') {
+        neg = 1;
+        s++;
+    }
     if (!*s) return 0;
-    char *end;
-    errno = 0;
-    *out = strtoll(s, &end, 10);
-    return *end == 0 && errno == 0 && s[0] != ' ' && s[0] != '+';
+    // Cộng dồn trị tuyệt đối; giới hạn là 9223372036854775807 (dương) hoặc ...808 (âm).
+    unsigned long long limit = neg ? 9223372036854775808ULL : 9223372036854775807ULL;
+    unsigned long long v = 0;
+    for (; *s; s++) {
+        if (*s < '0' || *s > '9') return 0;
+        int d = *s - '0';
+        if (v > (limit - d) / 10) return 0;  // v * 10 + d sẽ vượt giới hạn
+        v = v * 10 + d;
+    }
+    *out = neg ? (long long)(0 - v) : (long long)v;
+    return 1;
 }
 
 static void handle(const char *req, Peer *p, char *out, size_t cap) {

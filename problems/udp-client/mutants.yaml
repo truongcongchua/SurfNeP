@@ -1,35 +1,21 @@
-# Bản sai sinh từ solution.c; xem docs/TEST-DESIGN.md
 - id: printf-s
   why: 'In phản hồi bằng printf("%s"): dừng ở byte 0x00'
-  replace:
-  - - '                fwrite(reply, 1, (size_t)k, stdout);'
-    - "                reply[k] = 0;\n                fputs(reply, stdout);"
+  replace: [["                fwrite(reply, 1, k, stdout);  // in đúng k byte (có thể có 0x00)", "                reply[k] = 0;\n                printf(\"%s\", reply);"]]
 - id: empty-reply-timeout
-  why: Coi datagram rỗng như không có phản hồi
-  replace:
-  - - '            if (k >= 0) {'
-    - '            if (k > 0) {'
-  - - '            ssize_t k = recvfrom('
-    - '            ssize_t k = recvfrom('
+  why: "Coi datagram rỗng như không có phản hồi"
+  replace: [["            if (k >= 0) {", "            if (k > 0) {"]]
 - id: small-reply-buffer
-  why: Bộ đệm phản hồi 1024 byte
-  replace:
-  - - char line[4096], reply[2049];
-    - char line[4096], reply[1025];
+  why: "Bộ đệm phản hồi 1024 byte"
+  replace: [["char line[4096], reply[2049];", "char line[4096], reply[1025];"]]
 - id: short-timeout
-  why: Chỉ đợi 0.3 giây
-  replace:
-  - - if (poll(&p, 1, 1000) > 0) {
-    - if (poll(&p, 1, 300) > 0) {
+  why: "Chỉ đợi 0.3 giây"
+  replace: [["        timeout.tv_sec = 1;\n        timeout.tv_usec = 0;", "        timeout.tv_sec = 0;\n        timeout.tv_usec = 300000;"]]
 - id: keep-cr
-  why: Không bỏ '\r'
-  replace:
-  - - '        line[strcspn(line, "\r\n")] = 0;'
-    - '        line[strcspn(line, "\n")] = 0;'
+  why: "Không bỏ '\\r'"
+  replace: [["        line[strcspn(line, \"\\r\\n\")] = 0;", "        line[strcspn(line, \"\\n\")] = 0;"]]
 - id: send-empty
-  why: Không bỏ qua dòng rỗng
-  replace:
-  - - '        if (n == 0) continue;
-
-      '
-    - ''
+  why: "Không bỏ qua dòng rỗng"
+  replace: [["        if (n == 0) continue;\n", ""]]
+- id: timeout-not-reset
+  why: "Đặt timeout một lần ngoài vòng lặp (như select_client.c): select đã đếm lùi về 0 nên lần sau TIMEOUT ngay"
+  replace: [["    char line[4096], reply[2049];\n", "    char line[4096], reply[2049];\n    struct timeval timeout;\n    timeout.tv_sec = 1;\n    timeout.tv_usec = 0;\n"], ["        struct timeval timeout;\n        timeout.tv_sec = 1;\n        timeout.tv_usec = 0;\n", ""]]

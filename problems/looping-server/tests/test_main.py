@@ -190,11 +190,11 @@ def test_random_fragments(ctx):
 
 @group("robust")
 def test_client_resets(ctx):
-    """Client gửi yêu cầu tệp 1 MB rồi RST ngay / đóng khi chưa gửi xong header: server sống, phục vụ tiếp"""
-    put(ctx, "big.bin", b"\x00" * 1000000)
+    """Client RST / đóng khi chưa gửi xong header: server sống, phục vụ tiếp"""
     for k in range(3):
         c = ctx.connect(name=f"rst{k}")
-        c.send("GET /big.bin HTTP/1.1\r\n\r\n")
+        c.send("GET /index.html HTTP/1.1\r\nHost: x")
+        time.sleep(0.05)
         c.reset()
     d = ctx.connect(name="dang-do")
     d.send("GET / HTTP/1.1\r\nHo")

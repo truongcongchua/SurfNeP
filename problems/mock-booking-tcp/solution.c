@@ -18,8 +18,8 @@ static char owner[101][NAME_MAX_LEN + 1];  // owner[g][0] == 0: ghế trống
 static int nseats, nclients, limit;
 
 static void reply(int fd, const char *s) {
-    send(fd, s, strlen(s), MSG_NOSIGNAL);
-    send(fd, "\n", 1, MSG_NOSIGNAL);
+    send(fd, s, strlen(s), 0);
+    send(fd, "\n", 1, 0);
 }
 
 static int parse_seat(const char *s) {

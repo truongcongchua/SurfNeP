@@ -1,20 +1,18 @@
 - id: maxfd-not-updated
-  why: "Không cập nhật maxfd: select chỉ theo dõi socket lắng nghe"
-  replace: [["            if (clients[i] > maxfd) maxfd = clients[i];\n", ""]]
+  why: "Không cập nhật max_fd: select chỉ theo dõi socket lắng nghe"
+  replace: [["            if (client_list[i] > max_fd) max_fd = client_list[i];\n", ""]]
 - id: select-nfds-off-by-one
-  why: "Gọi select(maxfd, ...) thay vì maxfd + 1: fd lớn nhất (client mới nhất) không bao giờ được đọc"
-  replace: [["select(maxfd + 1, &rd, NULL, NULL, NULL)", "select(maxfd, &rd, NULL, NULL, NULL)"]]
+  why: "Gọi select(max_fd, ...) thay vì max_fd + 1: fd lớn nhất (client mới nhất) không bao giờ được đọc"
+  replace: [["select(max_fd + 1, &read_fds, NULL, NULL, NULL)", "select(max_fd, &read_fds, NULL, NULL, NULL)"]]
 - id: closed-fd-kept
-  why: "Đóng socket nhưng không xoá khỏi danh sách theo dõi"
-  replace: [["                close(clients[i]);\n                clients[i--] = clients[--n];", "                close(clients[i]);"]]
+  why: "Đóng socket nhưng không xoá khỏi danh sách theo dõi (như select_server.c gốc)"
+  replace: [["                client_list[i] = client_list[number_of_clients - 1];\n                number_of_clients--;\n                i--;\n", ""]]
 - id: never-close
   why: "Client đóng thì chỉ bỏ khỏi danh sách, quên close(): rò rỉ fd"
-  replace: [["                close(clients[i]);\n                clients[i--] = clients[--n];", "                clients[i--] = clients[--n];"]]
-- id: sigpipe-ignore-send-error
-  why: "Không MSG_NOSIGNAL và bỏ qua lỗi send"
-  replace:
-    - ["ssize_t k = send(fd, buf, n, MSG_NOSIGNAL);", "ssize_t k = send(fd, buf, n, 0);"]
-    - ["if (k <= 0 || send_all(clients[i], buf, (size_t)k) < 0) {", "if (k <= 0 || (send_all(clients[i], buf, (size_t)k), 0)) {"]
+  replace: [["                close(client_socket);\n                client_list[i] =", "                client_list[i] ="]]
 - id: small-client-table
   why: "Mảng client chỉ 8 phần tử"
   replace: [["#define MAX_CLIENTS 512", "#define MAX_CLIENTS 8"]]
+- id: fd-set-not-rebuilt
+  why: "Chỉ FD_SET client lúc accept, không dựng lại fd_set mỗi vòng (select đã ghi đè)"
+  replace: [["        for (int i = 0; i < number_of_clients; i++) {\n            FD_SET(client_list[i], &read_fds);", "        for (int i = 0; i < number_of_clients; i++) {"]]

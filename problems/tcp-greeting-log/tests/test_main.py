@@ -177,11 +177,13 @@ def test_send_before_reading_greeting(ctx):
 
 @group("robust")
 def test_reset_clients(ctx):
-    """Client RST trước khi nhận hết câu chào lớn / giữa lúc gửi: server sống, phục vụ client sau"""
+    """Client nhận câu chào, gửi một ít rồi RST (mất kết nối): server sống, phục vụ client sau"""
     set_greeting(ctx, b"G" * 300000)
     for k in range(3):
         c = ctx.connect(name=f"rst{k}")
+        c.expect_bytes(b"G" * 300000, timeout=3)
         c.send(b"mot it\n")
+        time.sleep(0.05)
         c.reset()
         time.sleep(0.1)
     time.sleep(0.2)

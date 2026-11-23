@@ -1,4 +1,4 @@
-// SAI có chủ đích: quên 2>&1 nên không gửi về thông báo lỗi của lệnh.
+// SAI có chủ đích: quên 2>&1 nên thông báo lỗi của lệnh không được gửi về client.
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,17 +13,7 @@
 typedef struct { int fd; int logged; char buf[BUF_SIZE]; size_t len; } Client;
 static Client cl[MAX_CLIENTS];
 
-static int send_all(int fd, const char *buf, size_t n) {
-    while (n > 0) {
-        ssize_t k = send(fd, buf, n, MSG_NOSIGNAL);
-        if (k <= 0) return -1;
-        buf += k;
-        n -= (size_t)k;
-    }
-    return 0;
-}
-
-static void send_str(int fd, const char *s) { send_all(fd, s, strlen(s)); }
+static void send_str(int fd, const char *s) { send(fd, s, strlen(s), 0); }
 
 // "user pass" (đúng một dấu cách) có trong accounts.txt?
 static int check_login(const char *line) {
@@ -44,7 +34,12 @@ static int check_login(const char *line) {
 static void run_command(int c, const char *cmd) {
     char out[64], shell[BUF_SIZE + 128];
     snprintf(out, sizeof out, "out_%d.txt", c);  // mỗi client một tệp riêng
-    snprintf(shell, sizeof shell, "%s > %s", cmd, out);
+    if (!*cmd) {  // dòng rỗng: không có gì để chạy
+        send_str(c, "OUTPUT 0\n");
+        return;
+    }
+    // Bọc cả dòng trong { ...; } để gom kết quả của MỌI lệnh trên dòng (echo a; echo b, a | b...).
+    snprintf(shell, sizeof shell, "{ %s\n} > %s", cmd, out);
     system(shell);  // chặn cả server trong lúc lệnh chạy: hạn chế của select + system
     FILE *f = fopen(out, "rb");
     char *data = NULL;
@@ -61,7 +56,7 @@ static void run_command(int c, const char *cmd) {
     char head[64];
     snprintf(head, sizeof head, "OUTPUT %zu\n", len);
     send_str(c, head);
-    if (len) send_all(c, data, len);
+    if (len) send(c, data, len, 0);  // socket blocking: send chờ tới khi gửi hết
     free(data);
 }
 

@@ -232,9 +232,13 @@ def test_close_mid_record(ctx):
 
 @group("robust")
 def test_reset_after_records(ctx):
-    """Client dồn 100 bản ghi rồi RST: server không chết, vẫn phục vụ client sau"""
+    """Client gửi 100 bản ghi, nhận đủ OK, gửi dở bản ghi thứ 101 rồi RST: server không chết, phục vụ client sau"""
     c = ctx.connect()
     c.send(record(*A) * 100)
+    for _ in range(100):
+        c.expect_line("OK", timeout=2)
+    c.send(record(*A)[:7])
+    time.sleep(0.05)
     c.reset()
     time.sleep(0.3)
     ctx.expect_alive("sau khi client đóng đột ngột")

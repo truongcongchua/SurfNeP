@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
         int c = accept(ls, NULL, NULL);
         char buf[8192];
         ssize_t k;
-        while ((k = recv(c, buf, sizeof buf, 0)) > 0) send(c, buf, (size_t)k, MSG_NOSIGNAL);
+        while ((k = recv(c, buf, sizeof buf, 0)) > 0) send(c, buf, (size_t)k, 0);
         close(c);
     }
 }

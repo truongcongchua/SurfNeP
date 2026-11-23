@@ -1,13 +1,13 @@
 id: chat-client
-title: Chat client dùng poll
+title: Chat client dùng select
 difficulty: medium
 chapter: 3
-topics: [TCP, poll, select, Client, Bidirectional I/O]
+topics: [TCP, select, Client, Bidirectional I/O]
 prerequisites: [tcp-client-stdin, select-echo]
-ref: "Lecture notes §3.5 (client vừa nhận vừa gửi, ví dụ client poll); code mẫu 3-Chap3/L5-IOMultiPlexing/select_client.c"
+ref: "Lecture notes §3.5 (client vừa nhận vừa gửi); code mẫu 3-Chap3/L5-IOMultiPlexing/select_client.c"
 type: client
 test_timeout: 6
 constraints:
-  require_any: [poll, select]
+  require_any: [select]
   forbid: [fork, pthread_create]
 concepts: [select-poll, tcp-stream]

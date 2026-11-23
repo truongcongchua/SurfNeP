@@ -10,12 +10,9 @@
 - id: name-100-rejected
   why: "Tên dài đúng 100 byte bị từ chối"
   replace: [["nlen > 100", "nlen >= 100"]]
-- id: no-fflush-stdout
-  why: "Quên fflush(stdout): dòng log không hiện kịp trên màn hình"
-  replace: [["    fflush(stdout);\n", ""]]
 - id: log-no-fclose
   why: "Mở log mà không fclose: rò rỉ fd (và dữ liệu nằm trong bộ đệm)"
-  replace: [["        fputs(line, f);\n        fclose(f);", "        fputs(line, f);\n        fflush(f);"]]
+  replace: [["        fprintf(f, \"%s\", line);\n        fclose(f);", "        fprintf(f, \"%s\", line);\n        fflush(f);"]]
 - id: log-truncate
   why: "Mở log bằng \"w\": ghi đè thay vì nối tiếp"
   replace: [["fopen(logpath, \"a\")", "fopen(logpath, \"w\")"]]

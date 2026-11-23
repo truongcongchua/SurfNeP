@@ -4,7 +4,7 @@
 > để bạn chỉ tập trung vào **đếm client và giải phóng chỗ**. Bài *kv-max-n* sẽ thêm trạng thái dùng chung.
 
 Viết server chạy bằng `./server <cổng> <N>` (1 ≤ N ≤ 50). Phục vụ **đồng thời** tối đa `N` client,
-dùng `select()`/`poll()` hoặc đa luồng (không dùng `fork`).
+dùng `select()` (như `select_server.c`) hoặc đa luồng (không dùng `fork`).
 
 ## Kết nối
 - Client mới khi số client đang kết nối **nhỏ hơn N**: gửi `WELCOME`.
@@ -39,7 +39,7 @@ C3 kết nối lại   → WELCOME
 - `N` từ 1 tới 50. Client bị `FULL` phải được **đóng ngay** và không chiếm chỗ. Chỗ được trả lại khi client
   `QUIT`, đóng thường, hay mất kết nối đột ngột (RST).
 - Chạy với giới hạn **256 file descriptor**: bộ chấm cho 300 client lần lượt vào-ra và 300 kết nối liên tiếp bị
-  `FULL`. Client dồn lệnh rồi RST không được làm server chết (`SIGPIPE`).
+  `FULL`.
 
 ## Bẫy hay gặp
 - `>` và `>=` khi so sánh với `N` (lệch một client).

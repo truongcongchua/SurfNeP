@@ -1,75 +1,64 @@
-#include <arpa/inet.h>
-#include <errno.h>
+// Lời giải mẫu theo code mẫu 3-Chap3/L1-NonBlocking/non_blocking_server.c
+// (sửa: client đã đóng phải được xoá khỏi mảng).
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
+#include <string.h>
 #include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
 
 #define MAX_CLIENTS 512
 
-static void set_nonblock(int fd) {
-    int on = 1;
-    ioctl(fd, FIONBIO, &on);
-}
-
-// Gửi đủ n byte trên socket non-blocking (đợi một chút nếu bộ đệm gửi đầy).
-static int send_all(int fd, const char *buf, size_t n) {
-    while (n > 0) {
-        ssize_t k = send(fd, buf, n, MSG_NOSIGNAL);
-        if (k < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-            usleep(500);
-            continue;
-        }
-        if (k <= 0) return -1;
-        buf += k;
-        n -= (size_t)k;
-    }
-    return 0;
-}
-
 int main(int argc, char *argv[]) {
     if (argc != 2) {
-        fprintf(stderr, "usage: %s <port>\n", argv[0]);
+        printf("Usage: %s <port>\n", argv[0]);
         return 1;
     }
-    int ls = socket(AF_INET, SOCK_STREAM, 0);
-    int yes = 1;
-    setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes);
-    struct sockaddr_in addr = {0};
+    int listener = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    int opt = 1;
+    setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    struct sockaddr_in addr;
     addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = htonl(INADDR_ANY);
     addr.sin_port = htons(atoi(argv[1]));
-    if (bind(ls, (struct sockaddr *)&addr, sizeof addr) < 0 || listen(ls, 64) < 0) {
-        perror("bind/listen");
+    addr.sin_addr.s_addr = INADDR_ANY;
+    if (bind(listener, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+        perror("bind() failed");
         return 1;
     }
-    set_nonblock(ls);
-    int clients[MAX_CLIENTS], n = 0;
-    for (;;) {
-        int busy = 0;
-        int c = accept(ls, NULL, NULL);
-        if (c >= 0) {
-            busy = 1;
-            if (n < MAX_CLIENTS) {
-                set_nonblock(c);
-                clients[n++] = c;
+    if (listen(listener, 64) == -1) {
+        perror("listen() failed");
+        return 1;
+    }
+
+    int io_mode = 1;
+    ioctl(listener, FIONBIO, &io_mode);  // accept không chặn nữa
+
+    char buffer[1024];
+    int client_sockets[MAX_CLIENTS];
+    int num_clients = 0;
+    while (0 == 0) {
+        int client = accept(listener, NULL, NULL);
+        if (client != -1) {
+            if (num_clients < MAX_CLIENTS) {
+                ioctl(client, FIONBIO, &io_mode);  // recv không chặn nữa
+                client_sockets[num_clients++] = client;
             } else {
-                close(c);
+                close(client);
             }
         }
-        for (int i = 0; i < n; i++) {
-            char buf[8192];
-            ssize_t k = recv(clients[i], buf, sizeof buf, 0);
-            if (k > 0) {
-                busy = 1;
-                if (send_all(clients[i], buf, (size_t)k) == 0) continue;
-            } else if (k < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-                continue;  // chưa có dữ liệu
+        for (int i = 0; i < num_clients; i++) {
+            int byte_received = recv(client_sockets[i], buffer, sizeof(buffer), 0);
+            if (byte_received > 0) {
+                send(client_sockets[i], buffer, byte_received, 0);
+            } else if (byte_received == 0) {
+                // Client đóng: close và xoá khỏi mảng (đưa phần tử cuối lên chỗ i)
+                close(client_sockets[i]);
+                client_sockets[i] = client_sockets[num_clients - 1];
+                num_clients--;
+                i--;
             }
-            close(clients[i]);  // k == 0 (client đóng) hoặc lỗi thật
-            clients[i--] = clients[--n];
+            // byte_received == -1: chưa có dữ liệu, thử client tiếp theo
         }
-        if (!busy) usleep(1000);
     }
 }

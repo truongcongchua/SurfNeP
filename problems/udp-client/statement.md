@@ -12,11 +12,12 @@ Lặp lại cho **từng dòng** đọc được từ stdin:
 
 1. Gửi nội dung dòng đó (**bỏ** `\n` và `\r` cuối dòng) trong **một datagram** bằng `sendto()`.
    Dòng rỗng (sau khi bỏ `\n`) thì **bỏ qua**, không gửi gì và không in gì.
-2. Đợi datagram phản hồi tối đa **1 giây** (dùng `select`/`poll`, hoặc `SO_RCVTIMEO`).
+2. Đợi datagram phản hồi tối đa **1 giây** bằng `select` có `struct timeval` như `select_client.c`.
    - Nhận được: in nội dung datagram ra **stdout**, thêm một `\n`, rồi `fflush`.
    - Quá 1 giây: in `TIMEOUT` và `\n`, rồi **vẫn tiếp tục** với dòng sau.
 
-Hết stdin (EOF): thoát với mã `0`. Địa chỉ IP không hợp lệ: in lỗi ra `stderr`, thoát mã **khác 0**.
+Hết stdin (EOF): thoát với mã `0`. Địa chỉ IP không hợp lệ (`inet_addr` trả `INADDR_NONE`): in lỗi ra `stderr`,
+thoát mã **khác 0**.
 Phản hồi dài tối đa 2048 byte.
 
 ## Ví dụ (server là bài *udp-calc*)
@@ -42,5 +43,7 @@ không treo mãi) mà vẫn phục vụ dòng sau.
 ## Bẫy hay gặp
 - `fgets` giữ lại `\n`: nếu không bỏ, datagram gửi đi thừa một byte và server `udp-calc` sẽ trả `ERROR syntax`.
 - `recvfrom()` không có thời gian chờ sẽ **treo vĩnh viễn** khi gói tin (hoặc phản hồi) bị mất. UDP không đảm bảo giao hàng.
+- `select_client.c` đặt `timeout` **một lần** ngoài vòng lặp. Trên Linux `select` trừ dần thời gian đã chờ vào
+  `timeout`, nên phải gán lại `tv_sec = 1` (và `FD_SET` lại) **trước mỗi lần** gọi `select`.
 - UDP bảo toàn ranh giới thông điệp: một `sendto` ↔ một `recvfrom`. Không cần (và không nên) ghép dòng như TCP.
 - Phản hồi không có `\0` ở cuối: tự thêm hoặc in bằng `fwrite(buf, 1, n, stdout)`.

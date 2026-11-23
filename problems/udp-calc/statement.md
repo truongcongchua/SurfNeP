@@ -32,5 +32,6 @@ Các thành phần cách nhau **đúng một dấu cách**. Người gửi xác 
 ```
 
 ## Gợi ý
-`strtoll` kèm kiểm tra `endptr` và `errno == ERANGE` để phát hiện số không hợp lệ. Giữ một bảng
+Tự duyệt từng ký tự của số (`-` tùy chọn rồi chữ số) và cộng dồn giá trị, dừng với lỗi nếu sắp vượt
+`9223372036854775807` (hoặc `...808` với số âm). Lấy địa chỉ người gửi từ `recvfrom` như `udp_receiver.c`. Giữ một bảng
 `(địa chỉ, cổng) → bộ đếm` như bài *udp-boundary*. Kết quả tràn số không được kiểm tra trong test.

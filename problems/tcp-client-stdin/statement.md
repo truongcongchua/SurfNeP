@@ -17,7 +17,11 @@ Viết chương trình **client** chạy bằng:
 ## Ràng buộc
 - Dữ liệu nhập là byte bất kỳ (có thể chứa `0x00`, `\r`, dòng rất dài tới 200 KB, tổng tới vài MB): gửi **đúng
   từng byte** (đừng dùng `fgets` + `strlen`). stdin rỗng thì kết nối rồi đóng, không gửi gì.
-- Server có thể ngừng đọc một lúc: `send` sẽ chặn hoặc gửi thiếu — phải gửi cho đủ, không được bỏ dữ liệu.
+- Server có thể ngừng đọc một lúc: `send` trên socket blocking sẽ **chờ** cho tới khi gửi hết, không được bỏ dữ liệu.
+
+## Gợi ý
+Như `tcp_client.c` (`inet_addr`, `connect`). Đọc stdin bằng `read(STDIN_FILENO, buffer, sizeof(buffer))` (lab08):
+nó trả về ngay khi có một dòng, trả `0` khi hết stdin, và cho biết đúng số byte đã đọc (kể cả `0x00`).
 
 ## Bộ chấm kiểm tra
 Bộ chấm dựng một server giả, chạy chương trình của bạn với tham số `127.0.0.1 <cổng>`, rồi ghi

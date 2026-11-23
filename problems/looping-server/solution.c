@@ -8,23 +8,13 @@
 
 #define REQ_MAX 8192
 
-static int send_all(int fd, const char *buf, size_t n) {
-    while (n > 0) {
-        ssize_t k = send(fd, buf, n, MSG_NOSIGNAL);
-        if (k <= 0) return -1;
-        buf += k;
-        n -= (size_t)k;
-    }
-    return 0;
-}
-
+// Như html.c: gửi header trước, rồi nội dung (socket blocking: send chờ tới khi gửi hết).
 static void respond(int c, const char *status, const char *type, const char *body, size_t len) {
     char head[256];
-    int n = snprintf(head, sizeof head,
-                     "HTTP/1.1 %s\r\nContent-Type: %s\r\nContent-Length: %zu\r\nConnection: close\r\n\r\n",
-                     status, type, len);
-    send_all(c, head, (size_t)n);
-    if (len) send_all(c, body, len);
+    sprintf(head, "HTTP/1.1 %s\r\nContent-Type: %s\r\nContent-Length: %zu\r\nConnection: close\r\n\r\n",
+            status, type, len);
+    send(c, head, strlen(head), 0);
+    if (len) send(c, body, len, 0);
 }
 
 static void error(int c, const char *status) {

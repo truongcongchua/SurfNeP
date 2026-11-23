@@ -2,13 +2,13 @@
 - id: allow-plus-sign
   why: Chấp nhận dấu '+' trước số
   replace:
-  - - '&& s[0] != '' '' && s[0] != ''+'''
-    - '&& s[0] != '' '''
-- id: no-erange
-  why: 'Không kiểm tra errno == ERANGE: số quá lớn bị kẹp về LLONG_MAX'
+  - - "    if (*s == '-') {"
+    - "    if (*s == '+') s++;\n    if (*s == '-') {"
+- id: no-range-check
+  why: 'Không kiểm tra khoảng int64: số quá lớn bị tràn thay vì ERROR syntax'
   replace:
-  - - return *end == 0 && errno == 0 &&
-    - return *end == 0 &&
+  - - '        if (v > (limit - d) / 10) return 0;  // v * 10 + d sẽ vượt giới hạn'
+    - '        (void)limit;'
 - id: count-everything
   why: COUNT đếm cả yêu cầu lỗi
   replace:
@@ -29,10 +29,10 @@
   - - ' && peers[i].addr.sin_port == a->sin_port'
     - ''
 - id: int32
-  why: Dùng số 32 bit (strtol + int)
+  why: Dùng số 32 bit (int)
   replace:
-  - - '    *out = strtoll(s, &end, 10);'
-    - '    *out = (int)strtoll(s, &end, 10);'
+  - - '    *out = neg ? (long long)(0 - v) : (long long)v;'
+    - '    *out = neg ? (int)(0 - v) : (int)v;'
 - id: loose-spaces
   why: Cho phép thiếu/thừa dấu cách (sscanf)
   replace:

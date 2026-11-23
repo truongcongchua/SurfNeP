@@ -4,7 +4,7 @@
 
 Viết server chạy bằng `./server <cổng> <N>`. Server lưu một bảng **key → value dùng chung**
 cho mọi client và phục vụ **đồng thời** tối đa `N` client (1 ≤ N ≤ 50). Được chọn kỹ thuật
-`select()`/`poll()` hoặc đa luồng. Đa tiến trình (`fork`) không phù hợp vì dữ liệu phải dùng chung.
+`select()` hoặc đa luồng. Đa tiến trình (`fork`) không phù hợp vì dữ liệu phải dùng chung.
 
 ## Kết nối
 - Khi có client mới mà số client đang kết nối **nhỏ hơn N**: gửi `WELCOME`.
@@ -50,4 +50,3 @@ C3 kết nối lại    → WELCOME
 - Một client im lặng / gửi dở lệnh không được làm chậm client khác.
 - Giới hạn `N` chính xác (N=1, N=50), kết nối bị `FULL` được đóng ngay, chỗ được giải phóng khi client `QUIT`,
   đóng thường hoặc RST; 300 lượt vào-ra và 300 lần bị `FULL` không được làm rò rỉ fd.
-- Client dồn lệnh rồi đóng đột ngột không được làm server chết (`SIGPIPE`).

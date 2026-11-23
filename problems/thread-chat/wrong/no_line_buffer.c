@@ -16,7 +16,7 @@ typedef struct { int fd; char id[64]; } Slot;  // fd = -1: ô trống; id rỗng
 static Slot slots[MAX_CLIENTS];
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
-static void send_str(int fd, const char *s) { send(fd, s, strlen(s), MSG_NOSIGNAL); }
+static void send_str(int fd, const char *s) { send(fd, s, strlen(s), 0); }
 
 static int valid_word(const char *s) { return *s && !strchr(s, ' '); }
 
@@ -54,7 +54,7 @@ static void handle_line(int me, char *line) {
 }
 
 static void *worker(void *arg) {
-    int me = (int)(intptr_t)arg;
+    int me = *(int *)arg; free(arg);
     int fd = slots[me].fd;
     char buf[BUF_SIZE];
     for (;;) {
@@ -106,6 +106,6 @@ int main(int argc, char *argv[]) {
             continue;
         }
         pthread_t t;
-        if (pthread_create(&t, NULL, worker, (void *)(intptr_t)me) == 0) pthread_detach(t);
+        int *arg = malloc(sizeof(int)); *arg = me; pthread_create(&t, NULL, worker, arg); pthread_detach(t);
     }
 }

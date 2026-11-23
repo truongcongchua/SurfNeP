@@ -1,8 +1,4 @@
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/socket.h>
-#include <unistd.h>
+// TODO: tự #include các thư viện cần dùng (gợi ý: arpa/inet, stdio, stdlib, sys/socket, unistd)
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {

@@ -10,7 +10,7 @@ int main(int argc, char *argv[]) {
     struct sockaddr_in a = {0};
     a.sin_family = AF_INET;
     a.sin_port = htons(atoi(argv[2]));
-    inet_pton(AF_INET, argv[1], &a.sin_addr);
+    a.sin_addr.s_addr = inet_addr(argv[1]);
     int s = socket(AF_INET, SOCK_STREAM, 0);
     if (connect(s, (struct sockaddr *)&a, sizeof a) < 0) return 1;
     size_t cap = 1 << 20, len = 0;

@@ -1,20 +1,9 @@
-# Bản sai sinh từ solution.c; xem docs/TEST-DESIGN.md
 - id: fgets-strlen
-  why: 'Đọc bằng fgets rồi gửi strlen: mất dữ liệu sau byte 0x00'
-  replace:
-  - - "    while ((n = read(STDIN_FILENO, buf, sizeof buf)) > 0)\n        if (send_all(s, buf, (size_t)n) < 0) {"
-    - "    while (fgets(buf, sizeof buf, stdin) && (n = (ssize_t)strlen(buf)) >= 0)\n        if (send_all(s, buf, (size_t)n) < 0) {"
-  - - '#include <stdlib.h>'
-    - '#include <stdlib.h>
-
-      #include <string.h>'
+  why: "Đọc bằng fgets rồi gửi strlen: mất dữ liệu sau byte 0x00"
+  replace: [["        int n = read(STDIN_FILENO, buffer, sizeof(buffer));\n        if (n <= 0) break;", "        if (fgets(buffer, sizeof(buffer), stdin) == NULL) break;\n        int n = strlen(buffer);"]]
 - id: exit-zero-on-refused
-  why: Không kết nối được vẫn thoát mã 0
-  replace:
-  - - "        perror(\"connect\");\n        return 1;"
-    - "        perror(\"connect\");\n        return 0;"
-- id: single-send-of-buffer
-  why: 'Gửi một lần send (không lặp đủ) và bỏ qua lỗi: với dữ liệu lớn có thể mất byte'
-  replace:
-  - - '        if (send_all(s, buf, (size_t)n) < 0) {'
-    - '        if (send(s, buf, (size_t)n, MSG_DONTWAIT) < 0 && 0) {'
+  why: "Không kết nối được vẫn thoát mã 0"
+  replace: [["        perror(\"connect\");\n        close(client_socket);\n        exit(EXIT_FAILURE);", "        perror(\"connect\");\n        close(client_socket);\n        exit(0);"]]
+- id: send-whole-buffer
+  why: "Gửi cả bộ đệm 4096 byte thay vì đúng n byte vừa đọc"
+  replace: [["if (send(client_socket, buffer, n, 0) == -1) {", "if (send(client_socket, buffer, sizeof(buffer), 0) == -1) {"]]

@@ -32,8 +32,8 @@ Một client có thể gửi **nhiều bản ghi** liên tiếp trên cùng kế
 - Bản ghi có thể đến từng byte, hoặc hàng trăm bản ghi dính nhau trong một lần gửi.
 - Tệp log có thể **đã có nội dung** từ trước: ghi nối tiếp. Dòng log phải xuất hiện trong tệp và trên màn
   hình **ngay** sau khi gửi `OK` (đóng tệp / `fflush`).
-- Client có thể đóng giữa bản ghi hoặc RST; chương trình chạy với giới hạn 256 file descriptor (300 bản ghi trên
-  một kết nối, 300 client lần lượt).
+- Client có thể đóng hoặc mất kết nối (RST) giữa bản ghi; chương trình chạy với giới hạn 256 file descriptor
+  (300 bản ghi trên một kết nối, 300 client lần lượt).
 
 ## Ví dụ dòng log
 
@@ -41,6 +41,16 @@ Một client có thể gửi **nhiều bản ghi** liên tiếp trên cùng kế
 127.0.0.1 2026-11-20 09:00:00 20201234 Nguyễn Văn A 2002-04-10 3.99
 ```
 
+## Đoạn code cho sẵn
+Code mẫu chưa có hàm lấy thời gian. Hãy chép nguyên đoạn sau (cần `#include <time.h>`); IP client lấy bằng
+`inet_ntoa(client_addr.sin_addr)` như `udp_receiver.c`.
+
+```c
+char now[32];
+time_t t = time(NULL);
+strftime(now, sizeof(now), "%Y-%m-%d %H:%M:%S", localtime(&t));
+```
+
 ## Bẫy
 Đừng `recv` thẳng vào một `struct`: trình biên dịch chèn **padding** và số nguyên nằm theo thứ tự
-host. Hãy đọc từng trường (hoặc đọc đủ byte rồi giải mã thủ công) và `ntohl`/`ntohs`.
+host. Hãy lặp `recv` tới khi đủ byte của từng phần, rồi giải mã thủ công (`memcpy` từng trường) và `ntohl`/`ntohs`.

@@ -4,13 +4,13 @@
   replace: [["v <= 0xFFFF)", "v < 0xFFFF)"]]
 - id: off-by-one-u32-max
   why: "Giới hạn u32 lệch một"
-  replace: [["v <= 0xFFFFFFFFULL", "v < 0xFFFFFFFFULL"]]
+  replace: [["\"u32\") && v <= 0xFFFFFFFFULL", "\"u32\") && v < 0xFFFFFFFFULL"]]
 - id: signed-print
   why: "In giá trị u32 bằng %d: số có bit cao thành số âm"
   replace: [['printf(" | %u\n", net);', 'printf(" | %d\n", (int)net);']]
 - id: allow-sign
-  why: "Chấp nhận dấu +/- trước số (strtoull tự hiểu '+5', '-0')"
-  replace: [["num[0] >= '0' && num[0] <= '9' && ", ""]]
+  why: "Chấp nhận dấu +/- trước số ('+5', '-0')"
+  replace: [["        for (int i = 0; numok && num[i]; i++) {\n", "        for (int i = 0; numok && num[i]; i++) {\n            if (i == 0 && (num[i] == '+' || num[i] == '-')) continue;\n"]]
 - id: ignore-extra-words
   why: "Không bắt lỗi thừa từ trên dòng"
   replace: [["int numok = k == 2", "int numok = k >= 2"]]

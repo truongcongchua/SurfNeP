@@ -41,14 +41,15 @@ Không kết nối được: in lỗi ra `stderr`, thoát mã **khác 0**.
 ## Ràng buộc
 - Dòng nhập có thể kết thúc bằng `\r\n`; dòng cuối có thể không có `\n`; stdin có thể đến từng mảnh nhỏ.
 - Điểm như `0.29`, `0.57`, `1.13`, `2.01` phải ra đúng `29`, `57`, `113`, `201` (đừng ép kiểu thẳng `double`).
-- MSSV tới `4294967295`; tên tới 100 byte UTF-8. Phản hồi `OK\n` có thể đến từng byte: đọc đủ một dòng.
-- Gửi bản ghi sau **chỉ khi** đã nhận phản hồi của bản ghi trước. Server có thể đóng kết nối mà không trả lời:
-  client không được treo hay chết vì `SIGPIPE`.
+- MSSV tới `4294967295` (đọc bằng `%u`); tên tới 100 byte UTF-8.
+- Gửi bản ghi sau **chỉ khi** đã nhận phản hồi của bản ghi trước. Server có thể đóng kết nối mà không trả lời
+  (`recv` trả `0`): client dừng gửi và thoát, không được treo.
 
 ## Bẫy hay gặp
 - Gửi thẳng một `struct`: bị **padding** và sai thứ tự byte. Hãy tự ghép từng trường vào một mảng byte
   (`htonl`, `htons`) rồi `send` một lần.
 - `3.99 * 100` trong `double` có thể ra `398.99999…`; ép kiểu thẳng sang số nguyên sẽ cắt thành `398`.
-  Dùng `lround()` hoặc đọc phần nguyên và phần thập phân riêng.
+  Cộng `0.5` trước khi ép kiểu: `(unsigned short)(gpa * 100 + 0.5)`.
 - `fgets` giữ lại `\n` ở cuối: bỏ nó trước khi tính `name_len`.
-- `stdout` là tệp/pipe thì được đệm đầy: `fflush(stdout)` sau mỗi dòng phản hồi.
+- Phản hồi `OK\n` có thể đến từng byte: `recv` từng byte cho tới khi gặp `'\n'` (một lần `recv` như
+  `tcp_client.c` là không đủ).

@@ -34,7 +34,8 @@ kết nối, xử lý **một** yêu cầu HTTP, trả lời, **đóng** kết n
 - `..` ở **bất kỳ đâu** trong PATH (sau khi bỏ query) → 403, kể cả `/a..b.txt`. METHOD phân biệt hoa thường.
 - Kiểu nội dung xét theo **đuôi cuối cùng**, phân biệt hoa thường (`b.HTML`, `a.htm` → `application/octet-stream`).
 - Tệp có thể rỗng hoặc lớn tới 1 MB dữ liệu nhị phân: `Content-Length` là số byte thật.
-- Client có thể RST khi server đang gửi. Chương trình chạy với giới hạn 256 file descriptor (300 yêu cầu liên tiếp).
+- Client có thể đóng đột ngột khi chưa gửi xong yêu cầu. Chương trình chạy với giới hạn 256 file descriptor
+  (300 yêu cầu liên tiếp).
 
 ## Ví dụ
 
