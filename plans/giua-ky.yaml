@@ -6,7 +6,7 @@ order: 0
 title: Giữa kỳ IT4062
 subtitle: Server/client TCP/UDP phục vụ tối đa N client
 description: >
-  31 bài, 10 chủ đề, đi từ địa chỉ socket đến server phục vụ đồng thời tối đa N client,
+  32 bài, 10 chủ đề, đi từ địa chỉ socket đến server phục vụ đồng thời tối đa N client,
   kết thúc bằng 2 đề thi thử tính giờ. Bám lecture notes Chương 2–3.
 exam_date: 2026-12-15
 suggested_days: 16
@@ -23,6 +23,9 @@ sections:
   - title: TCP cơ bản
     intro: Vòng đời socket → bind → listen → accept → recv/send → close. (§2.3)
     problems:
+      - {id: tcp-accept-close, title: Mở cổng và đón một client, difficulty: easy, ready: true}
+      - {id: tcp-hello-loop, title: Chào từng client, difficulty: easy, ready: true}
+      - {id: tcp-echo-once, title: Echo một lần, difficulty: easy, ready: true}
       - {id: tcp-echo, title: TCP echo server, difficulty: easy, ready: true}
       - {id: tcp-client-stdin, title: Gửi dữ liệu từ bàn phím qua TCP, difficulty: easy, ready: true}
       - {id: tcp-greeting-log, title: Server chào hỏi và ghi log, difficulty: medium, ready: true}
@@ -60,15 +63,13 @@ sections:
     problems:
       - {id: thread-echo, title: Pthread echo server, difficulty: medium, ready: true}
 
-  - title: Ghép kênh select / poll
+  - title: Ghép kênh select
     intro: fd_set, dựng lại tập fd mỗi vòng, bộ đệm riêng mỗi client. (§3.5)
     problems:
       - {id: select-echo, title: Echo server dùng select, difficulty: medium, ready: true}
       - {id: chat-select, title: Phòng chat đa client với select, difficulty: hard, ready: true}
-      - {id: chat-client, title: Chat client dùng poll, difficulty: medium, ready: true}
+      - {id: chat-client, title: Chat client dùng select, difficulty: medium, ready: true}
       - {id: telnet-select, title: Server Telnet đăng nhập và xử lý lệnh, difficulty: hard, ready: true}
-      - {id: chat-poll, title: Phòng chat đa client với poll, difficulty: hard, ready: true}
-      - {id: telnet-poll, title: Server Telnet dùng poll, difficulty: hard, ready: true}
 
   - title: Một giao thức, nhiều kiến trúc
     intro: Làm lại giao thức chat/telnet bằng fork và pthread để so sánh với select. (§3.3–3.4, BT 3.4–3.5)

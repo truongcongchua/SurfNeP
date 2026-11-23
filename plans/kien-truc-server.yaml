@@ -21,16 +21,14 @@ sections:
       - {id: thread-echo, title: "Pthread echo server", difficulty: medium, ready: true}
       - {id: select-echo, title: "Echo server dùng select", difficulty: medium, ready: true}
 
-  - title: "Chat: select, poll, pthread"
-    intro: "Cùng giao thức, ba kiến trúc. (§3.4–3.5)"
+  - title: "Chat: select, pthread"
+    intro: "Cùng giao thức, hai kiến trúc. (§3.4–3.5)"
     problems:
       - {id: chat-select, title: "Phòng chat đa client với select", difficulty: hard, ready: true}
-      - {id: chat-poll, title: "Phòng chat đa client với poll", difficulty: hard, ready: true}
       - {id: thread-chat, title: "Server chat đa luồng", difficulty: hard, ready: true}
 
-  - title: "Telnet: select, poll, fork"
-    intro: "Cùng giao thức, ba kiến trúc. (§3.3, §3.5)"
+  - title: "Telnet: select, fork"
+    intro: "Cùng giao thức, hai kiến trúc. (§3.3, §3.5)"
     problems:
       - {id: telnet-select, title: "Server Telnet đăng nhập và xử lý lệnh", difficulty: hard, ready: true}
-      - {id: telnet-poll, title: "Server Telnet dùng poll", difficulty: hard, ready: true}
       - {id: telnet-fork, title: "Server Telnet đa tiến trình", difficulty: hard, ready: true}

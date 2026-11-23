@@ -1,3 +1,0 @@
-admin admin
-guest nopass
-sv20201234 matkhau123
