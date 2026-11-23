@@ -40,7 +40,10 @@ Mỗi test thuộc đúng một nhóm (runner trả về trường `group`):
 - Dữ liệu chứa `0x00` — bắt `strlen`/`%s`.
 
 **Vòng đời kết nối**
-- Client đóng đột ngột bằng RST (`c.reset()`), kể cả khi server đang/sắp `send` → server không được chết vì `SIGPIPE`.
+- Client đóng đột ngột bằng RST (`c.reset()`) khi server **không còn gì phải gửi** (đã đọc hết phản hồi, hoặc gửi dở
+  một lệnh) → `recv` trả `-1`, server đóng client đó và phục vụ tiếp.
+- **Không** thử RST khi server đang/sắp `send`: lời giải chỉ dùng kỹ thuật trong code mẫu IT4062 (không có
+  `MSG_NOSIGNAL`/`signal(SIGPIPE, SIG_IGN)`) sẽ chết vì `SIGPIPE`, mà đó không phải điều môn học yêu cầu.
 - Client `shutdown(SHUT_WR)` (half-close) rồi vẫn chờ đọc phản hồi.
 - Client kết nối rồi đóng ngay không gửi gì; client gửi dở lệnh rồi đóng.
 - 300 lượt kết nối-ngắt liên tiếp: bài nộp chạy với **giới hạn 256 file descriptor**, quên `close()` là hết fd → `accept` lỗi.
@@ -96,10 +99,10 @@ Test viết tay (`sample*.in`, test đặc biệt) giữ nguyên; `gentests` ch�
 ### Mutation testing (`mutants.yaml`)
 
 ```yaml
-- id: no-sigpipe
-  why: Không bỏ qua SIGPIPE → chết khi client RST
+- id: no-reaper
+  why: Không cài handler SIGCHLD → tích tụ zombie
   replace:
-    - ["signal(SIGPIPE, SIG_IGN);", ""]
+    - ["    signal(SIGCHLD, signal_handler);\n", ""]
 ```
 
 Mỗi cặp `[cũ, mới]` phải xuất hiện **đúng một lần** trong `solution.c` (nếu không selftest báo lỗi, tránh mutant

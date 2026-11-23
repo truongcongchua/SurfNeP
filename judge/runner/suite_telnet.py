@@ -1,4 +1,4 @@
-"""Bộ test chung cho telnet-select / telnet-poll / telnet-fork (xem docs/TEST-DESIGN.md).
+"""Bộ test chung cho telnet-select / telnet-fork (xem docs/TEST-DESIGN.md).
 
     from suite_telnet import telnet_suite
     globals().update(telnet_suite(fork=False))
@@ -238,21 +238,6 @@ def telnet_suite(fork=False):
                 raise Fail(WA, f"lệnh {x!r}: nhận {got!r}")
 
     # ---------------- robust ----------------
-    @add
-    @group("robust")
-    @timeout(12)
-    def test_reset_during_output(ctx):
-        """Client yêu cầu kết quả lớn rồi RST ngay: server sống và phục vụ tiếp"""
-        for k in range(3):
-            c = login(ctx, name=f"rst{k}")
-            c.send_line("seq 1 300000")
-            time.sleep(0.05)
-            c.reset()
-        time.sleep(0.5)
-        ctx.expect_alive("sau khi client đóng đột ngột giữa lúc nhận kết quả")
-        c = login(ctx, name="sau")
-        expect_output(c, "echo ok", "ok\n")
-
     @add
     @group("robust")
     def test_close_mid_line(ctx):

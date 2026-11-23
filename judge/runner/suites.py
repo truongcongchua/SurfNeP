@@ -86,7 +86,9 @@ def echo_roundtrip(c, data, timeout=2.0):
     c.expect_bytes(data, timeout=timeout)
 
 
-def echo_suite(concurrent=True, slow_reader=False, max_clients=50, zombie_check=False):
+def echo_suite(concurrent=True, slow_reader=False, max_clients=50, zombie_check=False, flood=True):
+    """flood=False: bỏ test client dồn tới đầy bộ đệm rồi mới đọc (socket non-blocking kiểu code mẫu
+    L1-NonBlocking không gửi bù được phần send() bỏ dở)."""
     T, add = _collect()
 
     # ---------------- sample ----------------
@@ -210,32 +212,6 @@ def echo_suite(concurrent=True, slow_reader=False, max_clients=50, zombie_check=
         if got != data:
             raise Fail(WA, f"nhận {len(got)}/{len(data)} byte trước khi server đóng (hoặc sai nội dung)")
 
-    @add
-    @group("robust")
-    def test_reset_with_pending_data(ctx):
-        """Client gửi 512 KB rồi đóng đột ngột (RST): server không được chết (SIGPIPE) và vẫn phục vụ tiếp"""
-        for k in range(3):
-            c = ctx.connect(name=f"rst{k}")
-            flood_without_reading(c, limit=512 << 10)
-            c.reset()
-            time.sleep(0.15)
-            ctx.expect_alive("sau khi client đóng đột ngột (quên bỏ qua SIGPIPE / không kiểm tra lỗi send?)")
-        c = ctx.connect(name="sau")
-        echo_roundtrip(c, b"van phuc vu\n")
-
-    @add
-    @group("robust")
-    def test_reset_storm(ctx):
-        """20 client gửi dữ liệu rồi RST liên tiếp"""
-        for k in range(20):
-            c = ctx.connect(name=f"rst{k}")
-            c.send(os.urandom(20000))
-            c.reset()
-        time.sleep(0.3)
-        ctx.expect_alive("sau 20 lần client đóng đột ngột")
-        c = ctx.connect(name="sau")
-        echo_roundtrip(c, b"ok\n")
-
     if slow_reader:
         @add
         @group("robust")
@@ -346,16 +322,17 @@ def echo_suite(concurrent=True, slow_reader=False, max_clients=50, zombie_check=
             k = next((i for i in range(min(len(got), len(data))) if got[i] != data[i]), min(len(got), len(data)))
             raise Fail(WA, f"nhận {len(got)}/{len(data)} byte, sai/thiếu từ byte {k}")
 
-    @add
-    @group("stress")
-    @timeout(15)
-    def test_flood_then_drain(ctx):
-        """Client gửi tới khi đầy bộ đệm mà chưa đọc gì, rồi mới đọc: server phải chờ gửi tiếp, không bỏ client"""
-        c = ctx.connect(rcvbuf=8192)
-        sent = flood_without_reading(c, limit=4 << 20)
-        got = c.recv_exact(sent, timeout=5)
-        if got != b"x" * sent:
-            raise Fail(WA, "dữ liệu echo sai nội dung")
+    if flood:
+        @add
+        @group("stress")
+        @timeout(15)
+        def test_flood_then_drain(ctx):
+            """Client gửi tới khi đầy bộ đệm mà chưa đọc gì, rồi mới đọc: server phải chờ gửi tiếp, không bỏ client"""
+            c = ctx.connect(rcvbuf=8192)
+            sent = flood_without_reading(c, limit=4 << 20)
+            got = c.recv_exact(sent, timeout=5)
+            if got != b"x" * sent:
+                raise Fail(WA, "dữ liệu echo sai nội dung")
 
     @add
     @group("stress")
@@ -574,22 +551,6 @@ def maxn_suite(welcome="WELCOME", full="FULL", quit=("QUIT", "BYE"), ping=("COUN
             rejected(ctx, "thua")
         alive(a)
         alive(b)
-
-    @add
-    @group("robust")
-    @args("{port}", "5", *extra_args)
-    def test_maxn_pipeline_then_rst(ctx):
-        """Client dồn 300 lệnh rồi RST ngay: server không chết (SIGPIPE), chỗ được trả lại"""
-        for k in range(3):
-            c = hello(ctx, f"rst{k}")
-            c.send((pcmd + "\n") * 300)
-            c.reset()
-        time.sleep(0.3)
-        ctx.expect_alive("sau khi client dồn lệnh rồi đóng đột ngột")
-        with ctx.verdict(LIMIT):
-            cs = [hello(ctx, f"C{i}") for i in range(5)]
-        for c in cs:
-            alive(c)
 
     @add
     @group("robust")

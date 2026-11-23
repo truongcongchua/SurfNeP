@@ -1,4 +1,4 @@
-"""Bộ test chung cho chat-select / chat-poll / thread-chat (xem docs/TEST-DESIGN.md).
+"""Bộ test chung cho chat-select / thread-chat (xem docs/TEST-DESIGN.md).
 
 Giao thức: dòng đầu "id: name" -> OK id / ERROR; sau đó mỗi dòng L của id được chuyển tới mọi client KHÁC đã
 đăng ký dưới dạng "id: L".
@@ -187,24 +187,6 @@ def chat_suite():
             b.expect_line(f"a: {m}", timeout=2)
 
     # ---------------- robust ----------------
-    @add
-    @group("robust")
-    def test_receiver_reset(ctx):
-        """Người nhận mất kết nối đột ngột (RST) mà server vẫn gửi tin cho họ: server không được chết (SIGPIPE)"""
-        a, b = join(ctx, "a"), join(ctx, "b")
-        for k in range(5):
-            d = join(ctx, f"x{k}")
-            a.send("".join(f"tin {k} {i}\n" for i in range(300)))
-            d.reset()  # mất kết nối GIỮA lúc server đang phát loạt tin của a
-            a.send("".join(f"tin {k} {i}\n" for i in range(300, 600)))
-            for i in range(600):
-                b.expect_line(f"a: tin {k} {i}", timeout=2)
-            ctx.expect_alive("sau khi gửi tin cho client đã mất kết nối (SIGPIPE?)")
-        c = join(ctx, "c")
-        b.send_line("con day")
-        a.expect_line("b: con day")
-        c.expect_line("b: con day")
-
     @add
     @group("robust")
     def test_sender_resets_mid_line(ctx):

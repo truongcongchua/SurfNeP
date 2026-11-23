@@ -216,7 +216,9 @@ class Proc:
 
     def __init__(self, argv, workdir, stdin=subprocess.DEVNULL):
         self.out = open(os.path.join(workdir, ".stdout"), "wb")
-        self.proc = subprocess.Popen([BINARY, *argv], cwd=workdir, stdin=stdin,
+        # stdbuf -oL: stdout đệm theo dòng như khi chạy trên terminal, để printf("...\n") kiểu code mẫu
+        # tới bộ chấm ngay mà bài nộp không cần fflush/setvbuf.
+        self.proc = subprocess.Popen(["stdbuf", "-oL", "-eL", BINARY, *argv], cwd=workdir, stdin=stdin,
                                      stdout=self.out, stderr=subprocess.STDOUT,
                                      start_new_session=True, preexec_fn=sandbox_limits,
                                      env=SAN_ENV if DEBUG else None, **SANDBOX_KW)
