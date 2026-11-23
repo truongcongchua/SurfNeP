@@ -1,0 +1,18 @@
+- id: send-whole-buffer
+  why: "Gửi cả bộ đệm 1024 byte thay vì đúng số byte nhận được"
+  replace: [["send(client, buffer, bytes_received, 0);  // đúng số byte nhận được", "send(client, buffer, sizeof(buffer), 0);"]]
+- id: send-strlen
+  why: "Dùng strlen làm độ dài: hỏng khi dữ liệu có byte 0x00 hoặc không có '\\0' cuối"
+  replace: [["send(client, buffer, bytes_received, 0);  // đúng số byte nhận được", "buffer[bytes_received < 1024 ? bytes_received : 1023] = 0;\n    send(client, buffer, strlen(buffer), 0);"]]
+- id: no-recv
+  why: "Không recv: gửi lại bộ đệm chưa có dữ liệu"
+  replace: [["    int bytes_received = recv(client, buffer, sizeof(buffer), 0);", "    int bytes_received = 0;\n    memset(buffer, 'x', sizeof(buffer));"]]
+- id: send-before-recv
+  why: "Gửi một dòng chào trước khi nhận (đề: không gửi gì trước khi nhận)"
+  replace: [["    char buffer[1024];\n", "    char buffer[1024];\n    send(client, \"Hello\\n\", 6, 0);\n"]]
+- id: exit-code-1
+  why: "Kết thúc với mã 1"
+  replace: [["    close(listener);\n    return 0;", "    close(listener);\n    return 1;"]]
+- id: no-listen
+  why: "Quên listen: client không kết nối được"
+  replace: [["if (listen(listener, 5) == -1) {", "if (0) {"]]

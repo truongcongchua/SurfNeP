@@ -1,0 +1,18 @@
+- id: no-close-client
+  why: "Quên close(client): client không thấy kết nối đóng, và rò rỉ fd"
+  replace: [["        close(client);  // đóng socket của client, KHÔNG đóng listener\n", ""]]
+- id: counter-in-loop
+  why: "Khai báo count trong vòng lặp: client nào cũng là số 1"
+  replace: [["    int count = 0;  // khai báo ngoài vòng lặp để nhớ qua các client\n    while (0 == 0) {", "    while (0 == 0) {\n        int count = 0;"]]
+- id: exit-after-first
+  why: "Thoát sau client đầu tiên"
+  replace: [["        close(client);  // đóng socket của client, KHÔNG đóng listener", "        close(client);\n        break;"]]
+- id: sends-nul
+  why: "Gửi strlen + 1 byte: thừa byte '\\0'"
+  replace: [["send(client, message, strlen(message), 0);", "send(client, message, strlen(message) + 1, 0);"]]
+- id: close-listener
+  why: "Đóng luôn socket nghe sau mỗi client: client sau không kết nối được"
+  replace: [["        close(client);  // đóng socket của client, KHÔNG đóng listener", "        close(client);\n        close(listener);"]]
+- id: small-buffer
+  why: "Bộ đệm câu chào 8 byte: câu chào bị cắt/tràn"
+  replace: [["char message[64];", "char message[8];"]]

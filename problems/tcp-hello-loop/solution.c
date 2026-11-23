@@ -1,0 +1,46 @@
+// Lời giải mẫu: vòng lặp accept như 3-Chap3/L2-LoopingServer/html.c, gửi bằng send như tcp_server.c.
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        printf("Usage: %s <port>\n", argv[0]);
+        return 1;
+    }
+    int listener = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (listener == -1) {
+        perror("socket");
+        exit(EXIT_FAILURE);
+    }
+    struct sockaddr_in addr;
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(atoi(argv[1]));
+    addr.sin_addr.s_addr = INADDR_ANY;
+    if (bind(listener, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+        perror("bind");
+        close(listener);
+        exit(EXIT_FAILURE);
+    }
+    if (listen(listener, 5) == -1) {
+        perror("listen");
+        close(listener);
+        exit(EXIT_FAILURE);
+    }
+
+    int count = 0;  // khai báo ngoài vòng lặp để nhớ qua các client
+    while (0 == 0) {
+        int client = accept(listener, NULL, NULL);
+        if (client == -1) {
+            continue;
+        }
+        count++;
+        char message[64];
+        sprintf(message, "Hello, client %d!\n", count);
+        send(client, message, strlen(message), 0);
+        close(client);  // đóng socket của client, KHÔNG đóng listener
+    }
+}

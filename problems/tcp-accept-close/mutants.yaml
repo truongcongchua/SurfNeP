@@ -1,0 +1,15 @@
+- id: no-listen
+  why: "Bỏ listen: socket chưa ở chế độ nghe nên client không kết nối được"
+  replace: [["if (listen(listener, 5) == -1) {", "if (0) {"]]
+- id: no-accept
+  why: "Không accept: client kết nối được nhưng không bao giờ được đón"
+  replace: [["    int client = accept(listener, NULL, NULL);", "    sleep(100);\n    int client = -1;"]]
+- id: exit-code-1
+  why: "Kết thúc với mã 1 thay vì 0"
+  replace: [["    close(listener);\n    return 0;", "    close(listener);\n    return 1;"]]
+- id: sends-data
+  why: "Gửi thêm dữ liệu cho client (đề: không gửi gì)"
+  replace: [["    close(client);\n    close(listener);\n    return 0;", "    send(client, \"Hello\\n\", 6, 0);\n    close(client);\n    close(listener);\n    return 0;"]]
+- id: wrong-port-byte-order
+  why: "Quên htons cho cổng: server nghe nhầm cổng"
+  replace: [["addr.sin_port = htons(atoi(argv[1]));", "addr.sin_port = atoi(argv[1]);"]]
