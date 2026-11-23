@@ -77,7 +77,7 @@ export function Description({ problem, html, solved, stats, similar }) {
   return (
     <div ref={root} className="px-4 pb-4 pt-5">
       <div className="flex items-start justify-between gap-4">
-        <h1 className="mb-3 text-2xl font-medium leading-8 text-[var(--title)]">{problem.number}. {problem.title}</h1>
+        <h1 className="mb-5 text-2xl font-medium leading-8 text-[var(--title)]">{problem.number}. {problem.title}</h1>
         {solved && <span className="mt-1.5 flex shrink-0 items-center gap-1 text-sm text-[var(--muted)]">Đã giải <Check className="size-4 text-[var(--green)]" /></span>}
       </div>
       <div className="mb-4 flex flex-wrap items-center gap-1.5">
