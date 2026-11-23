@@ -5,10 +5,10 @@
 - id: sa-mcq-pton
   type: mcq
   concept: socket-address
-  q: "`inet_pton(AF_INET, \"256.1.1.1\", &addr.sin_addr)` trả về giá trị nào?"
-  options: ["`1`", "`0`", "`-1` và đặt `errno`", "Không xác định (hàm không kiểm tra)"]
+  q: "`inet_addr(\"256.1.1.1\")` trả về giá trị nào?"
+  options: ["`0`", "`INADDR_NONE` (`0xFFFFFFFF`)", "`-1` và đặt `errno`", "`0x00010101`"]
   answer: 1
-  why: "`inet_pton` trả `1` nếu hợp lệ, **`0` nếu xâu không phải địa chỉ hợp lệ** (không đặt `errno`), và `-1` chỉ khi họ địa chỉ không hỗ trợ. Vì vậy phải so sánh kết quả với `1`, không chỉ kiểm tra `< 0`."
+  why: "`inet_addr` trả `INADDR_NONE` khi xâu sai. Giá trị này trùng với địa chỉ hợp lệ `255.255.255.255`, nên xâu đó phải so riêng."
 
 - id: sa-mcq-gai
   type: mcq
@@ -59,9 +59,8 @@
   concept: byte-order
   q: "Nhận 4 byte độ dài (đã đọc đủ vào `net`) và đổi về thứ tự máy:"
   code: |
-    uint32_t net;
-    recv_all(fd, &net, 4);
-    uint32_t len = {{1}}(net);
+    unsigned int net;  // đã nhận đủ 4 byte bằng vòng lặp recv
+    unsigned int len = {{1}}(net);
   blanks:
     - ["ntohl"]
   why: "Dữ liệu từ mạng ở thứ tự mạng; về máy dùng `ntohl` (32 bit)."
@@ -146,22 +145,19 @@
 - id: ts-fill-recvall
   type: fill
   concept: tcp-stream
-  q: "Hàm đọc **đủ n byte** từ socket:"
+  q: "Vòng lặp đọc **đủ n byte** từ socket vào `buf`:"
   code: |
-    int recv_all(int fd, void *p, size_t n) {
-        size_t got = 0;
-        while (got {{1}} n) {
-            ssize_t r = recv(fd, (char *)p + {{2}}, n - got, 0);
-            if (r <= 0) return -1;
-            got {{3}} r;
-        }
-        return 0;
+    int got = 0;
+    while (got {{1}} n) {
+        int r = recv(fd, buf + {{2}}, n - got, 0);
+        if (r <= 0) break;  // đối phương đóng hoặc lỗi
+        got {{3}} r;
     }
   blanks:
     - ["<"]
     - ["got"]
     - ["+="]
-  why: "Lặp khi `got < n`; vùng ghi tiếp bắt đầu từ `p + got`; cộng dồn `got += r`. Gặp `r <= 0` (đóng hoặc lỗi) thì trả lỗi."
+  why: "Lặp khi `got < n`; vùng ghi tiếp bắt đầu từ `buf + got`; cộng dồn `got += r`. Gặp `r <= 0` (đóng hoặc lỗi) thì dừng."
 
 - id: lp-mcq-prefix
   type: mcq
@@ -173,7 +169,7 @@
     - "Phải dùng `read` thay cho `recv`"
     - "Không thể đọc số nguyên qua TCP"
   answer: 1
-  why: "`recv` có thể trả ít byte hơn yêu cầu. Dùng `recv_all` để đọc đủ 4 byte trước khi `ntohl`."
+  why: "`recv` có thể trả ít byte hơn yêu cầu. Lặp `recv` (cộng dồn số byte) tới khi đủ 4 byte rồi mới `ntohl`."
 
 - id: lp-mcq-struct
   type: mcq
@@ -192,14 +188,14 @@
   concept: length-prefix-struct
   q: "Gửi thông điệp có tiền tố độ dài `len` (rồi đến dữ liệu):"
   code: |
-    uint32_t n = {{1}}(len);
-    send_all(fd, &n, {{2}});
-    send_all(fd, data, {{3}});
+    unsigned int n = {{1}}(len);
+    send(fd, &n, {{2}}, 0);
+    send(fd, data, {{3}}, 0);
   blanks:
     - ["htonl"]
     - ["4", "sizeof n", "sizeof(n)", "sizeof n "]
     - ["len"]
-  why: "Độ dài 32 bit đổi bằng `htonl`; tiền tố dài 4 byte; sau đó gửi đúng `len` byte dữ liệu."
+  why: "Độ dài 32 bit đổi bằng `htonl`; tiền tố dài 4 byte; sau đó gửi đúng `len` byte dữ liệu (socket blocking: `send` chờ tới khi gửi hết)."
 
 - id: udp-mcq-boundary
   type: mcq
@@ -289,21 +285,21 @@
 - id: nb-mcq-eagain
   type: mcq
   concept: nonblocking
-  q: "`recv` trên socket non-blocking trả `-1` với `errno == EAGAIN`. Cách xử lý đúng?"
-  options: ["Đóng client vì có lỗi", "Bỏ qua, thử lại sau: chưa có dữ liệu", "Thoát chương trình", "Gọi lại `accept`"]
+  q: "`recv` trên socket non-blocking (đã `ioctl FIONBIO`) trả `-1`. Theo `non_blocking_server.c`, xử lý thế nào?"
+  options: ["Đóng client vì có lỗi", "Bỏ qua, thử client tiếp theo: chưa có dữ liệu", "Thoát chương trình", "Gọi lại `accept`"]
   answer: 1
-  why: "`EAGAIN`/`EWOULDBLOCK` nghĩa là chưa có dữ liệu, **không phải lỗi**. Chỉ đóng client khi `recv == 0` hoặc lỗi khác."
+  why: "Trên socket non-blocking, `-1` thường nghĩa là chưa có dữ liệu, **không phải lỗi**. Chỉ đóng client khi `recv == 0`."
 
 - id: nb-fill-flag
   type: fill
   concept: nonblocking
-  q: "Đặt socket `fd` sang chế độ non-blocking:"
+  q: "Đặt socket `fd` sang chế độ non-blocking (như `non_blocking_server.c`):"
   code: |
-    int fl = fcntl(fd, F_GETFL, 0);
-    fcntl(fd, F_SETFL, fl | {{1}});
+    int io_mode = 1;
+    ioctl(fd, {{1}}, &io_mode);
   blanks:
-    - ["O_NONBLOCK"]
-  why: "Thêm cờ `O_NONBLOCK` vào cờ hiện có (giữ các cờ khác)."
+    - ["FIONBIO"]
+  why: "`ioctl` với `FIONBIO`; `io_mode = 1` bật chế độ non-blocking (`0` thì tắt)."
 
 - id: fk-order-fork
   type: order
@@ -339,7 +335,7 @@
   q: "`pthread_create(&t, NULL, worker, &client)` trong vòng lặp `accept` với `client` là biến cục bộ của vòng lặp. Vấn đề?"
   options: ["Không có", "Race condition: vòng sau ghi đè `client` trước khi luồng kịp đọc", "Luồng không nhận được tham số", "Phải dùng `fork` thay thế"]
   answer: 1
-  why: "Mọi luồng cùng trỏ tới một biến. Hãy `malloc` một ô cho mỗi luồng, hoặc truyền giá trị qua `(void *)(intptr_t)client`."
+  why: "Mọi luồng cùng trỏ tới một biến. Hãy `malloc` một ô cho mỗi luồng, luồng đọc xong thì `free`."
 
 - id: th-mcq-detach
   type: mcq
@@ -381,13 +377,13 @@
   answer: 1
   why: "`nfds` là **giá trị fd lớn nhất cộng 1**, không phải số lượng fd."
 
-- id: sp-mcq-poll
+- id: sp-mcq-timeout
   type: mcq
   concept: select-poll
-  q: "So với `select`, điều nào đúng với `poll`?"
-  options: ["`poll` sửa mảng `events` truyền vào", "`poll` không cần tính `maxfd` và không bị giới hạn `FD_SETSIZE`", "`poll` chỉ dùng cho UDP", "`poll` chạy nhiều luồng"]
+  q: "`select_client.c` gán `timeout.tv_sec = 5` **một lần** trước vòng lặp. Trên Linux, ở các vòng sau điều gì xảy ra?"
+  options: ["Mỗi vòng vẫn chờ 5 giây", "`select` trừ dần `timeout`; về 0 thì các lần sau trả về ngay (lặp bận)", "`select` báo lỗi", "`timeout` bị bỏ qua"]
   answer: 1
-  why: "`poll` dùng mảng `struct pollfd`, kết quả ghi vào `revents`, không sửa `events`, và không có giới hạn 1024 của `FD_SETSIZE`."
+  why: "Linux ghi thời gian còn lại vào `timeout`. Muốn mỗi lần chờ 5 giây phải gán lại `tv_sec` (và `FD_SET` lại) trước mỗi lần gọi `select`."
 
 - id: sp-fill-select
   type: fill
@@ -427,7 +423,7 @@
   q: "Bài key-value dùng chung một bảng cho mọi client. Vì sao **không** nên dùng `fork`?"
   options: ["`fork` không hỗ trợ TCP", "Mỗi tiến trình con có bản sao bộ nhớ riêng nên thay đổi không được chia sẻ", "`fork` chậm hơn `select`", "`fork` không giới hạn số client"]
   answer: 1
-  why: "Tiến trình không chia sẻ biến. Với dữ liệu dùng chung hãy dùng select/poll (một luồng) hoặc thread + mutex."
+  why: "Tiến trình không chia sẻ biến. Với dữ liệu dùng chung hãy dùng select (một luồng) hoặc thread + mutex."
 
 - id: ta-mcq-block
   type: mcq

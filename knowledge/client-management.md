@@ -8,7 +8,7 @@ ref: "Lecture notes §3.5–3.6; dạng đề giữa kỳ"
 > "Tạo ứng dụng server/client dùng TCP/UDP phục vụ một bài toán với số lượng tối đa N client."
 
 Tách thành hai việc:
-1. **Phục vụ nhiều client cùng lúc:** chọn một trong `select`/`poll`, đa luồng (thread), hoặc `fork` (bảng chọn ở cuối thẻ).
+1. **Phục vụ nhiều client cùng lúc:** chọn một trong `select`, đa luồng (thread), hoặc `fork` (bảng chọn ở cuối thẻ).
 2. **Không cho quá N client:** đếm số client đang kết nối.
 
 ## Lưu thông tin từng client
@@ -69,7 +69,7 @@ for (int i = 0; i < MAX_CLIENTS; i++)
 ## Chọn kỹ thuật nào?
 | Bài toán | Nên chọn | Vì sao |
 |---|---|---|
-| Các client dùng **chung dữ liệu** (chat, bảng key-value) | `select`/`poll` | một luồng, không cần khoá |
+| Các client dùng **chung dữ liệu** (chat, bảng key-value) | `select` | một luồng, không cần khoá |
 | | hoặc thread + mutex | code từng client viết tuần tự, dễ đọc |
 | Mỗi client **độc lập**, không chia sẻ gì | `fork` | đơn giản, client này lỗi không ảnh hưởng client khác |
 

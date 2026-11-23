@@ -12,12 +12,12 @@
 
 | Hàm | Kết quả |
 |---|---|
-| `recv` | `> 0` số byte (có thể ít hơn yêu cầu) · `0` đối phương đóng · `-1` lỗi (`EINTR` thử lại; non-blocking: `EAGAIN` = chưa có dữ liệu) |
+| `recv` | `> 0` số byte (có thể ít hơn yêu cầu) · `0` đối phương đóng · `-1` lỗi (socket non-blocking: `-1` = chưa có dữ liệu) |
 | `recvfrom` (UDP) | `>= 0` độ dài datagram (`0` = datagram **rỗng**, không phải đóng) · `-1` lỗi |
-| `send` | số byte gửi được (có thể ít hơn → vòng lặp `send_all`) |
-| `inet_pton` | `1` hợp lệ · `0` xâu sai định dạng · `-1` họ địa chỉ không hỗ trợ |
+| `send` | số byte đã gửi · `-1` lỗi (socket blocking: chờ tới khi gửi hết) |
+| `inet_addr` | `s_addr` (thứ tự mạng) · `INADDR_NONE` xâu sai (trùng với `255.255.255.255`!) |
 | `getaddrinfo` | `0` thành công (kết quả là danh sách `ai_next`, nhớ `freeaddrinfo`) · khác `0` là lỗi |
-| `select` | số fd sẵn sàng · `-1` lỗi (`EINTR`) |
+| `select` | số fd sẵn sàng · `0` hết thời gian chờ · `-1` lỗi |
 | `fork` | `0` ở tiến trình con · `pid` ở cha · `-1` lỗi |
 
 ## 3. Byte order
@@ -42,11 +42,10 @@ Máy x86 là little-endian (`0x1234` lưu `34 12`); mạng là big-endian (`12 3
 | Mô hình | Cách làm | Chia sẻ dữ liệu | Điểm cần nhớ / bẫy |
 |---|---|---|---|
 | Lặp (iterative) | `accept` → xong → `accept` | dễ | client chậm chặn tất cả |
-| Non-blocking | `O_NONBLOCK`, thử liên tục | dễ | `EAGAIN` không phải lỗi; `usleep` kẻo ăn 100% CPU |
+| Non-blocking | `ioctl(fd, FIONBIO, &io_mode)`, thử liên tục | dễ | `recv == -1` là chưa có dữ liệu; bận chờ 100% CPU |
 | `fork` | mỗi client một tiến trình | **không** (bộ nhớ riêng) | `SIGCHLD` + `waitpid(WNOHANG)` chống zombie; con đóng socket nghe, cha đóng socket client |
 | `pthread` | mỗi client một luồng | có (cần **mutex**) | `malloc` tham số cho từng luồng; `pthread_detach` (không `join` ngay); `-pthread` |
-| `select` | một luồng, tập `fd_set` | dễ, không cần khoá | sao lưu `fd_set`; `maxfd + 1`; `FD_CLR` khi đóng; lệnh chậm chặn tất cả |
-| `poll` | một luồng, mảng `pollfd` | dễ | kiểm tra `revents`; không giới hạn 1024 |
+| `select` | một luồng, tập `fd_set` | dễ, không cần khoá | dựng lại `fd_set` mỗi vòng; `max_fd + 1`; xoá fd khỏi mảng khi đóng; lệnh chậm chặn tất cả |
 
 ## 6. Khung mã hay dùng
 
@@ -65,25 +64,13 @@ for (;;) {
 }
 ```
 
-**send_all / recv_all**
+**Nhận đủ n byte** (`recv` có thể trả ít hơn số byte xin; `send` trên socket blocking thì tự chờ gửi hết)
 ```c
-int send_all(int fd, const void *p, size_t n) {
-    size_t sent = 0;
-    while (sent < n) {
-        ssize_t r = send(fd, (const char *)p + sent, n - sent, MSG_NOSIGNAL);
-        if (r <= 0) return -1;
-        sent += r;
-    }
-    return 0;
-}
-int recv_all(int fd, void *p, size_t n) {
-    size_t got = 0;
-    while (got < n) {
-        ssize_t r = recv(fd, (char *)p + got, n - got, 0);
-        if (r <= 0) return -1;
-        got += r;
-    }
-    return 0;
+int got = 0;
+while (got < n) {
+    int r = recv(fd, buf + got, n - got, 0);
+    if (r <= 0) break;          // đối phương đóng hoặc lỗi
+    got += r;
 }
 ```
 
@@ -93,17 +80,18 @@ void reap(int sig) { while (waitpid(-1, NULL, WNOHANG) > 0); }
 signal(SIGCHLD, reap);
 ```
 
-**Vòng lặp select**
+**Vòng lặp select (như `select_server.c`)**
 ```c
-fd_set master, rd; FD_ZERO(&master); FD_SET(ls, &master); int maxfd = ls;
+int cl[50], n = 0;
 for (;;) {
-    rd = master;
-    select(maxfd + 1, &rd, NULL, NULL, NULL);
-    if (FD_ISSET(ls, &rd)) { int c = accept(ls, NULL, NULL); FD_SET(c, &master); if (c > maxfd) maxfd = c; }
-    for (int fd = 0; fd <= maxfd; fd++)
-        if (fd != ls && FD_ISSET(fd, &rd)) {
-            ssize_t n = recv(fd, buf, sizeof buf, 0);
-            if (n <= 0) { close(fd); FD_CLR(fd, &master); }
+    fd_set rd; FD_ZERO(&rd); FD_SET(ls, &rd); int max_fd = ls;
+    for (int i = 0; i < n; i++) { FD_SET(cl[i], &rd); if (cl[i] > max_fd) max_fd = cl[i]; }
+    select(max_fd + 1, &rd, NULL, NULL, NULL);
+    if (FD_ISSET(ls, &rd)) cl[n++] = accept(ls, NULL, NULL);
+    for (int i = 0; i < n; i++)
+        if (FD_ISSET(cl[i], &rd)) {
+            int k = recv(cl[i], buf, sizeof(buf), 0);
+            if (k <= 0) { close(cl[i]); cl[i--] = cl[--n]; }
             else { /* xử lý */ }
         }
 }
@@ -114,7 +102,7 @@ for (;;) {
 - Đủ N thì vẫn `accept`, gửi thông báo theo đề (vd. `FULL`), `close` ngay.
 - Giảm `nclients` ở **mọi** đường client rời đi (`QUIT`, `recv == 0`, lỗi).
 - Mỗi client có **bộ đệm dòng riêng** và trạng thái riêng (đã đăng ký/đăng nhập chưa).
-- Dữ liệu dùng chung (bảng key-value, phòng chat): dùng select/poll hoặc thread + mutex, **không** dùng fork.
+- Dữ liệu dùng chung (bảng key-value, phòng chat): dùng select hoặc thread + mutex, **không** dùng fork.
 
 ## 8. Tệp & HTTP
 
@@ -130,6 +118,6 @@ for (;;) {
 | RE | server thoát sau một client; truy cập mảng sai |
 | BLOCKED | `recv`/`accept` blocking trong vòng chính; `pthread_join` ngay; cha `wait` con |
 | LIMIT | điều kiện từ chối sai, đếm client sai |
-| CV | dùng hàm bị cấm (`fork`, `pthread`, `select`, `poll`...) |
+| CV | dùng hàm bị cấm (`fork`, `pthread`, `select`...) |
 | NL | không `listen` đúng cổng (`htons`, `argv[1]`) |
 | TLE | vòng lặp không thoát (`recv == 0`), chờ dữ liệu không bao giờ đến |

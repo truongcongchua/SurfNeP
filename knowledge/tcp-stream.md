@@ -47,17 +47,15 @@ for (;;) {
 ## Mẫu 2: đọc đủ đúng n byte (cách 2 và 3)
 `recv(fd, p, n, 0)` chỉ hứa trả **tối đa** n byte. Muốn đủ n byte thì lặp:
 ```c
-int recv_all(int fd, void *p, size_t n) {
-    size_t got = 0;
-    while (got < n) {
-        ssize_t r = recv(fd, (char *)p + got, n - got, 0);
-        if (r <= 0) return -1;      // bên kia đóng giữa chừng hoặc lỗi
-        got += r;
-    }
-    return 0;                       // đã đủ n byte
+int got = 0;
+while (got < n) {
+    int r = recv(fd, buf + got, n - got, 0);
+    if (r <= 0) break;              // bên kia đóng giữa chừng hoặc lỗi
+    got += r;
 }
+// got == n: đã đủ n byte
 ```
-Gửi thì dùng `send_all` (xem thẻ *Vòng đời socket TCP*).
+Gửi thì gọi `send` một lần: socket blocking tự chờ tới khi gửi hết.
 
 ## Tìm một chữ đặc biệt (vd. `"bye"`)
 Tìm trong **bộ đệm đã dồn**, đừng tìm trong từng lần `recv`: chữ đó có thể bị cắt đôi, lần này nhận `"by"`, lần sau nhận `"e"`.

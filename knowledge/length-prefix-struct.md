@@ -15,21 +15,33 @@ Bên nhận đọc đủ 4 byte → biết N → đọc tiếp đủ N byte. Kh�
 ## Code mẫu
 ```c
 // ---- GỬI ----
-uint32_t len = strlen(msg);
-uint32_t len_net = htonl(len);       // độ dài là số 4 byte → đổi sang network order
-send_all(fd, &len_net, 4);
-send_all(fd, msg, len);
+unsigned int len = strlen(msg);
+unsigned int len_net = htonl(len);   // độ dài là số 4 byte → đổi sang network order
+send(fd, &len_net, 4, 0);            // socket blocking: send chờ tới khi gửi hết
+send(fd, msg, len, 0);
 
-// ---- NHẬN ----
-uint32_t len_net;
-if (recv_all(fd, &len_net, 4) < 0) { /* bên kia đã đóng */ }
-uint32_t len = ntohl(len_net);       // đổi về số bình thường
+// ---- NHẬN: lặp recv tới khi đủ 4 byte ----
+unsigned int len_net;
+int got = 0;
+while (got < 4) {
+    int k = recv(fd, (char *)&len_net + got, 4 - got, 0);
+    if (k <= 0) { /* bên kia đã đóng */ break; }
+    got += k;
+}
+unsigned int len = ntohl(len_net);   // đổi về số bình thường (kiểu không dấu!)
 if (len > MAX_LEN) { /* quá lớn: từ chối, đừng tin bừa */ }
+
+// ---- rồi lặp recv tới khi đủ len byte ----
 char *buf = malloc(len + 1);
-recv_all(fd, buf, len);
+unsigned int have = 0;
+while (have < len) {
+    int k = recv(fd, buf + have, len - have, 0);
+    if (k <= 0) break;
+    have += k;
+}
 buf[len] = '\0';                     // thêm '\0' nếu muốn dùng như xâu
 ```
-`send_all`/`recv_all` xem ở thẻ *Vòng đời socket TCP* và *TCP là luồng byte*. **Không** dùng `recv(fd, &len_net, 4, 0)` một lần: có thể chỉ nhận được 1-3 byte.
+**Không** dùng `recv(fd, &len_net, 4, 0)` một lần như `tcp_server.c`: có thể chỉ nhận được 1-3 byte.
 
 ## Gửi cả một struct được không?
 ```c
@@ -47,10 +59,10 @@ unsigned char out[64];
 size_t off = 0;
 
 memcpy(out + off, sv.name, 32);               off += 32;   // xâu: copy nguyên 32 byte
-uint32_t age_net = htonl((uint32_t)sv.age);
+unsigned int age_net = htonl(sv.age);
 memcpy(out + off, &age_net, 4);               off += 4;    // số: đổi byte order rồi copy
 
-send_all(fd, out, off);
+send(fd, out, off, 0);
 ```
 Bên nhận làm ngược lại đúng thứ tự đó (`memcpy` ra rồi `ntohl`).
 

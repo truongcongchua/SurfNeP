@@ -76,7 +76,7 @@ int fd = socket(AF_INET, SOCK_STREAM, 0);
 struct sockaddr_in srv = {0};
 srv.sin_family = AF_INET;
 srv.sin_port = htons(port);
-inet_pton(AF_INET, "127.0.0.1", &srv.sin_addr);   // đổi xâu IP sang dạng máy hiểu
+srv.sin_addr.s_addr = inet_addr("127.0.0.1");    // đổi xâu IP sang dạng máy hiểu
 
 if (connect(fd, (struct sockaddr *)&srv, sizeof srv) < 0) { perror("connect"); return 1; }
 
@@ -95,18 +95,7 @@ close(fd);
 | `0` | phía bên kia đã **đóng** kết nối | thoát vòng lặp, `close(fd)` |
 | `-1` | có lỗi | in `perror`, đóng kết nối |
 
-`send` cũng trả về số byte **thực sự** đã gửi, có thể ít hơn bạn yêu cầu. Khi gửi dữ liệu lớn, dùng hàm gửi lặp cho đến hết:
-```c
-int send_all(int fd, const void *p, size_t n) {
-    size_t sent = 0;
-    while (sent < n) {
-        ssize_t r = send(fd, (const char *)p + sent, n - sent, 0);
-        if (r <= 0) return -1;
-        sent += r;
-    }
-    return 0;
-}
-```
+`send` trên socket **blocking** (mặc định) tự chờ tới khi đã đưa hết dữ liệu vào bộ đệm gửi, nên gọi một lần là đủ, như `tcp_server.c`: `send(client, buffer, bytes_received, 0)`. Chỉ cần kiểm tra `== -1` (lỗi). Ngược lại, `recv` thì **có thể** trả ít hơn số byte bạn xin: dữ liệu lớn đến qua nhiều lần `recv`.
 
 ## Lỗi hay gặp
 - **Chạy lại server báo `bind: Address already in use`.** Cổng cũ vẫn bị hệ điều hành giữ vài chục giây. Sửa: thêm `setsockopt(... SO_REUSEADDR ...)` **trước** `bind`.

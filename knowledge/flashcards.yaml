@@ -2,8 +2,8 @@
 # Viết ngắn, một ý một thẻ; Markdown cơ bản (`code`, **đậm**, danh sách) đều dùng được.
 
 # ---- socket-address ----
-- {id: sa-1, concept: socket-address, q: "Ba trường bắt buộc điền của `struct sockaddr_in` khi bind/connect?", a: "`sin_family = AF_INET`, `sin_port = htons(port)`, `sin_addr` (vd. `inet_pton` hoặc `htonl(INADDR_ANY)`). Nên `memset` về 0 trước."}
-- {id: sa-2, concept: socket-address, q: "`inet_pton` trả về `0` nghĩa là gì?", a: "Xâu **không phải** địa chỉ hợp lệ (không đặt `errno`). `1` = hợp lệ, `-1` = họ địa chỉ không hỗ trợ."}
+- {id: sa-1, concept: socket-address, q: "Ba trường bắt buộc điền của `struct sockaddr_in` khi bind/connect?", a: "`sin_family = AF_INET`, `sin_port = htons(port)`, `sin_addr.s_addr` (vd. `inet_addr(\"127.0.0.1\")` hoặc `INADDR_ANY`). Nên `memset` về 0 trước."}
+- {id: sa-2, concept: socket-address, q: "`inet_addr` trả về `INADDR_NONE` nghĩa là gì?", a: "Xâu **không phải** địa chỉ hợp lệ, hoặc chính là `255.255.255.255` (cùng giá trị `0xFFFFFFFF`): xâu đó phải so riêng."}
 - {id: sa-3, concept: socket-address, q: "Vì sao `getaddrinfo` cần `hints` với `AF_INET` + `SOCK_STREAM`?", a: "Không có hints sẽ trả mọi kiểu socket (STREAM/DGRAM/RAW) và cả IPv6, nên cùng một IP lặp 3 lần."}
 - {id: sa-4, concept: socket-address, q: "Cách duyệt kết quả `getaddrinfo`?", a: "Danh sách liên kết: `for (p = res; p; p = p->ai_next)`, ép `p->ai_addr` sang `sockaddr_in *`, in bằng `inet_ntop`; cuối cùng `freeaddrinfo(res)`."}
 
@@ -16,7 +16,7 @@
 # ---- tcp-lifecycle ----
 - {id: tl-1, concept: tcp-lifecycle, q: "Thứ tự hàm của TCP server?", a: "`socket` → `bind` → `listen` → `accept` (lặp) → `recv`/`send` → `close`."}
 - {id: tl-2, concept: tcp-lifecycle, q: "Thứ tự hàm của TCP client?", a: "`socket` → `connect` → `send`/`recv` → `close`. Không cần `bind`/`listen`/`accept`."}
-- {id: tl-3, concept: tcp-lifecycle, q: "`recv` trả `> 0`, `0`, `-1` lần lượt nghĩa là gì?", a: "`> 0`: số byte nhận được (có thể ít hơn yêu cầu). `0`: đối phương đóng (EOF). `-1`: lỗi, xem `errno` (`EINTR` thì thử lại)."}
+- {id: tl-3, concept: tcp-lifecycle, q: "`recv` trả `> 0`, `0`, `-1` lần lượt nghĩa là gì?", a: "`> 0`: số byte nhận được (có thể ít hơn yêu cầu). `0`: đối phương đóng (EOF). `-1`: lỗi (in bằng `perror`)."}
 - {id: tl-4, concept: tcp-lifecycle, q: "Khác nhau giữa socket nghe và socket do `accept` trả về?", a: "Socket nghe chỉ để `accept`. `accept` trả socket **mới** cho từng client để trao đổi dữ liệu."}
 - {id: tl-5, concept: tcp-lifecycle, q: "Tác dụng của `SO_REUSEADDR`?", a: "Cho phép `bind` lại cổng ngay (đang TIME_WAIT), tránh lỗi `Address already in use` khi chạy lại server."}
 
@@ -27,10 +27,10 @@
 - {id: ts-4, concept: tcp-stream, q: "Mẫu đọc một dòng từ socket?", a: "Bộ đệm lưu giữa các lần gọi; `memchr` tìm `\\n`; chưa có thì `recv` thêm; có thì cắt dòng và `memmove` phần dư lên đầu."}
 
 # ---- length-prefix-struct ----
-- {id: lp-1, concept: length-prefix-struct, q: "Cấu trúc thông điệp có độ dài tiền tố?", a: "4 byte độ dài (`htonl`) rồi đúng L byte dữ liệu. Nhận: `recv_all` 4 byte → `ntohl` → `recv_all` L byte."}
+- {id: lp-1, concept: length-prefix-struct, q: "Cấu trúc thông điệp có độ dài tiền tố?", a: "4 byte độ dài (`htonl`) rồi đúng L byte dữ liệu. Nhận: lặp `recv` tới đủ 4 byte → `ntohl` → lặp `recv` tới đủ L byte."}
 - {id: lp-2, concept: length-prefix-struct, q: "Vì sao phải kiểm tra giới hạn độ dài trước khi đọc dữ liệu?", a: "Độ dài do đối phương gửi: không giới hạn sẽ cấp phát/đọc khổng lồ hoặc tràn bộ đệm."}
 - {id: lp-3, concept: length-prefix-struct, q: "Ba vấn đề khi `send` thẳng một `struct`?", a: "**Padding** (căn lề), **byte order** của số nhiều byte, và **con trỏ** (gửi địa chỉ vô nghĩa). Hãy tuần tự hoá từng trường."}
-- {id: lp-4, concept: length-prefix-struct, q: "Bản ghi có trường độ dài thay đổi (vd. `name_len` + `name`) đọc thế nào?", a: "Đọc theo từng trường bằng `recv_all`: trường độ dài trước, rồi mới đọc đúng số byte đó."}
+- {id: lp-4, concept: length-prefix-struct, q: "Bản ghi có trường độ dài thay đổi (vd. `name_len` + `name`) đọc thế nào?", a: "Đọc theo từng trường bằng vòng lặp `recv`: trường độ dài trước, rồi mới đọc đúng số byte đó."}
 
 # ---- udp-basics ----
 - {id: udp-1, concept: udp-basics, q: "Thứ tự hàm của UDP server?", a: "`socket(SOCK_DGRAM)` → `bind` → vòng `recvfrom` / `sendto`. Không có `listen`/`accept`."}
@@ -51,28 +51,28 @@
 - {id: it-4, concept: iterative-server, q: "Thứ tự kiểm tra lỗi của server HTTP tối giản?", a: "400 (dòng đầu thiếu phần) → 405 (METHOD không phải GET) → 403 (PATH chứa `..`) → 404 (không có / không phải tệp thường) → 200."}
 
 # ---- nonblocking ----
-- {id: nb-1, concept: nonblocking, q: "Đặt socket non-blocking bằng cách nào?", a: "`fcntl(fd, F_SETFL, flags | O_NONBLOCK)` hoặc `ioctl(fd, FIONBIO, &on)`. Áp dụng cho cả socket nghe và từng client."}
-- {id: nb-2, concept: nonblocking, q: "`recv == -1` với `errno == EAGAIN` nghĩa là gì?", a: "Chưa có dữ liệu, **không phải lỗi**; bỏ qua và thử lại sau."}
-- {id: nb-3, concept: nonblocking, q: "Nhược điểm của polling non-blocking thuần túy?", a: "Bận chờ (ăn 100% CPU nếu không `usleep`) và mỗi vòng phải hỏi mọi client. Đó là lý do cần `select`/`poll`."}
+- {id: nb-1, concept: nonblocking, q: "Đặt socket non-blocking bằng cách nào?", a: "`ioctl(fd, FIONBIO, &io_mode)` với `io_mode = 1`, như `non_blocking_server.c`. Áp dụng cho cả socket nghe và từng client."}
+- {id: nb-2, concept: nonblocking, q: "`recv == -1` trên socket non-blocking nghĩa là gì?", a: "Thường là chưa có dữ liệu, **không phải lỗi**; bỏ qua và thử lại ở vòng sau."}
+- {id: nb-3, concept: nonblocking, q: "Nhược điểm của polling non-blocking thuần túy?", a: "Bận chờ (lặp liên tục, ăn 100% CPU), mỗi vòng phải hỏi mọi client, và `send` khi bộ đệm đầy bị bỏ dở. Đó là lý do cần `select`."}
 
 # ---- fork-server ----
 - {id: fk-1, concept: fork-server, q: "Sau `fork`, cha và con mỗi bên cần `close` gì?", a: "Con `close(socket nghe)`; cha `close(socket client)`. Không thì socket không thật sự đóng và rò rỉ fd."}
 - {id: fk-2, concept: fork-server, q: "Zombie là gì và tránh thế nào?", a: "Tiến trình con đã kết thúc nhưng cha chưa `wait`. Handler `SIGCHLD`: `while (waitpid(-1, NULL, WNOHANG) > 0);`."}
-- {id: fk-3, concept: fork-server, q: "`accept` trả `-1` với `EINTR` thì làm gì?", a: "Bị tín hiệu (vd. `SIGCHLD`) ngắt: **thử lại** (`continue`), không coi là lỗi chết người."}
-- {id: fk-4, concept: fork-server, q: "Vì sao con gọi `system()` nên `signal(SIGCHLD, SIG_DFL)`?", a: "Con thừa hưởng handler `waitpid(-1)` của cha, thu mất tiến trình mà `system()` đang chờ khiến `system()` lỗi."}
+- {id: fk-3, concept: fork-server, q: "`accept` trả `-1` trong server fork thì làm gì?", a: "`continue` (thử lại), không coi là lỗi chết người. `signal()` của glibc tự cho `accept` chạy lại khi bị `SIGCHLD` ngắt."}
+- {id: fk-4, concept: fork-server, q: "Vì sao cha không được `wait(NULL)` ngay sau `fork`?", a: "Cha sẽ đứng chờ client đó xong mới `accept` tiếp: mất tác dụng đa tiến trình. Để handler `SIGCHLD` thu dọn con."}
 - {id: fk-5, concept: fork-server, q: "Hạn chế của `fork` với dữ liệu dùng chung?", a: "Mỗi tiến trình có bộ nhớ riêng nên không chia sẻ biến; cần IPC, hoặc chọn thread/select."}
 
 # ---- threads-mutex ----
-- {id: th-1, concept: threads-mutex, q: "Cách truyền `fd` an toàn cho luồng?", a: "`malloc` một `int` riêng cho mỗi luồng (`free` trong luồng), hoặc `(void *)(intptr_t)fd`. Không truyền `&biến_cục_bộ` của vòng lặp."}
+- {id: th-1, concept: threads-mutex, q: "Cách truyền `fd` an toàn cho luồng?", a: "`malloc` một `int` riêng cho mỗi luồng (`free` trong luồng). Không truyền `&biến_cục_bộ` của vòng lặp."}
 - {id: th-2, concept: threads-mutex, q: "Vì sao `pthread_detach` thay vì `pthread_join` trong server?", a: "`join` chặn đến khi luồng xong (mất đồng thời); `detach` để luồng tự giải phóng khi kết thúc."}
 - {id: th-3, concept: threads-mutex, q: "Quy tắc dùng mutex cho bảng client dùng chung?", a: "Khoá khi duyệt/sửa, giữ càng ngắn càng tốt, mở khoá ở **mọi** nhánh thoát, không giữ khoá khi `recv`."}
 - {id: th-4, concept: threads-mutex, q: "Cờ biên dịch khi dùng `pthread`?", a: "`-pthread` (thiếu sẽ báo `undefined reference to pthread_create`)."}
 
 # ---- select-poll ----
-- {id: sp-1, concept: select-poll, q: "Vì sao phải sao lưu `fd_set` trước mỗi `select`?", a: "`select` **ghi đè** tập truyền vào, chỉ để lại fd sẵn sàng. Dùng `rd = master` mỗi vòng."}
+- {id: sp-1, concept: select-poll, q: "Vì sao phải dựng lại `fd_set` trước mỗi `select`?", a: "`select` **ghi đè** tập truyền vào, chỉ để lại fd sẵn sàng. Như `select_server.c`: `FD_ZERO` rồi `FD_SET` lại mọi fd mỗi vòng."}
 - {id: sp-2, concept: select-poll, q: "Tham số đầu của `select`?", a: "**`maxfd + 1`** (không phải số lượng fd). Cập nhật `maxfd` khi có client mới."}
-- {id: sp-3, concept: select-poll, q: "Khi `recv == 0` trong vòng `select` cần làm gì?", a: "`close(fd)` **và** `FD_CLR(fd, &master)` (nếu không `select` báo `EBADF`)."}
-- {id: sp-4, concept: select-poll, q: "Ưu điểm của `poll` so với `select`?", a: "Không cần `maxfd`, không giới hạn `FD_SETSIZE`, không sửa `events` (kết quả ở `revents`)."}
+- {id: sp-3, concept: select-poll, q: "Khi `recv == 0` trong vòng `select` cần làm gì?", a: "`close(fd)` **và** xoá fd khỏi mảng client (nếu không vòng sau vẫn `FD_SET` một fd đã đóng)."}
+- {id: sp-4, concept: select-poll, q: "`timeout` của `select` cần lưu ý gì?", a: "Linux trừ dần thời gian đã chờ vào `timeout`: gán lại `tv_sec`/`tv_usec` trước mỗi lần gọi. Truyền `NULL` = chờ vô hạn."}
 - {id: sp-5, concept: select-poll, q: "Hạn chế chung của mô hình ghép kênh một luồng?", a: "Một thao tác chậm (`sleep`, `system()`, đọc tệp lớn) chặn **mọi** client."}
 
 # ---- client-management ----

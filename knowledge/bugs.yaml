@@ -28,9 +28,9 @@
   symptom: "`127.0.0.1` bị xếp loại `PUBLIC` thay vì `LOOPBACK`, và giá trị 32 bit in ra là `0x0100007F`."
   title: Dùng s_addr (thứ tự mạng) để so mặt nạ và in
   explain: |-
-    `inet_pton` ghi `s_addr` theo **network order**. Trên máy little-endian, `127.0.0.1` nằm trong `s_addr` là `0x0100007F`, nên phép so `(a & 0xFF000000u) == 0x7F000000u` không bao giờ đúng.
+    `inet_addr` trả `s_addr` theo **network order**. Trên máy little-endian, `127.0.0.1` nằm trong `s_addr` là `0x0100007F`, nên phép so `(a & 0xFF000000u) == 0x7F000000u` không bao giờ đúng.
     Cần chuyển về thứ tự máy trước khi so với mặt nạ hoặc in dạng `0xXXXXXXXX`.
-  fix: "`uint32_t a = ntohl(in.s_addr);`"
+  fix: "`unsigned int a = ntohl(in.s_addr);`"
 
 - id: domain2ip-no-hints
   problem: domain2ip
@@ -139,14 +139,14 @@
   explain: |-
     Điều kiện `recv(...) >= 4` coi như một lần nhận luôn có đủ độ dài **và** toàn bộ L byte dữ liệu. TCP không đảm bảo điều đó: 4 byte đầu có thể đến từng byte, dữ liệu có thể đến sau, và hai thông điệp có thể dính nhau.
     Dòng 30 còn gửi `4 + len` byte dù `buf` có thể chưa nhận đủ.
-  fix: "Viết `recv_all(fd, buf, n)`: đọc đủ 4 byte, `ntohl`, rồi đọc đủ L byte trước khi xử lý và trả lời."
+  fix: "Lặp `recv` (cộng dồn số byte) tới khi đủ 4 byte, `ntohl`, rồi lặp tới khi đủ L byte trước khi xử lý và trả lời."
 
 - id: looping-server-single-recv
   problem: looping-server
   file: single_recv.c
   concept: iterative-server
-  lines: [47]
-  near: [48, 49]
+  lines: [37]
+  near: [38, 39]
   verdict: WA
   symptom: "Khi yêu cầu HTTP đến thành nhiều mảnh, server trả `400 Bad Request` thay vì `200 OK`."
   title: Chỉ recv một lần cho cả yêu cầu HTTP
@@ -164,8 +164,8 @@
   title: Chỉ socket nghe là non-blocking
   explain: |-
     Dòng 18 đặt `FIONBIO` cho `ls`, nhưng socket do `accept` trả về (`c`, dòng 22) vẫn **blocking**. Khi duyệt client, `recv` (dòng 25) chặn đến khi client đó gửi gì, làm đứng cả vòng lặp.
-    Mỗi socket client cũng phải được đặt non-blocking, và `EAGAIN` phải được coi là "chưa có dữ liệu".
-  fix: "Sau `accept`, gọi `ioctl(c, FIONBIO, &on)` (hoặc `fcntl O_NONBLOCK`), và xử lý `recv == -1 && errno == EAGAIN`."
+    Mỗi socket client cũng phải được đặt non-blocking, và `recv` trả `-1` phải được coi là "chưa có dữ liệu".
+  fix: "Sau `accept`, gọi `ioctl(client, FIONBIO, &io_mode)` như với socket nghe; `recv == -1` thì bỏ qua."
 
 - id: sv-struct-raw-struct
   problem: sv-struct
@@ -178,7 +178,7 @@
   title: Đọc thẳng vào struct
   explain: |-
     Hai lỗi cùng lúc: (1) bản ghi có độ dài **thay đổi** (`name_len` byte tên) nên không thể `recv` đúng `sizeof(struct)` byte; (2) struct bị **padding** và các số nhiều byte đang ở thứ tự mạng, không phải thứ tự máy, nên phải `ntohl`/`ntohs` từng trường.
-  fix: "Đọc từng trường bằng `recv_all` (4 byte mssv, 1 byte nlen, nlen byte tên, ...), rồi `ntohl`/`ntohs`."
+  fix: "Lặp `recv` tới khi đủ byte cho từng phần (5 byte mssv + nlen, nlen byte tên, 6 byte còn lại), rồi `memcpy` + `ntohl`/`ntohs`."
 
 - id: udp-echo-zero-is-close
   problem: udp-echo
@@ -219,7 +219,7 @@
   explain: |-
     `COUNT` phải là số phép tính thành công **của người gửi này**; biến `count` toàn cục gộp mọi người gửi (dòng 16, 24, 29).
     Dòng 25 còn dùng `sscanf("%lld %c %lld")`, vốn bỏ qua số dấu cách và chấp nhận `5+3`, trong khi đề yêu cầu đúng một dấu cách giữa các thành phần.
-  fix: "Bảng `(địa chỉ, cổng) -> count` và phân tích chặt (kiểm tra từng dấu cách, `strtoll` kèm `endptr`)."
+  fix: "Bảng `(địa chỉ, cổng) -> count` và phân tích chặt (kiểm tra từng dấu cách, tự duyệt từng chữ số)."
 
 - id: fork-echo-no-waitpid
   problem: fork-echo
@@ -239,27 +239,27 @@
   problem: telnet-fork
   file: parent_waits.c
   concept: fork-server
-  lines: [138, 139]
+  lines: [123]
   verdict: BLOCKED
   symptom: "Client A chạy `sleep 1.5` thì client B không nhận được `LOGIN OK` ngay (BLOCKED)."
   title: Cha chờ con xong mới accept tiếp
   explain: |-
     `while (wait(NULL) > 0)` ngay sau `fork` bắt tiến trình **cha** đứng chờ con kết thúc. Khi đó chỉ phục vụ được một client tại một thời điểm, giống server lặp, mất hết ý nghĩa của đa tiến trình.
     Cha phải quay lại `accept` ngay; việc thu dọn con để cho handler `SIGCHLD` làm.
-  fix: "Bỏ vòng `wait` này; dùng handler `SIGCHLD` với `waitpid(-1, NULL, WNOHANG)` đã có sẵn."
+  fix: "Bỏ vòng `wait` này; dùng handler `SIGCHLD` với `waitpid(-1, NULL, WNOHANG)` đã có sẵn (như `forking_server.c`)."
 
 - id: telnet-select-no-stderr
   problem: telnet-select
   file: no_stderr.c
   concept: telnet-auth
-  lines: [47]
-  near: [48]
+  lines: [42]
+  near: [43]
   verdict: WA
   symptom: "Lệnh `ls khong_ton_tai` trả `OUTPUT 0`, trong khi đúng ra phải có thông báo lỗi của `ls`."
   title: Quên gộp stderr vào kết quả
   explain: |-
     Chỉ có `> tệp` chuyển hướng **stdout**. Thông báo lỗi nằm ở **stderr** nên không vào tệp và không được gửi về client. Đề yêu cầu gửi cả hai.
-  fix: "`snprintf(shell, sizeof shell, \"%s > %s 2>&1\", cmd, out);`"
+  fix: "`snprintf(shell, sizeof shell, \"{ %s\\n} > %s 2>&1\", cmd, out);`"
 
 - id: thread-echo-join-immediately
   problem: thread-echo
@@ -312,8 +312,8 @@
   title: Server lặp, phục vụ xong client này mới accept client khác
   explain: |-
     Vòng `while (fgets(...))` ở dòng 32 chạy cho đến khi client hiện tại **đóng kết nối**, trong lúc đó chương trình không quay lại `accept` (dòng 28). Đề yêu cầu phục vụ đồng thời tối đa N client.
-    Cần `select`/`poll` hoặc đa luồng (dùng chung bảng key-value nên không dùng fork).
-  fix: "Dùng `select`/`poll` với bộ đệm riêng cho mỗi client, hoặc một luồng mỗi client + mutex bảo vệ bảng."
+    Cần `select` hoặc đa luồng (dùng chung bảng key-value nên không dùng fork).
+  fix: "Dùng `select` với bộ đệm riêng cho mỗi client, hoặc một luồng mỗi client + mutex bảo vệ bảng."
 
 - id: kv-max-n-no-limit
   problem: kv-max-n
@@ -346,8 +346,8 @@
   problem: echo-max-n
   file: off_by_one.c
   concept: client-management
-  lines: [72]
-  near: [73, 74, 75]
+  lines: [75]
+  near: [76, 77, 79]
   verdict: LIMIT
   symptom: "N=2: client thứ 3 vẫn nhận `WELCOME` thay vì `FULL` (cho vào N+1 client)."
   title: So sánh `>` thay vì `>=` với giới hạn N
@@ -359,103 +359,78 @@
   problem: echo-max-n
   file: leak_on_abrupt_close.c
   concept: client-management
-  lines: [105]
-  near: [26, 102, 103, 104]
+  lines: [107]
+  near: [25, 108, 109]
   verdict: LIMIT
   symptom: "N=3: một client đóng đột ngột (không gửi `QUIT`), client mới vẫn nhận `FULL` mãi mãi."
   title: Chỉ giảm bộ đếm khi nhận QUIT
   explain: |-
     Bộ đếm `active` chỉ giảm trong nhánh `QUIT`. Khi client **tắt chương trình hoặc mất mạng**, `recv` trả `0` (hoặc `-1`) và code chỉ đóng socket mà không giảm `active`, nên chỗ đó bị "rò" và không bao giờ trả lại.
     Chỗ giảm bộ đếm phải nằm ở **một nơi duy nhất**: nơi đóng client, dùng chung cho mọi lý do rời đi.
-  fix: "Đặt `active--` ngay cạnh `close(x->fd); x->fd = -1;` (đường dọn dẹp chung), không giảm riêng trong nhánh `QUIT`."
+  fix: "Đặt `active--` ngay cạnh `close(client_fd[i]); client_fd[i] = -1;` (đường dọn dẹp chung), không giảm riêng trong nhánh `QUIT`."
 
 - id: chat-client-no-flush
   problem: chat-client
   file: no_flush.c
   concept: tcp-stream
-  lines: [62]
-  near: [60, 61, 63]
+  lines: [44]
+  near: [40, 41]
   verdict: WA
-  symptom: "Tin từ server chỉ hiện ra khi client thoát, dù chương trình đã nhận được ngay (bộ chấm đợi 1 giây không thấy gì)."
-  title: In bằng stdio mà không fflush khi stdout là tệp/pipe
+  symptom: "Server gửi từng byte (chưa có `\\n`) thì stdout không hiện gì, dù chương trình đã nhận được ngay (bộ chấm đợi 1 giây không thấy gì)."
+  title: In bằng stdio mà không fflush
   explain: |-
-    Khi stdout nối vào terminal, `stdio` đệm theo dòng nên thấy ngay. Khi stdout là **tệp hoặc pipe** (như lúc chấm, hay khi bạn chạy `./chat_client > log.txt`), `stdio` đệm đầy 4–64 KB, nên `fwrite` chỉ ghi vào bộ đệm của thư viện và dữ liệu chỉ ra ngoài khi đầy hoặc khi thoát.
-  fix: "Gọi `fflush(stdout)` sau mỗi lần ghi, hoặc dùng thẳng `write(1, buf, n)`."
+    `stdio` đệm theo dòng (như khi chạy trên terminal): `fwrite`/`printf` chỉ ghi vào bộ đệm của thư viện, dữ liệu ra ngoài khi gặp `\n`. Tin chat có thể đến **dở dòng** (chưa có `\n`), nên phần đó nằm lại trong bộ đệm cho tới tin sau.
+  fix: "Gọi `fflush(stdout)` ngay sau mỗi lần `fwrite`/`printf`, hoặc dùng thẳng `write(STDOUT_FILENO, buffer, n)`."
 
 - id: sv-client-trunc-gpa
   problem: sv-client
   file: trunc_gpa.c
   concept: length-prefix-struct
-  lines: [65]
-  near: [64]
+  lines: [39]
+  near: [38]
   verdict: WA
   symptom: "Nhập điểm `2.85` thì bản ghi chứa `284` thay vì `285` (`3.99` vẫn đúng nên khó phát hiện)."
   title: Ép kiểu thẳng `(int)(x * 100)`
   explain: |-
     `2.85` không biểu diễn chính xác bằng `double`; `2.85 * 100` ra `284.99999999999994`. Ép sang `int` **cắt phần thập phân**, nên mất một đơn vị. Số `3.99` tình cờ ra `399.00000000000006` nên không lộ lỗi.
-  fix: "`lround(strtod(s, NULL) * 100.0)` (cần `#include <math.h>`), hoặc tách phần nguyên và phần thập phân khi đọc."
+  fix: "Cộng 0.5 trước khi ép kiểu để làm tròn: `(unsigned short)(gpa * 100 + 0.5)`."
 
 - id: sv-client-host-order
   problem: sv-client
   file: host_order.c
   concept: byte-order
-  lines: [63, 64]
-  near: [65]
+  lines: [44, 45]
+  near: [46]
   verdict: WA
   symptom: "Server nhận MSSV `20201234` thành một số khác hẳn; năm sinh `2002` thành `54791`."
   title: Gửi số nguyên theo thứ tự byte của máy
   explain: |-
-    Dòng 63–64 gán thẳng `uint32_t`/`uint16_t` rồi `memcpy` vào bản ghi, nên byte đi ra theo **little-endian** của máy x86. Giao thức quy định **big-endian** (thứ tự mạng), nên bên nhận đọc sai. Riêng `gpa` ở dòng 65 có `htons` nên đúng, và chính sự không đồng nhất đó là dấu hiệu.
+    `net_mssv`/`net_year` được gán thẳng rồi `memcpy` vào bản ghi, nên byte đi ra theo **little-endian** của máy x86. Giao thức quy định **big-endian** (thứ tự mạng), nên bên nhận đọc sai. Riêng `gpa` có `htons` nên đúng, và chính sự không đồng nhất đó là dấu hiệu.
   fix: "`htonl(mssv)` cho 4 byte, `htons(year)` và `htons(gpa)` cho 2 byte, trước khi `memcpy`."
 
 - id: udp-client-keep-newline
   problem: udp-client
   file: keep_newline.c
   concept: udp-basics
-  lines: [25]
-  near: [24, 26]
+  lines: [27]
+  near: [26, 29]
   verdict: WA
   symptom: "Server nhận datagram `12 + 30\n` (dài hơn 1 byte), `udp-calc` trả `ERROR syntax`."
   title: Gửi cả ký tự xuống dòng của fgets
   explain: |-
     `fgets` giữ lại `\n` ở cuối dòng và `strlen` đếm cả nó, nên `sendto` gửi thừa 1 byte. Vì UDP bảo toàn ranh giới thông điệp, byte thừa đó **nằm trong datagram** và server thấy nó.
-  fix: "`line[strcspn(line, \"\r\n\")] = 0;` trước khi `strlen`."
+  fix: "`line[strcspn(line, \"\\r\\n\")] = 0;` trước khi `strlen`."
 
 - id: udp-client-no-timeout
   problem: udp-client
   file: no_timeout.c
   concept: udp-basics
-  lines: [29, 30]
-  near: [28]
+  lines: [32, 33]
+  near: [30]
   verdict: TLE
   symptom: "Khi server không trả lời (gói tin bị mất), client treo mãi thay vì in `TIMEOUT` sau 1 giây."
   title: recvfrom chặn vô hạn
   explain: |-
     UDP không đảm bảo giao hàng: gói yêu cầu hoặc gói phản hồi có thể mất. `recvfrom` mặc định **chặn đến khi có datagram**, nên client không bao giờ đi tiếp. Cần một thời gian chờ.
-  fix: "`poll(&p, 1, 1000)` trước `recvfrom`; trả `0` thì in `TIMEOUT`. Hoặc đặt `SO_RCVTIMEO`."
+  fix: "Như `select_client.c`: `FD_SET` socket, đặt `timeout.tv_sec = 1` rồi `select(sender_socket + 1, &read_fds, NULL, NULL, &timeout)`; trả `0` thì in `TIMEOUT`."
 
-- id: telnet-poll-no-stderr
-  problem: telnet-poll
-  file: no_stderr.c
-  concept: telnet-auth
-  lines: [47]
-  near: [48]
-  verdict: WA
-  symptom: "Lệnh `cat khong_ton_tai.txt` trả `OUTPUT 0`, thông báo lỗi lại hiện trên console của server."
-  title: Quên chuyển hướng stderr
-  explain: |-
-    `> out.txt` chỉ chuyển hướng **stdout**. Thông báo lỗi của lệnh đi vào **stderr** nên không có trong tệp và không được gửi cho client.
-  fix: "Dùng `\"%s > %s 2>&1\"`."
-
-- id: chat-poll-uses-select
-  problem: chat-poll
-  file: uses_select.c
-  concept: select-poll
-  lines: [90]
-  near: [81, 82, 86, 94, 110]
-  verdict: CV
-  symptom: "Chương trình chạy đúng giao thức nhưng bị từ chối với `CV`: đề yêu cầu `poll()`."
-  title: Nộp bản select() cho bài yêu cầu poll()
-  explain: |-
-    Đề bắt dùng `poll` để luyện cách dùng `struct pollfd`: mảng `fds[]` có `events` (đăng ký) và `revents` (kết quả), **không cần dựng lại** mỗi vòng như `fd_set`, và không bị giới hạn `FD_SETSIZE`. Bản `select` dùng đúng giao thức nhưng không luyện được điều đó.
-  fix: "Thay `fd_set` bằng `struct pollfd fds[]`; kiểm tra `fds[i].revents & POLLIN` sau `poll(fds, n, -1)`."

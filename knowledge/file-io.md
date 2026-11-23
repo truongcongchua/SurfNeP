@@ -33,10 +33,10 @@ if (f == NULL) {                       // tệp không tồn tại / không có 
 char buf[4096];
 size_t n;
 while ((n = fread(buf, 1, sizeof buf, f)) > 0)   // đọc từng khúc tối đa 4096 byte
-    send_all(fd, buf, n);                        // gửi đúng n byte vừa đọc
+    send(fd, buf, n, 0);                         // gửi đúng n byte vừa đọc (như html.c)
 fclose(f);
 ```
-`send_all` xem ở thẻ *Vòng đời socket TCP*.
+Socket blocking: `send` tự chờ tới khi gửi hết `n` byte.
 
 ## Ghi thêm vào cuối tệp (ghi log)
 ```c

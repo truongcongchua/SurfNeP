@@ -20,7 +20,7 @@ CHO_USER ──(gửi tên)──▶ CHO_PASS ──(mật khẩu đúng)──�
 ```
 ```c
 enum { CHO_USER, CHO_PASS, DA_DANG_NHAP };
-// select/poll: lưu state, user trong struct riêng của từng client
+// select: lưu state, user trong struct riêng của từng client
 // fork: dùng biến cục bộ trong tiến trình con là đủ
 ```
 
@@ -48,7 +48,7 @@ if (p) {
     char out[4096];
     size_t n;
     while ((n = fread(out, 1, sizeof out, p)) > 0)
-        send_all(fd, out, n);
+        send(fd, out, n, 0);
     pclose(p);
 }
 ```

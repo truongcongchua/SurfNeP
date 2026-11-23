@@ -55,4 +55,4 @@ Quy tắc:
 - **Server treo cứng, không ai được phục vụ** (deadlock). Có nhánh `return`/`break` thoát ra mà **quên `unlock`**.
 - **Dữ liệu chung bị sai lúc có lúc không.** Quên khoá ở một chỗ đọc/sửa. Lỗi kiểu này khó tái hiện vì phụ thuộc thời điểm.
 - **Luồng xong vẫn chiếm tài nguyên.** Không `pthread_detach` (cũng không `pthread_join`).
-- **Kết quả tách xâu bị lộn giữa các client.** `strtok` dùng chung trạng thái cho cả chương trình. Trong luồng dùng `strtok_r`; tương tự dùng `inet_ntop` thay `inet_ntoa`.
+- **Kết quả tách xâu bị lộn giữa các client.** `strtok` dùng chung trạng thái cho cả chương trình. Trong luồng dùng `strtok_r`; tương tự `inet_ntoa` trả về bộ đệm tĩnh dùng chung, hãy `strcpy` kết quả ra mảng riêng ngay.

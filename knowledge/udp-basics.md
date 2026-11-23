@@ -40,7 +40,7 @@ Client **không cần `bind`**: lần `sendto` đầu tiên hệ điều hành t
 Không có kết nối nên không có "socket riêng cho từng client" như TCP. Server nhận ra client bằng **cặp (IP, cổng) người gửi** nằm trong `from`:
 ```c
 char ip[INET_ADDRSTRLEN];
-inet_ntop(AF_INET, &from.sin_addr, ip, sizeof ip);
+strcpy(ip, inet_ntoa(from.sin_addr));
 int port = ntohs(from.sin_port);
 // (ip, port) chính là "tên" của client này
 ```

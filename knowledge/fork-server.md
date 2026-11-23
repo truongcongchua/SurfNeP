@@ -32,7 +32,7 @@ int main() {
 
     for (;;) {
         int c = accept(listen_fd, NULL, NULL);
-        if (c < 0) continue;                  // bị tín hiệu ngắt (EINTR) → thử lại
+        if (c < 0) continue;                  // lỗi tạm thời → thử lại, đừng thoát
 
         pid_t pid = fork();
         if (pid == 0) {                       // ===== CON =====
@@ -60,6 +60,6 @@ Cách xử lý: khi con kết thúc, hệ điều hành gửi tín hiệu `SIGCH
 - **Client không nhận được tín hiệu kết thúc / cha hết descriptor.** Quên `close(c)` ở cha.
 - **Server bị nhân đôi, chạy loạn.** Con quên `exit(0)`, chạy tiếp xuống vòng `accept` như một server thứ hai.
 - **Danh sách tiến trình đầy `<defunct>`.** Không xử lý `SIGCHLD`, hoặc dùng `wait()` một lần thay vì vòng `while waitpid(..., WNOHANG)`.
-- **Server tự thoát khi có con kết thúc.** `accept` bị tín hiệu ngắt, trả `-1` với `errno == EINTR`, và code thoát luôn. Phải `continue`.
-- **`system()` trong con trả kết quả sai.** Con thừa hưởng hàm dọn `SIGCHLD` của cha, hàm này dọn luôn tiến trình mà `system()` đang chờ. Trong con, đặt lại `signal(SIGCHLD, SIG_DFL);` trước khi gọi `system()`.
+- **Server tự thoát khi `accept` lỗi.** Code thoát luôn khi `accept` trả `-1`. Phải `continue`. (Với `signal()` của glibc, `accept` bị `SIGCHLD` ngắt sẽ tự chạy lại.)
+- **Server lại chỉ phục vụ một client mỗi lúc.** Cha gọi `wait(NULL)` ngay sau `fork` nên đứng chờ con xong mới `accept` tiếp. Để handler `SIGCHLD` thu dọn con.
 - **Đếm số client sai.** Biến đếm ở cha không tự giảm khi con kết thúc (con có bản sao riêng). Giảm trong hàm xử lý `SIGCHLD`.
