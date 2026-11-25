@@ -246,18 +246,21 @@ export const C_ASSIST_DEFAULTS = {
   autoClose: true,     // tự đóng ngoặc, nháy
 };
 
-let registered = false;
-let cfgGetter = () => ({}); // provider đăng ký một lần nhưng luôn đọc cấu hình của editor mới nhất
+let cfgGetter = () => ({}); // provider luôn đọc cấu hình của editor mới nhất
+// Provider của Monaco là toàn cục. Khi Next nạp lại module (HMR) hoặc mở lại editor, bản cũ phải được gỡ,
+// nếu không các provider cũ vẫn chạy song song và gây lỗi cũ dù code đã sửa. Giữ danh sách trên globalThis để sống qua HMR.
+const KEEP = "__cAssistProviders";
 
 // Trả về { refresh(): chạy lại kiểm tra lỗi, dispose() } cho một editor.
 export function setupCAssist(monaco, editor, getCfg) {
   cfgGetter = getCfg;
-  if (!registered) {
-    registered = true;
+  for (const d of globalThis[KEEP] || []) { try { d.dispose(); } catch {} }
+  const reg = (globalThis[KEEP] = []);
+  {
     const L = "c";
     const on = (k) => cfgGetter()?.[k] !== false;
 
-    monaco.languages.registerCompletionItemProvider(L, {
+    reg.push(monaco.languages.registerCompletionItemProvider(L, {
       triggerCharacters: [".", ">"], // '.' và '->' để gợi ý trường struct
       provideCompletionItems(model, position, context) {
         const K = monaco.languages.CompletionItemKind, Ins = monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet;
@@ -326,9 +329,9 @@ export function setupCAssist(monaco, editor, getCfg) {
         }
         return { suggestions };
       },
-    });
+    }));
 
-    monaco.languages.registerSignatureHelpProvider(L, {
+    reg.push(monaco.languages.registerSignatureHelpProvider(L, {
       signatureHelpTriggerCharacters: ["(", ","],
       signatureHelpRetriggerCharacters: [","],
       provideSignatureHelp(model, position) {
@@ -340,9 +343,9 @@ export function setupCAssist(monaco, editor, getCfg) {
         const idx = Math.min(call.index, Math.max(params.length - 1, 0));
         return { value: { signatures: [{ label: e.sig, documentation: md(e.doc), parameters: params }], activeSignature: 0, activeParameter: idx }, dispose() {} };
       },
-    });
+    }));
 
-    monaco.languages.registerHoverProvider(L, {
+    reg.push(monaco.languages.registerHoverProvider(L, {
       provideHover(model, position) {
         if (!on("hover") || inNonCode(model, position)) return null;
         const w = model.getWordAtPosition(position);
@@ -350,9 +353,9 @@ export function setupCAssist(monaco, editor, getCfg) {
         if (!e) return null;
         return { range: new monaco.Range(position.lineNumber, w.startColumn, position.lineNumber, w.endColumn), contents: [md(sigDoc(e))] };
       },
-    });
+    }));
 
-    monaco.languages.registerDefinitionProvider(L, {
+    reg.push(monaco.languages.registerDefinitionProvider(L, {
       provideDefinition(model, position) {
         if (!on("goToDef")) return null;
         const w = model.getWordAtPosition(position);
@@ -362,7 +365,7 @@ export function setupCAssist(monaco, editor, getCfg) {
           return { uri: model.uri, range: new monaco.Range(p.lineNumber, p.column, p.lineNumber, p.column + s.name.length) };
         });
       },
-    });
+    }));
   }
 
   let timer = 0;
