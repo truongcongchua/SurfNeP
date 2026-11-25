@@ -147,10 +147,10 @@ const NOT_FN = new Set(["if", "for", "while", "switch", "return", "sizeof", "els
 
 // Quét model để lấy hàm / macro / struct do người dùng định nghĩa (kèm vị trí để đi tới định nghĩa).
 function userSymbols(model) {
-  const text = model.getValue(), out = [];
+  const text = model.getValue(), code = mask(text), out = [];
   let m;
   DEF_FN.lastIndex = 0;
-  while ((m = DEF_FN.exec(text))) {
+  while ((m = DEF_FN.exec(code))) { // dò trên bản đã xoá chú thích để không nhận hàm nằm trong comment
     const name = m[2];
     if (NOT_FN.has(name)) continue;
     const ret = m[1].trim(), params = m[3].trim() || "void";
@@ -162,7 +162,7 @@ function userSymbols(model) {
     out.push({ kind: m[2] != null ? "fn" : "const", name, params: m[2] ?? "", doc: m[3] ? `#define → \`${m[3].trim()}\`` : "Macro bạn tự định nghĩa.", sig: m[2] != null ? `${name}(${m[2]})` : name, args: m[2] ? m[2].split(/,\s*/) : [], offset: m.index + m[0].indexOf(name), user: true });
   }
   DEF_TYPE.lastIndex = 0;
-  while ((m = DEF_TYPE.exec(text))) out.push({ kind: "type", name: m[1], doc: "Struct bạn tự định nghĩa.", sig: `struct ${m[1]}`, fields: [], offset: m.index + m[0].indexOf(m[1]), user: true });
+  while ((m = DEF_TYPE.exec(code))) out.push({ kind: "type", name: m[1], doc: "Struct bạn tự định nghĩa.", sig: `struct ${m[1]}`, fields: [], offset: m.index + m[0].indexOf(m[1]), user: true });
   return out;
 }
 
@@ -173,6 +173,15 @@ const lookup = (model, name) => userSymbols(model).find((s) => s.name === name) 
 // Xoá chú thích / chuỗi / ký tự nhưng giữ nguyên độ dài để chỉ số vị trí không lệch.
 function mask(src) {
   return src.replace(/\/\*[\s\S]*?(?:\*\/|$)|\/\/[^\n]*|"(?:\\.|[^"\\\n])*"?|'(?:\\.|[^'\\\n])*'?/g, (s) => s.replace(/[^\n]/g, " "));
+}
+
+// Con trỏ đang nằm trong chú thích, chuỗi hoặc ký tự? (xét ký tự ngay trước con trỏ)
+function inNonCode(model, pos) {
+  const end = model.getOffsetAt(pos);
+  if (end === 0) return false;
+  const raw = model.getValue().slice(0, end);
+  const c = raw[end - 1];
+  return !/\s/.test(c) && /\s/.test(mask(raw)[end - 1]);
 }
 
 function callAt(model, pos) {
@@ -249,28 +258,45 @@ export function setupCAssist(monaco, editor, getCfg) {
     const on = (k) => cfgGetter()?.[k] !== false;
 
     monaco.languages.registerCompletionItemProvider(L, {
-      triggerCharacters: [".", ">", "_"],
-      provideCompletionItems(model, position) {
+      triggerCharacters: [".", ">"], // '.' và '->' để gợi ý trường struct
+      provideCompletionItems(model, position, context) {
+        const K = monaco.languages.CompletionItemKind, Ins = monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet;
+        const line = model.getLineContent(position.lineNumber);
+        const upto = line.slice(0, position.column - 1);
         const w = model.getWordUntilPosition(position);
         const range = { startLineNumber: position.lineNumber, endLineNumber: position.lineNumber, startColumn: w.startColumn, endColumn: w.endColumn };
-        const before = model.getLineContent(position.lineNumber).slice(0, w.startColumn - 1);
-        const K = monaco.languages.CompletionItemKind, Ins = monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet;
+        const none = { suggestions: [] };
+        const byTrigger = context?.triggerKind === monaco.languages.CompletionTriggerKind.TriggerCharacter;
         const suggestions = [];
 
-        if (/(?:\.|->)\s*$/.test(before)) { // sau '.' hoặc '->' chỉ gợi ý trường struct
+        if (inNonCode(model, position)) return none; // trong chú thích / chuỗi / ký tự
+
+        // Dòng #include: chỉ gợi ý tên header, và không làm gì sau khi đã đóng '>'.
+        const inc = /^\s*#\s*include\s*(<[^>]*)?$/.exec(upto);
+        if (/^\s*#\s*include(?![A-Za-z_])/.test(upto)) {
+          if (!inc || byTrigger || !on("acFunctions")) return none;
+          const lt = upto.indexOf("<");
+          if (lt < 0) return none;
+          const r = { ...range, startColumn: lt + 2 }; // thay cả "sys/so" chứ không chỉ "so"
+          for (const h of INCLUDES) suggestions.push({ label: h, kind: K.File, insertText: `${h}>`, range: r, detail: `#include <${h}>` });
+          return { suggestions };
+        }
+
+        // Sau '.' hoặc '->' chỉ gợi ý trường struct.
+        if (/(?:\.|->)\s*\w*$/.test(upto)) {
           if (on("acFunctions")) for (const f of FIELDS) suggestions.push({ label: f, kind: K.Field, insertText: f, range, detail: "trường struct" });
           return { suggestions };
         }
-        if (/^\s*#\s*include\s*<?\s*\w*$/.test(before + w.word) && on("acFunctions")) {
-          for (const h of INCLUDES) suggestions.push({ label: h, kind: K.File, insertText: `${h}>`, range, detail: `#include <${h}>` });
-          return { suggestions };
-        }
+        // Ký tự kích hoạt không dẫn tới '.'/'->' (ví dụ '>' của "a > b") thì không hiện gì, kẻo Enter chọn nhầm.
+        if (byTrigger) return none;
+        // Chưa gõ chữ nào mà không phải do bấm Ctrl+Space thì cũng không hiện (sau ; ) } ...).
+        if (!w.word && context?.triggerKind !== monaco.languages.CompletionTriggerKind.Invoke) return none;
 
+        const known = new Set();
         if (on("acFunctions")) {
-          const seen = new Set();
           for (const e of [...userSymbols(model), ...FN, ...MACROS, ...CONSTS, ...TYPES]) {
-            if (seen.has(e.name)) continue;
-            seen.add(e.name);
+            if (known.has(e.name)) continue;
+            known.add(e.name);
             const base = { label: e.name, range, documentation: md(sigDoc(e)), detail: e.sig };
             if (e.kind === "fn") {
               const ph = e.args.map((a, i) => `\${${i + 1}:${(/([A-Za-z_]\w*)\W*$/.exec(a) || [, a])[1]}}`).join(", ");
@@ -278,11 +304,25 @@ export function setupCAssist(monaco, editor, getCfg) {
             } else if (e.kind === "const") suggestions.push({ ...base, kind: K.Constant, insertText: e.name, sortText: "2" + e.name });
             else suggestions.push({ ...base, kind: K.Struct, insertText: e.name, sortText: "2" + e.name });
           }
-          for (const k of KEYWORDS) suggestions.push({ label: k, kind: K.Keyword, insertText: k, range, sortText: "3" + k });
         }
+        // Snippet xếp sau hàm/hằng khi điểm khớp bằng nhau: gõ "sock" phải ra socket trước, không phải khung code.
+        const snipNames = new Set(on("acSnippets") ? SNIPPETS.map((x) => x[0]) : []);
         if (on("acSnippets")) {
           for (const [label, detail, body] of SNIPPETS)
-            suggestions.push({ label, kind: K.Snippet, detail, documentation: md("```c\n" + body.replace(/\$\{\d+:([^}]*)\}/g, "$1").replace(/\$0/g, "") + "\n```"), insertText: body, insertTextRules: Ins, range, sortText: "0" + label });
+            suggestions.push({ label, kind: K.Snippet, detail, documentation: md("```c\n" + body.replace(/\$\{\d+:([^}]*)\}/g, "$1").replace(/\$0/g, "") + "\n```"), insertText: body, insertTextRules: Ins, range, sortText: "3" + label });
+        }
+        if (on("acFunctions")) for (const k of KEYWORDS) if (!snipNames.has(k)) suggestions.push({ label: k, kind: K.Keyword, insertText: k, range, sortText: "4" + k });
+
+        // Danh sách của mình đã có thì Monaco bỏ gợi ý theo từ, nên tự thêm tên biến/hàm trong file.
+        if (on("acWords")) {
+          const taken = new Set([...known, ...KEYWORDS, ...snipNames]);
+          const src = mask(model.getValue()).replace(/^[ \t]*#[ \t]*include.*$/gm, (x) => " ".repeat(x.length)); // giữ nguyên độ dài để vị trí không lệch
+          const cursorOff = model.getOffsetAt(position) - w.word.length;
+          for (const m of src.matchAll(/[A-Za-z_]\w{2,}/g)) {
+            if (taken.has(m[0]) || m.index === cursorOff) continue; // bỏ chính từ đang gõ
+            taken.add(m[0]);
+            suggestions.push({ label: m[0], kind: K.Text, insertText: m[0], range, sortText: "5" + m[0] });
+          }
         }
         return { suggestions };
       },
@@ -304,7 +344,7 @@ export function setupCAssist(monaco, editor, getCfg) {
 
     monaco.languages.registerHoverProvider(L, {
       provideHover(model, position) {
-        if (!on("hover")) return null;
+        if (!on("hover") || inNonCode(model, position)) return null;
         const w = model.getWordAtPosition(position);
         const e = w && lookup(model, w.word);
         if (!e) return null;
