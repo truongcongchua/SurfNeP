@@ -2,12 +2,13 @@
 // Hộp Settings kiểu LeetCode: cột trái chọn nhóm (Bố cục · Trình soạn thảo · Phím tắt · Đồng hồ), bên phải là tuỳ chọn.
 // Đóng bằng nút X, phím Esc hoặc bấm ra ngoài.
 import { useEffect, useState } from "react";
-import { Code2, Keyboard, LayoutPanelLeft, Timer, X } from "lucide-react";
+import { Code2, Keyboard, LayoutPanelLeft, Sparkles, Timer, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const GROUPS = [
   ["layout", "Bố cục", LayoutPanelLeft],
   ["editor", "Trình soạn thảo", Code2],
+  ["assist", "Gợi ý code", Sparkles],
   ["keys", "Phím tắt", Keyboard],
   ["timer", "Đồng hồ", Timer],
 ];
@@ -86,6 +87,24 @@ export function SettingsDialog({ open, initial = "layout", onClose, settings, se
                 <Row label="Font ligatures"><Toggle label="Font ligatures" on={settings.ligatures} onChange={(v) => set({ ligatures: v })} /></Row>
                 <Row label="Tắt nhấp nháy con trỏ"><Toggle label="Tắt nhấp nháy con trỏ" on={settings.noCursorBlink} onChange={(v) => set({ noCursorBlink: v })} /></Row>
               </div>
+            </>
+          )}
+
+          {g === "assist" && (
+            <>
+              <div className="mb-1 text-xs font-medium text-[var(--muted)]">Danh sách gợi ý</div>
+              <Row label="Tự hiện gợi ý khi gõ" desc="Tắt thì bấm Ctrl+Space để mở danh sách."><Toggle label="Tự hiện gợi ý khi gõ" on={settings.acAuto} onChange={(v) => set({ acAuto: v })} /></Row>
+              <Row label="Gợi ý khi gõ . hoặc ->" desc="Hiện trường của struct như sin_port, tv_sec."><Toggle label="Gợi ý khi gõ ký tự kích hoạt" on={settings.acTrigger} onChange={(v) => set({ acTrigger: v })} /></Row>
+              <Row label="Enter để chọn gợi ý" desc="Tắt thì Enter xuống dòng bình thường, chỉ Tab mới chọn."><Toggle label="Enter để chọn gợi ý" on={settings.acEnter} onChange={(v) => set({ acEnter: v })} /></Row>
+              <Row label="Hàm, hằng, kiểu của socket / process / thread" desc="socket, bind, recv, select, fork, pthread_create, AF_INET, struct sockaddr_in..."><Toggle label="Gợi ý hàm" on={settings.acFunctions} onChange={(v) => set({ acFunctions: v })} /></Row>
+              <Row label="Snippet (khung code)" desc="Gõ main, for, tcpserver, acceptloop, selectloop, forkserver, threadserver..."><Toggle label="Snippet" on={settings.acSnippets} onChange={(v) => set({ acSnippets: v })} /></Row>
+              <Row label="Gợi ý theo từ trong file" desc="Tên biến, tên hàm bạn đã gõ."><Toggle label="Gợi ý theo từ trong file" on={settings.acWords} onChange={(v) => set({ acWords: v })} /></Row>
+              <div className="mb-1 mt-3 text-xs font-medium text-[var(--muted)]">Hỗ trợ khi viết code</div>
+              <Row label="Gợi ý tham số" desc="Hiện chữ ký hàm, ví dụ recv(int fd, void *buf, ...) khi gõ dấu ( và dấu phẩy."><Toggle label="Gợi ý tham số" on={settings.sigHelp} onChange={(v) => set({ sigHelp: v })} /></Row>
+              <Row label="Tài liệu khi trỏ chuột" desc="Rê chuột vào tên hàm để xem mô tả và #include cần có."><Toggle label="Hover" on={settings.hover} onChange={(v) => set({ hover: v })} /></Row>
+              <Row label="Đi tới định nghĩa" desc="F12 hoặc Ctrl + click vào hàm, macro, struct tự viết trong file."><Toggle label="Đi tới định nghĩa" on={settings.goToDef} onChange={(v) => set({ goToDef: v })} /></Row>
+              <Row label="Báo ngoặc thiếu / thừa" desc="Gạch đỏ ( ) [ ] { } không khớp. Không phải trình biên dịch."><Toggle label="Báo lỗi ngoặc" on={settings.lint} onChange={(v) => set({ lint: v })} /></Row>
+              <Row label="Tự đóng ngoặc và nháy"><Toggle label="Tự đóng ngoặc" on={settings.autoClose} onChange={(v) => set({ autoClose: v })} /></Row>
             </>
           )}
 

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { ProblemDrawer } from "@/components/problem-drawer";
 import { cn } from "@/lib/utils";
+import { cAssistOptions, setupCAssist } from "@/lib/c-intellisense";
 import { TopBar, NavIcon } from "@/components/workspace/top-bar";
 import { ConfirmDialog } from "@/components/workspace/confirm-dialog";
 import { useLocal, useSettings } from "@/components/workspace/use-settings";
@@ -453,6 +454,8 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
   // Phím tắt (giống LeetCode). Trong Monaco đăng ký riêng ở onMount để editor không nuốt phím.
   const keys = useRef({});
   keys.current = { run: () => run(), submit, toggleMax, toggleFullscreen, closeActiveTab, settings };
+  const assistRef = useRef(null);
+  useEffect(() => { assistRef.current?.refresh(); }, [settings.lint]);
   useEffect(() => {
     const onKey = (e) => {
       const k = keys.current;
@@ -477,6 +480,10 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
     editor.onDidDispose(() => window.removeEventListener("resize", remeasure));
     if (editor.getValue() !== editorTextRef.current) editor.setValue(editorTextRef.current);
     editor.onDidChangeCursorPosition((e) => setPos({ ln: e.position.lineNumber, col: e.position.column }));
+    // Gợi ý code C: provider đọc cài đặt hiện tại qua keys.current nên bật/tắt có hiệu lực ngay.
+    const assist = setupCAssist(monaco, editor, () => keys.current.settings);
+    assistRef.current = assist;
+    editor.onDidDispose(() => { assist.dispose(); assistRef.current = null; });
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Quote, () => keys.current.settings.runShortcut && keys.current.run());
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => keys.current.settings.submitShortcut && keys.current.submit());
   }
@@ -568,6 +575,7 @@ export default function Workspace({ problemId, problem, nav, user, samples, html
             lineNumbers: settings.relativeLines ? "relative" : "on", cursorBlinking: settings.noCursorBlink ? "solid" : "blink",
             scrollBeyondLastLine: false, automaticLayout: true, padding: { top: 8 },
             lineNumbersMinChars: 3, renderLineHighlight: "line", scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8 },
+            ...cAssistOptions(settings),
           }}
         />
       </div>

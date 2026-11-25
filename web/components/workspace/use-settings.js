@@ -1,9 +1,11 @@
 "use client";
 // Cài đặt trang làm bài (như Settings của LeetCode), lưu trong localStorage của trình duyệt.
 import { useCallback, useEffect, useState } from "react";
+import { C_ASSIST_DEFAULTS } from "@/lib/c-intellisense";
 
 const KEY = "nj-settings";
 export const DEFAULTS = {
+  ...C_ASSIST_DEFAULTS,     // gợi ý code: acAuto, acFunctions, acSnippets, sigHelp, hover, ...
   layout: "default",        // default | leet
   fontSize: 13,
   tabSize: 4,
