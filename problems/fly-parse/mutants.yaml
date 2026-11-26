@@ -1,0 +1,73 @@
+# Bản sai sinh tự động từ solution.c (xem docs/TEST-DESIGN.md). Mỗi bản phải bị ít nhất một test giết.
+- id: leap-every-4
+  why: "Năm nhuận chỉ xét chia hết cho 4 (1900 và 2100 bị coi là nhuận)"
+  replace: [["return (y % 4 == 0 && y % 100 != 0) || y % 400 == 0;", "return y % 4 == 0;"]]
+- id: feb-always-29
+  why: "Tháng 2 luôn có 29 ngày"
+  replace: [["dim[m - 1] + (m == 2 && leap(y))", "dim[m - 1] + (m == 2)"]]
+- id: april-31
+  why: "Tháng 4 có 31 ngày"
+  replace: [["{31, 28, 31, 30, 31,", "{31, 28, 31, 31, 31,"]]
+- id: day-zero
+  why: "Ngày 00 hợp lệ"
+  replace: [["m < 1 || m > 12 || d < 1", "m < 1 || m > 12"]]
+- id: year-2100-excluded
+  why: "Năm 2100 bị loại"
+  replace: [["y > 2100", "y >= 2100"]]
+- id: year-1899-allowed
+  why: "Năm 1899 được chấp nhận"
+  replace: [["y < 1900", "y < 1899"]]
+- id: return-date-strict
+  why: "Ngày về bằng ngày đi bị loại"
+  replace: [["strcmp(t[6], t[3]) < 0", "strcmp(t[6], t[3]) <= 0"]]
+- id: return-date-any
+  why: "Không so ngày về với ngày đi"
+  replace: [[" || strcmp(t[6], t[3]) < 0", ""]]
+- id: same-airport
+  why: "Cho phép đi và đến cùng một sân bay"
+  replace: [[" || strcmp(t[1], t[2]) == 0", ""]]
+- id: pax-zero
+  why: "Số khách 0 hợp lệ"
+  replace: [["t[4][0] < '1'", "t[4][0] < '0'"]]
+- id: pax-two-digits
+  why: "Số khách nhiều chữ số hợp lệ (chỉ xét ký tự đầu)"
+  replace: [["strlen(t[4]) != 1 || ", ""]]
+- id: class-prefix
+  why: "Chỉ so sánh 3 ký tự đầu của hạng"
+  replace: [["strcmp(t[5], \"ECO\") != 0 && strcmp(t[5], \"BUS\") != 0", "strncmp(t[5], \"ECO\", 3) != 0 && strncmp(t[5], \"BUS\", 3) != 0"]]
+- id: pass-min-3
+  why: "Mật khẩu 3 ký tự hợp lệ"
+  replace: [["if (n < 4 || n > 32) return 0;", "if (n < 3 || n > 32) return 0;"]]
+- id: pass-max-33
+  why: "Mật khẩu 33 ký tự hợp lệ"
+  replace: [["if (n < 4 || n > 32) return 0;", "if (n < 4 || n > 33) return 0;"]]
+- id: pass-allow-del
+  why: "Mật khẩu chứa DEL (0x7F) hợp lệ"
+  replace: [["(unsigned char)s[i] > 0x7E", "(unsigned char)s[i] > 0x7F"]]
+- id: pass-allow-control
+  why: "Mật khẩu chứa ký tự điều khiển (tab...) hợp lệ"
+  replace: [["(unsigned char)s[i] < 0x21", "(unsigned char)s[i] < 0x01"]]
+- id: user-max-33
+  why: "Tên dài 33 ký tự hợp lệ"
+  replace: [["if (n < 1 || n > 32) return 0;", "if (n < 1 || n > 33) return 0;"]]
+- id: user-empty
+  why: "Tên rỗng hợp lệ"
+  replace: [["if (n < 1 || n > 32) return 0;", "if (n > 32) return 0;"]]
+- id: user-uppercase
+  why: "Tên chứa chữ hoa hợp lệ"
+  replace: [["(s[i] >= 'a' && s[i] <= 'z')", "(s[i] >= 'A' && s[i] <= 'z')"]]
+- id: account-extra-tokens
+  why: "LOGIN có thừa thành phần vẫn hợp lệ"
+  replace: [["ok = nt == 3 && valid_user", "ok = nt >= 3 && valid_user"]]
+- id: command-prefix
+  why: "Chỉ so sánh 3 ký tự đầu của LOGIN"
+  replace: [["strcmp(tok[0], \"LOGIN\") == 0", "strncmp(tok[0], \"LOGIN\", 3) == 0"]]
+- id: cr-kept
+  why: "Không bỏ '\r' cuối dòng"
+  replace: [["        if (n && line[n - 1] == '\\r') line[--n] = 0;\n", ""]]
+- id: blank-prints
+  why: "Dòng trống cũng in kết quả"
+  replace: [["        if (n == 0) continue;\n", ""]]
+- id: upper-airport-loose
+  why: "Mã sân bay chấp nhận chữ thường"
+  replace: [["static int is_upper(char c) { return c >= 'A' && c <= 'Z'; }", "static int is_upper(char c) { return c >= 'A' && c <= 'z'; }"]]

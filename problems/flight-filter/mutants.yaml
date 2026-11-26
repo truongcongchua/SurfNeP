@@ -1,0 +1,46 @@
+# Bản sai sinh tự động từ solution.c (xem docs/TEST-DESIGN.md). Mỗi bản phải bị ít nhất một test giết.
+- id: seats-strict
+  why: "Đúng bằng số ghế yêu cầu bị loại (> thay vì >=)"
+  replace: [["&& seats >= pax)", "&& seats > pax)"]]
+- id: ignore-pax
+  why: "Chỉ cần còn ghế, không xét số khách"
+  replace: [["&& seats >= pax)", "&& seats >= 1)"]]
+- id: price-not-multiplied
+  why: "Quên nhân giá với số khách"
+  replace: [["price * pax);", "price);"]]
+- id: bus-uses-eco-price
+  why: "Hạng BUS vẫn in giá ECO"
+  replace: [["long long price = bus ? x->bus_price : x->eco_price;", "long long price = x->eco_price;"]]
+- id: bus-uses-eco-seats
+  why: "Hạng BUS kiểm tra ghế ECO"
+  replace: [["int seats = bus ? fl[i].bus_seats : fl[i].eco_seats;", "int seats = fl[i].eco_seats;"]]
+- id: ignore-date
+  why: "Không so ngày"
+  replace: [[" && !strcmp(fl[i].date, date)", ""]]
+- id: ignore-from
+  why: "Không so sân bay đi"
+  replace: [["!strcmp(fl[i].from, from) && ", ""]]
+- id: ignore-to
+  why: "Không so sân bay đến"
+  replace: [[" && !strcmp(fl[i].to, to)", ""]]
+- id: date-prefix
+  why: "Chỉ so 7 ký tự đầu của ngày (cùng tháng là khớp)"
+  replace: [["!strcmp(fl[i].date, date)", "!strncmp(fl[i].date, date, 7)"]]
+- id: reverse-order
+  why: "In các chuyến theo thứ tự ngược"
+  replace: [["for (int j = 0; j < k; j++) {", "for (int j = k - 1; j >= 0; j--) {"]]
+- id: swap-times
+  why: "In giờ đến trước giờ đi"
+  replace: [["x->code, x->airline, x->dep, x->arr, price * pax", "x->code, x->airline, x->arr, x->dep, price * pax"]]
+- id: first-only
+  why: "Chỉ in chuyến đầu tiên tìm được"
+  replace: [["idx[k++] = i;", "{ if (k == 0) idx[k++] = i; }"]]
+- id: small-table
+  why: "Chỉ nạp tối đa 200 chuyến"
+  replace: [["#define MAX_FLIGHTS 1000", "#define MAX_FLIGHTS 200"]]
+- id: int-total
+  why: "Tổng tiền bị cắt bớt bit (như tràn số)"
+  replace: [["printf(\"%s %s %s %s %lld\\n\", x->code, x->airline, x->dep, x->arr, price * pax);", "printf(\"%s %s %s %s %d\\n\", x->code, x->airline, x->dep, x->arr, (int)(price * pax) & 0x3FFFFF);"]]
+- id: no-zero-header
+  why: "Không in 110 FLIGHTS 0 khi không có chuyến"
+  replace: [["        printf(\"110 FLIGHTS %d\\n\", k);\n", "        if (k) printf(\"110 FLIGHTS %d\\n\", k);\n"]]

@@ -1,0 +1,10 @@
+id: flight-filter
+title: Lọc chuyến bay từ tệp
+difficulty: easy
+chapter: 4
+topics: [File I/O, Struct Array, Protocol Design]
+prerequisites: []
+ref: "Lab07 (đọc tệp), lab10 (struct); BTL đặt vé máy bay"
+type: stdio
+test_timeout: 2
+concepts: [file-io]

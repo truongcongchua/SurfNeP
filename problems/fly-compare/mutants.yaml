@@ -1,0 +1,64 @@
+# Bản sai sinh tự động từ solution.c (xem docs/TEST-DESIGN.md). Mỗi bản phải bị ít nhất một test giết.
+- id: price-descending
+  why: "PRICE sắp giảm dần"
+  replace: [["int c = cmp_ll(a->total, b->total);\n    if (!c) c = cmp_ll(a->minutes, b->minutes);", "int c = cmp_ll(b->total, a->total);\n    if (!c) c = cmp_ll(a->minutes, b->minutes);"]]
+- id: price-tiebreak-minutes-missing
+  why: "PRICE hòa giá không xét phút bay"
+  replace: [["    if (!c) c = cmp_ll(a->minutes, b->minutes);\n    return c ? c : strcmp(a->f->code, b->f->code);", "    return c ? c : strcmp(a->f->code, b->f->code);"]]
+- id: price-tiebreak-code-missing
+  why: "PRICE hòa hoàn toàn không xét mã chuyến"
+  replace: [["    if (!c) c = cmp_ll(a->minutes, b->minutes);\n    return c ? c : strcmp(a->f->code, b->f->code);", "    if (!c) c = cmp_ll(a->minutes, b->minutes);\n    return c;"]]
+- id: duration-tiebreak-price-missing
+  why: "DURATION hòa phút bay không xét giá"
+  replace: [["    if (!c) c = cmp_ll(a->total, b->total);\n    return c ? c : strcmp(a->f->code, b->f->code);", "    return c ? c : strcmp(a->f->code, b->f->code);"]]
+- id: duration-tiebreak-code-missing
+  why: "DURATION hòa hoàn toàn không xét mã chuyến"
+  replace: [["    if (!c) c = cmp_ll(a->total, b->total);\n    return c ? c : strcmp(a->f->code, b->f->code);", "    if (!c) c = cmp_ll(a->total, b->total);\n    return c;"]]
+- id: depart-tiebreak-code-missing
+  why: "DEPART hòa giờ đi không xét mã chuyến"
+  replace: [["    int c = strcmp(a->f->dep, b->f->dep);\n    return c ? c : strcmp(a->f->code, b->f->code);", "    int c = strcmp(a->f->dep, b->f->dep);\n    return c;"]]
+- id: duration-overnight-negative
+  why: "Không cộng 1440 cho chuyến qua nửa đêm"
+  replace: [["return d > 0 ? d : d + 1440;", "return d;"]]
+- id: best-not-grouped
+  why: "BEST không sắp theo hãng nên các nhóm bị tách rời"
+  replace: [["            qsort(rows, (size_t)k, sizeof rows[0], cmp_airline_then_code);\n", ""]]
+- id: best-fastest-last-tie
+  why: "FASTEST hòa phút chọn mã lớn hơn"
+  replace: [["if (rows[t].minutes < rows[fast].minutes) fast = t;", "if (rows[t].minutes <= rows[fast].minutes) fast = t;"]]
+- id: best-cheapest-last-tie
+  why: "CHEAPEST hòa giá chọn mã lớn hơn"
+  replace: [["if (rows[t].total < rows[cheap].total) cheap = t;", "if (rows[t].total <= rows[cheap].total) cheap = t;"]]
+- id: best-header-wrong-count
+  why: "Số hãng trong tiêu đề BEST sai (đếm số chuyến)"
+  replace: [["                if (i == 0 || strcmp(rows[i].f->airline, rows[i - 1].f->airline)) groups++;", "                groups++;"]]
+- id: bus-uses-eco-seats
+  why: "Hạng BUS kiểm tra ghế ECO"
+  replace: [["int seats = bus ? fl[i].bus_seats : fl[i].eco_seats;", "int seats = fl[i].eco_seats;"]]
+- id: bus-uses-eco-price
+  why: "Hạng BUS tính giá ECO"
+  replace: [["rows[k].total = (bus ? fl[i].bus_price : fl[i].eco_price) * pax;", "rows[k].total = fl[i].eco_price * pax;"]]
+- id: seats-strict
+  why: "Đúng bằng số ghế yêu cầu bị loại"
+  replace: [["seats < pax) continue;", "seats <= pax) continue;"]]
+- id: total-not-multiplied
+  why: "Tổng tiền quên nhân với số khách"
+  replace: [["rows[k].total = (bus ? fl[i].bus_price : fl[i].eco_price) * pax;", "rows[k].total = (bus ? fl[i].bus_price : fl[i].eco_price);"]]
+- id: invalid-criterion-accepted
+  why: "Tiêu chí lạ coi như PRICE"
+  replace: [["            if (!cmp) { puts(\"201 INVALID\"); continue; }", "            if (!cmp) cmp = cmp_price;"]]
+- id: command-prefix
+  why: "Chỉ so 4 ký tự đầu của BEST"
+  replace: [["!strcmp(cmd, \"BEST\") && got == 6", "!strncmp(cmd, \"BEST\", 4) && got == 6"]]
+- id: cr-kept
+  why: "Không bỏ '\\r' cuối dòng"
+  replace: [["        if (len && line[len - 1] == '\\r') line[--len] = 0;\n", ""]]
+- id: blank-line-prints
+  why: "Dòng trống cũng in kết quả"
+  replace: [["        if (len == 0) continue;\n", ""]]
+- id: small-table
+  why: "Chỉ nạp tối đa 100 chuyến"
+  replace: [["#define MAX_FLIGHTS 1000", "#define MAX_FLIGHTS 100"]]
+- id: price-compared-as-string
+  why: "So sánh giá như chuỗi: 900000 đứng sau 1000000"
+  replace: [["    int c = cmp_ll(a->total, b->total);\n    if (!c) c = cmp_ll(a->minutes, b->minutes);", "    char sa[32], sb[32];\n    snprintf(sa, sizeof sa, \"%lld\", a->total);\n    snprintf(sb, sizeof sb, \"%lld\", b->total);\n    int c = strcmp(sa, sb);\n    if (!c) c = cmp_ll(a->minutes, b->minutes);"]]

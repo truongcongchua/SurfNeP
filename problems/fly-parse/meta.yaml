@@ -1,0 +1,10 @@
+id: fly-parse
+title: Kiểm tra cú pháp lệnh FLY
+difficulty: easy
+chapter: 4
+topics: [Protocol Design, String Parsing]
+prerequisites: []
+ref: "Lecture notes §4.3 (thiết kế giao thức tự định nghĩa); BTL đặt vé máy bay"
+type: stdio
+test_timeout: 5
+concepts: [protocol-design]

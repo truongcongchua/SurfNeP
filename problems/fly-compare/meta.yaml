@@ -1,0 +1,10 @@
+id: fly-compare
+title: So sánh giá vé và thời gian bay
+difficulty: medium
+chapter: 4
+topics: [Sorting, Struct Array, File I/O, Function Pointers]
+prerequisites: [flight-filter]
+ref: "Lab05 (con trỏ hàm, hàm so sánh), lab07 (đọc tệp); BTL đặt vé máy bay (so sánh giá vé và thời gian bay, 2 điểm)"
+type: stdio
+test_timeout: 6
+concepts: [file-io]

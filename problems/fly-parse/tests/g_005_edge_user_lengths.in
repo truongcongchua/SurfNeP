@@ -1,0 +1,30 @@
+LOGIN  1234
+REGISTER  1234
+LOGIN a 1234
+REGISTER a 1234
+LOGIN aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 1234
+REGISTER aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 1234
+LOGIN aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 1234
+REGISTER aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 1234
+LOGIN aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 1234
+REGISTER aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 1234
+LOGIN aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 1234
+REGISTER aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 1234
+LOGIN A 1234
+REGISTER A 1234
+LOGIN aB 1234
+REGISTER aB 1234
+LOGIN a_b 1234
+REGISTER a_b 1234
+LOGIN a-b 1234
+REGISTER a-b 1234
+LOGIN a.b 1234
+REGISTER a.b 1234
+LOGIN a b 1234
+REGISTER a b 1234
+LOGIN é 1234
+REGISTER é 1234
+LOGIN 1 1234
+REGISTER 1 1234
+LOGIN 99999999999999999999999999999999 1234
+REGISTER 99999999999999999999999999999999 1234
