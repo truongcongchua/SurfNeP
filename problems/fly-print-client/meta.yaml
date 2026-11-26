@@ -1,0 +1,10 @@
+id: fly-print-client
+title: Client in vé ra tệp
+difficulty: medium
+chapter: 4
+topics: [TCP, Client, Stream Framing, File I/O, Protocol Design]
+prerequisites: [tcp-client-stdin, length-prefix]
+ref: "Lecture notes §4.3 (giao thức có đếm trước độ dài), §4.2.2 (tải tệp xuống như FTP); BTL đặt vé máy bay (in vé)"
+type: client
+test_timeout: 8
+concepts: [tcp-stream, length-prefix-struct, protocol-design]

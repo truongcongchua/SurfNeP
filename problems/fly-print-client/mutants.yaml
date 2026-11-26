@@ -1,0 +1,55 @@
+# Bản sai sinh tự động từ solution.c (xem docs/TEST-DESIGN.md). Mỗi bản phải bị ít nhất một test giết.
+- id: drops-leftover-after-header
+  why: "Bỏ phần dữ liệu đã nằm trong bộ đệm sau dòng tiêu đề"
+  replace: [["    while (left > 0 && rpos < rlen) {  // phần đã nằm sẵn trong bộ đệm sau dòng tiêu đề", "    rpos = rlen;\n    while (left > 0 && rpos < rlen) {  // phần đã nằm sẵn trong bộ đệm sau dòng tiêu đề"]]
+- id: payload-as-string
+  why: "Ghi nội dung bằng fputs (dừng ở byte 0x00)"
+  replace: [["        fwrite(rb, 1, take, f);\n        left -= (long long)take;", "        rb[take] = 0;\n        fputs(rb, f);\n        left -= (long long)take;"]]
+- id: no-quit-on-success
+  why: "Không gửi QUIT khi thành công"
+  replace: [["    fclose(f);\n\n    send_line(\"QUIT\");\n    read_line(line, sizeof line);", "    fclose(f);\n\n    read_line(line, 1);"]]
+- id: no-wait-welcome
+  why: "Gửi LOGIN trước khi đọc WELCOME"
+  replace: [["    if (!read_line(line, sizeof line)) fail(\"connection closed\");\n    if (strncmp(line, \"100\", 3) != 0) fail(line);\n\n    snprintf(cmd, sizeof cmd, \"LOGIN", "    snprintf(cmd, sizeof cmd, \"LOGIN"], ["    send_line(cmd);\n    if (!read_line(line, sizeof line)) fail(\"connection closed\");\n    if (strncmp(line, \"100\", 3) != 0) fail(line);\n\n    snprintf(cmd, sizeof cmd, \"PRINT", "    send_line(cmd);\n    read_line(line, sizeof line);\n    read_line(line, sizeof line);\n    snprintf(cmd, sizeof cmd, \"PRINT"]]
+- id: ignores-welcome-error
+  why: "Không kiểm tra dòng chào (500 FULL vẫn tiếp tục)"
+  replace: [["    if (!read_line(line, sizeof line)) fail(\"connection closed\");\n    if (strncmp(line, \"100\", 3) != 0) fail(line);\n\n    snprintf(cmd, sizeof cmd, \"LOGIN", "    if (!read_line(line, sizeof line)) fail(\"connection closed\");\n\n    snprintf(cmd, sizeof cmd, \"LOGIN"]]
+- id: ignores-login-error
+  why: "Không kiểm tra phản hồi LOGIN"
+  replace: [["    send_line(cmd);\n    if (!read_line(line, sizeof line)) fail(\"connection closed\");\n    if (strncmp(line, \"100\", 3) != 0) fail(line);\n\n    snprintf(cmd, sizeof cmd, \"PRINT", "    send_line(cmd);\n    if (!read_line(line, sizeof line)) fail(\"connection closed\");\n\n    snprintf(cmd, sizeof cmd, \"PRINT"]]
+- id: error-exit-zero
+  why: "Lỗi vẫn thoát mã 0"
+  replace: [["    close(sock);\n    exit(1);\n}", "    close(sock);\n    exit(0);\n}"]]
+- id: error-without-message
+  why: "Lỗi không in ERROR"
+  replace: [["    printf(\"ERROR %s\\n\", line);\n    fflush(stdout);\n", ""]]
+- id: size-limit-too-small
+  why: "Giới hạn n quá thấp (1 000 000)"
+  replace: [["n > 5000000) fail(line);", "n > 1000000) fail(line);"]]
+- id: size-limit-too-big
+  why: "Không giới hạn n"
+  replace: [["if (n < 0 || n > 5000000) fail(line);", "if (n < 0) fail(line);"]]
+- id: digits-limit-6
+  why: "Chỉ chấp nhận n tối đa 6 chữ số (5 000 000 bị loại)"
+  replace: [["digits >= 1 && digits <= 7", "digits >= 1 && digits <= 6"]]
+- id: accepts-signs
+  why: "Chấp nhận ký tự khác chữ số trong n (dùng atoi)"
+  replace: [["            for (; *p; p++) {\n                if (*p < '0' || *p > '9') { n = -1; break; }\n                n = n * 10 + (*p - '0');\n            }", "            n = atoi(p);"]]
+- id: truncated-leaves-file
+  why: "Server đóng sớm nhưng vẫn coi là thành công / để lại tệp"
+  replace: [["            fclose(f);\n            remove(tmp);\n            fail(\"connection closed before the whole ticket arrived\");", "            fclose(f);\n            rename(tmp, argv[6]);\n            fail(\"connection closed before the whole ticket arrived\");"]]
+- id: overwrites-on-error
+  why: "Ghi thẳng vào tệp ra nên lỗi trước dữ liệu vẫn xóa tệp cũ"
+  replace: [["    char line[2048], cmd[1024];\n", "    char line[2048], cmd[1024];\n    { FILE *z = fopen(argv[6], \"wb\"); if (z) fclose(z); }\n"]]
+- id: header-prefix-only
+  why: "Chỉ so ba ký tự đầu của tiêu đề (120 FILE)"
+  replace: [["strncmp(line, \"120 FILE \", 9) == 0", "strncmp(line, \"120\", 3) == 0"]]
+- id: user-pass-swapped
+  why: "LOGIN gửi pass trước user"
+  replace: [["\"LOGIN %s %s\", argv[3], argv[4]", "\"LOGIN %s %s\", argv[4], argv[3]"]]
+- id: wrong-argc
+  why: "Chấp nhận thiếu tham số"
+  replace: [["if (argc != 7) {", "if (argc < 6) {"]]
+- id: lf-only-lines
+  why: "Không bỏ '\\r' cuối dòng khi đọc"
+  replace: [["    if (o && out[o - 1] == '\\r') o--;\n", ""]]

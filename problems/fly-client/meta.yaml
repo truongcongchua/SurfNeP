@@ -1,0 +1,13 @@
+id: fly-client
+title: Client console có menu (giao diện BTL)
+difficulty: hard
+chapter: 4
+topics: [TCP, select, Client, Bidirectional I/O, Protocol Design, User Interface]
+prerequisites: [chat-client, fly-print-client]
+ref: "Lecture notes §3.5 (select_client.c), §4.2.2–4.2.3 (client có giao diện cơ bản, người dùng không gõ lệnh giao thức); BTL đặt vé máy bay (giao diện, 3 điểm)"
+type: client
+test_timeout: 8
+constraints:
+  require_any: [select]
+  forbid: [fork, pthread_create]
+concepts: [select-poll, tcp-stream, protocol-design]

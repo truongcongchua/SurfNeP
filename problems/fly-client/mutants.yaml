@@ -1,0 +1,94 @@
+# Bản sai sinh từ solution.c (xem docs/TEST-DESIGN.md). Mỗi bản phải bị ít nhất một test giết.
+- id: no-notify-while-waiting-input
+  why: "Không theo dõi socket khi chờ người dùng gõ (select chỉ có stdin)"
+  replace: [["        FD_SET(sock, &rd);\n        if (select(sock + 1, &rd, NULL, NULL, NULL) < 0) continue;", "        if (select(sock + 1, &rd, NULL, NULL, NULL) < 0) continue;"]]
+- id: notify-not-printed-in-response
+  why: "Thông báo xen giữa lệnh và phản hồi bị nuốt, không in"
+  replace: [["        if (!is_notify(out)) return;\n        show_notify(out);", "        if (!is_notify(out)) return;"]]
+- id: notify-treated-as-reply
+  why: "Thông báo xen kẽ bị coi là phản hồi của lệnh"
+  replace: [["        if (!is_notify(out)) return;\n        show_notify(out);", "        return;"]]
+- id: notify-prefix-wrong
+  why: "In thông báo với nhãn khác"
+  replace: [["printf(\"[THONG BAO] %s\\n\", line + 11);", "printf(\"[THONG BAO]: %s\\n\", line + 11);"]]
+- id: notify-keeps-prefix
+  why: "In cả chữ 301 NOTIFY"
+  replace: [["printf(\"[THONG BAO] %s\\n\", line + 11);", "printf(\"[THONG BAO] %s\\n\", line);"]]
+- id: only-one-notification-per-recv
+  why: "Chỉ xử lý một dòng thông báo mỗi lần recv khi chờ người dùng"
+  replace: [["        while (take_line(rb, &rlen, line, sizeof line))\n            if (is_notify(line)) show_notify(line);", "        if (take_line(rb, &rlen, line, sizeof line))\n            if (is_notify(line)) show_notify(line);"]]
+- id: stdin-eof-not-handled
+  why: "stdin EOF: không gửi QUIT, chỉ thoát"
+  replace: [["static void quit_ok(void) {\n    send_line(\"QUIT\");", "static void quit_ok(void) {"]]
+- id: quit-no-wait
+  why: "Chọn 5 không gửi QUIT"
+  replace: [["            send_line(\"QUIT\");\n            response_line(line, sizeof line);\n            close(sock);\n            return 0;", "            close(sock);\n            return 0;"]]
+- id: quit-exit-code
+  why: "Thoát bằng mã 2"
+  replace: [["            response_line(line, sizeof line);\n            close(sock);\n            return 0;", "            response_line(line, sizeof line);\n            close(sock);\n            return 2;"]]
+- id: connect-error-exit-zero
+  why: "Không kết nối được vẫn thoát mã 0"
+  replace: [["        printf(\"Khong ket noi duoc\\n\");\n        return 1;", "        printf(\"Khong ket noi duoc\\n\");\n        return 0;"]]
+- id: full-ignored
+  why: "Không xử lý 500 FULL"
+  replace: [["    if (strncmp(line, \"500\", 3) == 0) {", "    if (0) {"]]
+- id: server-gone-exit-zero
+  why: "Server đóng: thoát mã 0"
+  replace: [["    printf(\"Mat ket noi\\n\");\n    fflush(stdout);\n    exit(1);", "    printf(\"Mat ket noi\\n\");\n    fflush(stdout);\n    exit(0);"]]
+- id: login-command-format
+  why: "Đảo user và pass trong LOGIN"
+  replace: [["send_line(\"LOGIN %s %s\", f[0], f[1]);", "send_line(\"LOGIN %s %s\", f[1], f[0]);"]]
+- id: search-field-order
+  why: "Đảo hạng và số khách trong SEARCH"
+  replace: [["send_line(\"SEARCH %s %s %s %s %s\", f[0], f[1], f[2], f[3], f[4]);", "send_line(\"SEARCH %s %s %s %s %s\", f[0], f[1], f[2], f[4], f[3]);"]]
+- id: book-field-order
+  why: "Đảo hạng và số khách trong BOOK"
+  replace: [["send_line(\"BOOK %s %s %s %s\", f[0], f[1], f[2], f[3]);", "send_line(\"BOOK %s %s %s %s\", f[0], f[1], f[3], f[2]);"]]
+- id: flights-numbering-from-zero
+  why: "Đánh số chuyến từ 0"
+  replace: [["printf(\"%d. %s %s %s-%s %s\\n\", i, code, air, dep, arr, total);", "printf(\"%d. %s %s %s-%s %s\\n\", i - 1, code, air, dep, arr, total);"]]
+- id: flights-separator
+  why: "Giờ đi/đến cách nhau bằng dấu cách"
+  replace: [["\"%d. %s %s %s-%s %s\\n\"", "\"%d. %s %s %s %s %s\\n\""]]
+- id: flights-count-line
+  why: "Dòng 'Co k chuyen:' thiếu dấu hai chấm"
+  replace: [["printf(\"Co %d chuyen:\\n\", k);", "printf(\"Co %d chuyen\\n\", k);"]]
+- id: search-reads-wrong-count
+  why: "Chỉ đọc k-1 dòng chuyến (bỏ sót dòng cuối)"
+  replace: [["                for (int i = 1; i <= k; i++) {\n                    char code[64]", "                for (int i = 1; i < k; i++) {\n                    char code[64]"]]
+- id: tickets-print-price
+  why: "In giá thay vì trạng thái"
+  replace: [["printf(\"%d. %s %s %s %s %s\\n\", i, no, fl, date, cls, st);", "printf(\"%d. %s %s %s %s %s\\n\", i, no, fl, date, cls, price);"]]
+- id: pay-prompt-skipped
+  why: "Không hỏi thanh toán sau BOOK"
+  replace: [["                ask(\"Thanh toan (1=Vi, 2=The, 0=Bo qua): \", f[4], sizeof f[4]);", "                f[4][0] = '0'; f[4][1] = 0;"]]
+- id: pay-any-answer-wallet
+  why: "Mọi câu trả lời khác 2 đều trả bằng ví"
+  replace: [["if (!strcmp(f[4], \"1\")) {", "if (strcmp(f[4], \"2\") && strcmp(f[4], \"0\")) {"]]
+- id: card-field-order
+  why: "Thứ tự hạn thẻ và CVV đảo"
+  replace: [["send_line(\"PAY %s CARD %s %s %s\", pnr, f[0], f[1], f[2]);", "send_line(\"PAY %s CARD %s %s %s\", pnr, f[0], f[2], f[1]);"]]
+- id: paid-message-wrong
+  why: "Thông báo thanh toán sai"
+  replace: [["printf(\"Da thanh toan %s\\n\", line + 12);", "printf(\"Thanh toan xong %s\\n\", line + 12);"]]
+- id: errors-not-prefixed
+  why: "Lỗi không có tiền tố 'Loi: '"
+  replace: [["printf(\"Loi: %s\\n\", line);", "printf(\"%s\\n\", line);"]]
+- id: invalid-choice-sends-something
+  why: "Lựa chọn sai vẫn gửi lệnh lạ cho server"
+  replace: [["            printf(\"Lua chon khong hop le\\n\");", "            printf(\"Lua chon khong hop le\\n\");\n            send_line(\"%s\", line);"]]
+- id: invalid-choice-message
+  why: "Thông báo lựa chọn sai khác đề"
+  replace: [["printf(\"Lua chon khong hop le\\n\");", "printf(\"Lua chon sai\\n\");"]]
+- id: cr-kept
+  why: "Không bỏ '\\r' cuối dòng khi tách dòng"
+  replace: [["    if (copy && out[copy - 1] == '\\r') out[copy - 1] = 0;\n", ""]]
+- id: stdin-fgets-in-buffer
+  why: "Đọc stdin bằng fgets xen select (bỏ sót dòng đã nằm trong bộ đệm FILE)"
+  replace: [["            ssize_t n = read(STDIN_FILENO, ib + ilen, sizeof ib - ilen);\n            if (n <= 0) stdin_eof = 1;\n            else ilen += (size_t)n;", "            char tmp[4096];\n            if (!fgets(tmp, sizeof tmp, stdin)) stdin_eof = 1;\n            else { size_t l = strlen(tmp); memcpy(ib + ilen, tmp, l); ilen += l; }"]]
+- id: small-input-buffer
+  why: "Bộ đệm stdin chỉ 16 byte"
+  replace: [["static char rb[16384], ib[4096];", "static char rb[16384], ib[16];"]]
+- id: welcome-not-read
+  why: "Không đọc dòng chào (coi dòng chào là thông báo/phản hồi đầu tiên)"
+  replace: [["    response_line(line, sizeof line);\n    if (strncmp(line, \"500\", 3) == 0) {", "    if (strncmp(line, \"500\", 3) == 0) {"]]
