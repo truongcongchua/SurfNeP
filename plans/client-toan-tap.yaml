@@ -4,7 +4,7 @@ order: 4
 title: "Client toàn tập"
 subtitle: "Viết client: đọc bàn phím, nhận mạng, đóng gói"
 description: >
-  6 bài, 3 chủ đề. Sáu bài client đi từ đơn giản đến vừa đọc bàn phím vừa nhận từ server. Ghép cặp với server của các plan khác để tự kiểm tra chéo.
+  8 bài, 3 chủ đề. Tám bài client đi từ đơn giản đến vừa đọc bàn phím vừa nhận từ server. Ghép cặp với server của các plan khác để tự kiểm tra chéo.
 suggested_days: 3
 award: "Huy hiệu \"Client chuyên nghiệp\""
 
@@ -16,6 +16,7 @@ sections:
       - {id: tcp-client-send, title: "Client gửi một thông điệp", difficulty: easy, ready: true}
       - {id: tcp-client-stdin, title: "Gửi dữ liệu từ bàn phím qua TCP", difficulty: easy, ready: true}
       - {id: sv-client, title: "Gửi hồ sơ sinh viên dạng nhị phân", difficulty: medium, ready: true}
+      - {id: fly-print-client, title: "Client in vé ra tệp", difficulty: medium, ready: true}
 
   - title: "Client UDP"
     intro: "Gửi datagram, chờ phản hồi có timeout. (§2.4)"
@@ -26,3 +27,4 @@ sections:
     intro: "poll() theo dõi cả bàn phím và socket. (§3.5)"
     problems:
       - {id: chat-client, title: "Chat client dùng poll", difficulty: medium, ready: true}
+      - {id: fly-client, title: "Client console có menu (giao diện BTL)", difficulty: hard, ready: true}

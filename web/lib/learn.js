@@ -17,7 +17,7 @@ function yaml(file, fallback) {
   }
 }
 
-export const CHAPTERS = { 2: "Chương 2 · Lập trình socket", 3: "Chương 3 · Server nhiều client" };
+export const CHAPTERS = { 2: "Chương 2 · Lập trình socket", 3: "Chương 3 · Server nhiều client", 4: "Chương 4 · Thiết kế giao thức" };
 
 // Khái niệm = knowledge/<id>.md, xếp theo chương rồi theo tên.
 export function listConcepts() {

@@ -1,0 +1,69 @@
+# Study plan "BTL: Đặt vé máy bay online"; bài lấy từ problems/, sắp theo đúng barem của đề tài.
+# Mỗi section ứng với một mục điểm của bài tập lớn. Giao thức dùng chung: knowledge/protocol-design.md.
+id: btl-ve-may-bay
+order: 7
+title: "BTL: Đặt vé máy bay online"
+subtitle: "Từng mảnh của bài tập lớn: giao thức, log, tài khoản, tìm kiếm, đặt vé, vé điện tử, quản lý vé, thông báo, giao diện"
+description: >
+  16 bài, 9 chủ đề, mỗi chủ đề ứng với một mục điểm của đề tài. Tất cả dùng chung giao thức FLY theo §4.3 (text một dòng, mã trạng thái, phản hồi
+  nhiều dòng đếm trước, server chủ động đẩy tin). Lời giải các bài ghép lại gần thành khung server của bài tập lớn. Hàm ngoài code mẫu (SIGPIPE, poll...)
+  được giải thích trong thẻ "Hàm mạng ngoài code mẫu". Có bài dùng SMTP (email thật) và HTTP (giao diện web).
+suggested_days: 12
+award: "Huy hiệu \"Phi công BTL\""
+
+sections:
+  - title: "Thiết kế giao thức (§4.3)"
+    intro: "Thông điệp text, mã trạng thái, kiểm tra cú pháp; chat theo giao thức trong bài giảng (Bài tập 4.1)."
+    problems:
+      - {id: fly-parse, title: "Kiểm tra cú pháp lệnh FLY", difficulty: easy, ready: true}
+      - {id: chat-proto, title: "Chat server theo giao thức §4.3", difficulty: medium, ready: true}
+
+  - title: "Ghi log message (1đ)"
+    intro: "Ghi mọi message gửi và nhận ra tệp, có giờ, flush kịp thời."
+    problems:
+      - {id: fly-log, title: "Server ghi log mọi message", difficulty: easy, ready: true}
+
+  - title: "Tài khoản người dùng (2đ)"
+    intro: "Đăng ký, đăng nhập, phiên theo từng kết nối, tối đa N client. (§3.5, §4.3)"
+    problems:
+      - {id: fly-auth, title: "Đăng ký, đăng nhập và tối đa N client", difficulty: medium, ready: true}
+
+  - title: "Tìm kiếm và so sánh chuyến bay (2đ + 2đ)"
+    intro: "Nạp dữ liệu từ tệp, lọc, sắp xếp theo giá và thời gian bay, rồi phục vụ qua mạng."
+    problems:
+      - {id: flight-filter, title: "Lọc chuyến bay từ tệp", difficulty: easy, ready: true}
+      - {id: fly-search, title: "Tìm chuyến bay qua mạng", difficulty: medium, ready: true}
+      - {id: fly-compare, title: "So sánh giá vé và thời gian bay", difficulty: medium, ready: true}
+
+  - title: "Đặt vé và thanh toán (3đ)"
+    intro: "Dữ liệu dùng chung, giữ chỗ có hạn, thanh toán mô phỏng (ví, thẻ Luhn). (§3.4–3.5)"
+    problems:
+      - {id: fly-book, title: "Đặt vé và thanh toán", difficulty: hard, ready: true}
+
+  - title: "Mã vé điện tử qua email hoặc tin nhắn (2đ)"
+    intro: "Server là client của SMTP; đẩy tin nhắn cho các phiên khác của cùng tài khoản. (§4.2.3, §4.3)"
+    problems:
+      - {id: fly-eticket, title: "Phát hành vé điện tử (email SMTP và thông báo)", difficulty: medium, ready: true}
+
+  - title: "Quản lý vé đã đặt (3đ)"
+    intro: "Xem, hủy có hoàn tiền theo thời gian, đổi chuyến, in vé (nội dung có độ dài)."
+    problems:
+      - {id: fly-manage, title: "Quản lý vé đã đặt (xem, hủy, đổi, in)", difficulty: hard, ready: true}
+      - {id: fly-print-client, title: "Client in vé ra tệp", difficulty: medium, ready: true}
+
+  - title: "Thông báo chuyến bay (3đ)"
+    intro: "Lệnh chỉ dành cho admin, server chủ động gửi, hàng đợi cho người offline. (§4.3)"
+    problems:
+      - {id: fly-notify, title: "Thông báo thay đổi chuyến bay (trễ, đổi lịch, hủy)", difficulty: hard, ready: true}
+
+  - title: "Giao diện (3đ) và tính năng nâng cao (5đ)"
+    intro: "Client console có menu; giao diện web theo http_server.c; tra cứu trạng thái qua UDP."
+    problems:
+      - {id: fly-client, title: "Client console có menu (giao diện BTL)", difficulty: hard, ready: true}
+      - {id: fly-web, title: "Giao diện web tìm chuyến bay (HTTP)", difficulty: hard, ready: true}
+      - {id: fly-status-udp, title: "Tra cứu trạng thái chuyến bay qua UDP", difficulty: medium, ready: true}
+
+  - title: "Ôn thi giữa kỳ"
+    intro: "Đề thi thử tính giờ 90 phút, ẩn test."
+    problems:
+      - {id: mock-flight-tcp, title: "Thi thử 3: Đặt vé máy bay qua TCP", difficulty: hard, exam: true, ready: true}

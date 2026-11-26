@@ -6,8 +6,8 @@ order: 0
 title: Giữa kỳ IT4062
 subtitle: Server/client TCP/UDP phục vụ tối đa N client
 description: >
-  34 bài, 10 chủ đề, đi từ địa chỉ socket đến server phục vụ đồng thời tối đa N client,
-  kết thúc bằng 2 đề thi thử tính giờ. Bám lecture notes Chương 2–3.
+  37 bài, 10 chủ đề, đi từ địa chỉ socket đến server phục vụ đồng thời tối đa N client,
+  kết thúc bằng 3 đề thi thử tính giờ. Bám lecture notes Chương 2–3.
 exam_date: 2026-12-15
 suggested_days: 16
 award: Huy hiệu "Sẵn sàng giữa kỳ"
@@ -48,6 +48,7 @@ sections:
       - {id: udp-client, title: UDP client gửi từng dòng và đợi phản hồi, difficulty: medium, ready: true}
       - {id: udp-boundary, title: Ranh giới datagram, difficulty: medium, ready: true}
       - {id: udp-calc, title: Máy tính qua UDP, difficulty: medium, ready: true}
+      - {id: fly-status-udp, title: Tra cứu trạng thái chuyến bay qua UDP, difficulty: medium, ready: true}
 
   - title: Blocking, non-blocking & server lặp
     intro: fcntl O_NONBLOCK, EWOULDBLOCK, server lặp và giới hạn của nó. (§3.1–3.2)
@@ -84,5 +85,7 @@ sections:
     problems:
       - {id: echo-max-n, title: Echo server tối đa N client, difficulty: medium, ready: true}
       - {id: kv-max-n, title: Key-Value server tối đa N client, difficulty: hard, ready: true}
+      - {id: fly-auth, title: "Đăng ký, đăng nhập và tối đa N client", difficulty: medium, ready: true}
       - {id: mock-booking-tcp, title: "Thi thử 1: Đặt chỗ qua TCP", difficulty: hard, exam: true, ready: true}
       - {id: mock-quiz-udp, title: "Thi thử 2: Quiz server UDP", difficulty: hard, exam: true, ready: true}
+      - {id: mock-flight-tcp, title: "Thi thử 3: Đặt vé máy bay qua TCP", difficulty: hard, exam: true, ready: true}

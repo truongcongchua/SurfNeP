@@ -4,7 +4,7 @@ order: 6
 title: "Thử thách bài khó"
 subtitle: "Chỉ các bài hard và đề thi thử"
 description: >
-  10 bài, 4 chủ đề. Dành cho người đã vững nền: toàn bài hard, từ đóng gói nhị phân đến server đồng thời, kết thúc bằng hai đề thi thử tính giờ.
+  12 bài, 4 chủ đề. Dành cho người đã vững nền: toàn bài hard, từ đóng gói nhị phân đến server đồng thời và đặt vé có giữ chỗ, kết thúc bằng ba đề thi thử tính giờ.
 suggested_days: 7
 award: "Huy hiệu \"Không ngại bài khó\""
 
@@ -26,9 +26,13 @@ sections:
     intro: "Dạng đề giữa kỳ. (§3.4–3.5)"
     problems:
       - {id: kv-max-n, title: "Key-Value server tối đa N client", difficulty: hard, ready: true}
+      - {id: fly-book, title: "Đặt vé và thanh toán", difficulty: hard, ready: true}
+      - {id: fly-manage, title: "Quản lý vé đã đặt (xem, hủy, đổi, in)", difficulty: hard, ready: true}
+      - {id: fly-notify, title: "Thông báo thay đổi chuyến bay (trễ, đổi lịch, hủy)", difficulty: hard, ready: true}
 
   - title: "Thi thử tính giờ"
-    intro: "Hai đề, ẩn test, 90 phút mỗi đề."
+    intro: "Ba đề, ẩn test, 90 phút mỗi đề."
     problems:
       - {id: mock-booking-tcp, title: "Thi thử 1: Đặt chỗ qua TCP", difficulty: hard, exam: true, ready: true}
       - {id: mock-quiz-udp, title: "Thi thử 2: Quiz server UDP", difficulty: hard, exam: true, ready: true}
+      - {id: mock-flight-tcp, title: "Thi thử 3: Đặt vé máy bay qua TCP", difficulty: hard, exam: true, ready: true}
