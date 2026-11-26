@@ -273,3 +273,123 @@ udp-client:
     Mỗi dòng: bỏ `\r\n` cuối, bỏ qua dòng rỗng, `sendto` đúng `strlen` byte. Rồi `select` trên socket với `timeout.tv_sec = 1` (gán lại mỗi lần, xem `select_client.c`): lớn hơn `0` thì `recvfrom`, ngược lại in `TIMEOUT`. Đây là `udp_sender.c` cộng thêm nhận phản hồi.
   - |-
     Phản hồi không có `\0` và không có `\n`: in bằng `fwrite(buf, 1, k, stdout)` rồi `printf("\n")`. Bộ đệm nhận cần ít nhất 2048 byte.
+
+fly-parse:
+  - |-
+    Mỗi dòng cần hai quyết định tách biệt: **tên lệnh có hợp lệ không** (`999`) và **tham số có đúng không** (`201`). Hãy tách dòng thành các thành phần trước, rồi mới kiểm tra từng cái.
+  - |-
+    Đừng dùng `strtok`: nó gộp nhiều dấu cách thành một nên không thấy được thành phần rỗng (dấu cách thừa). Tách thủ công bằng `strchr(p, ' ')`: gặp dấu cách thì ghi `'\0'` và nhảy sang ký tự kế. Số thành phần là số lần tách + 1.
+  - |-
+    Viết các hàm nhỏ: `valid_user`, `valid_pass`, `airport`, `valid_date`. Ngày thật: `1900 ≤ năm ≤ 2100`, tháng 1–12, ngày ≥ 1 và ≤ số ngày của tháng; năm nhuận là `(y%4==0 && y%100!=0) || y%400==0`. Ngày về hợp lệ khi `strcmp(ngay_ve, ngay_di) >= 0`. Bỏ `\n` rồi **đúng một** `\r`; dòng trống thì `continue`. Dòng dài nhiều thành phần: đừng ghi vượt mảng con trỏ.
+
+flight-filter:
+  - |-
+    Đây là hai việc nối nhau: **nạp** tệp một lần vào mảng, rồi với mỗi truy vấn **duyệt** mảng theo đúng thứ tự trong tệp.
+  - |-
+    `fgets` + `sscanf` với mẫu 11 trường (`%15s ... %lld %d %lld %d`); mảng `struct` tĩnh 1000 phần tử. Điều kiện chuyến thỏa: cùng `from`, `to`, `date` (so bằng `strcmp`) và số ghế của **hạng được chọn** `>= số khách`. Chọn giá/ghế theo `strcmp(hang, "BUS")`.
+  - |-
+    Tổng tiền dùng `long long` (giá × số khách tới 9×10^8, gần ngưỡng của `int`). Phải in `110 FLIGHTS k` **trước** k dòng nên cần đếm hoặc lưu chỉ số các chuyến khớp trước khi in. Đọc lại tệp cho mỗi truy vấn sẽ quá chậm với hàng chục nghìn truy vấn.
+
+fly-search:
+  - |-
+    Bài này là ghép hai bài đã làm: **kiểm tra cú pháp** (fly-parse) + **lọc chuyến** (flight-filter), đặt trong một server nhiều client như `kv-max-n`. Hãy tách riêng ba tầng: ghép dòng, phân tích lệnh, trả lời.
+  - |-
+    Mỗi client có bộ đệm dòng riêng (`select`). Với khứ hồi, chiều về là cùng hàm lọc nhưng đổi chỗ `đi`/`đến` và dùng ngày về. Ghi cả phản hồi vào **một** bộ đệm rồi `send` một lần để các dòng của hai chiều không xen lẫn.
+  - |-
+    `QUIT` kèm tham số là `201`; dòng trống là `999`; kiểm tra `QUIT`/`SEARCH` bằng `strcmp` đầy đủ (không so tiền tố). Bộ đệm phản hồi cần đủ lớn cho cả chiều đi và chiều về (mỗi dòng chuyến bay khoảng 40 byte).
+
+fly-auth:
+  - |-
+    Tách bài thành ba phần độc lập: **giới hạn N client** (như `kv-max-n`), **trạng thái phiên** (mỗi client nhớ tài khoản đang đăng nhập hay chưa), **bảng tài khoản** (nạp từ tệp, ghi nối khi đăng ký).
+  - |-
+    Trong `struct` của mỗi client thêm `int acct` (-1 nếu chưa đăng nhập). Một tài khoản đang dùng khi **có client nào đó đang kết nối** có `acct` bằng nó, nên khi client rời đi phải đặt lại `acct = -1` (và khi nhận kết nối mới vào ô cũ cũng đặt `-1`). `REGISTER`: `fopen("accounts.txt", "a")`, `fprintf`, `fclose` ngay.
+  - |-
+    Thứ tự kiểm tra của `LOGIN`: cú pháp (`201`) → phiên đã đăng nhập (`207`) → tên/mật khẩu (`203`) → tài khoản đang bị phiên khác dùng (`207`). Lệnh bị từ chối không được ghi gì vào tệp. `LOGOUT`/`WHOAMI`/`QUIT` kèm tham số là `201`.
+
+fly-status-udp:
+  - |-
+    UDP **giữ ranh giới thông điệp**: mỗi `recvfrom` nhận trọn một lệnh, nên không cần ghép dòng. Việc cần làm là kiểm tra độ dài, tách thành phần và trả lời đúng địa chỉ người gửi.
+  - |-
+    Dùng một socket `SOCK_DGRAM`, `bind`, rồi vòng lặp `recvfrom(...)` → xử lý → `sendto(..., &from, fromlen)` về đúng `from`. Bộ đệm nhận lớn hơn 1000 byte để phân biệt datagram dài. Trạng thái `(chuyến, ngày)` lưu trong mảng struct.
+  - |-
+    Thứ tự của `SET`: **cú pháp (ERROR) → khóa (DENIED) → tồn tại (NOT_FOUND)**. `DELAYED <phút>`: phút gồm 1–4 chữ số, không bắt đầu bằng `0`, giá trị 1–1440. Bỏ một `\n` rồi một `\r` cuối datagram (chỉ một cặp). Datagram rỗng vẫn phải trả `ERROR`.
+
+fly-book:
+  - |-
+    Hãy mô hình hóa trước khi code: **chuyến** (ghế còn lại mỗi hạng), **tài khoản** (số dư), **bản ghi đặt chỗ** (PNR, chủ, số tiền, hạn, trạng thái `HOLD/PAID/EXPIRED/GONE`) và **phiên** (client nào đã tạo bản ghi). Mọi lệnh chỉ là biến đổi các bảng này.
+  - |-
+    Dữ liệu dùng chung nên chọn `select` một luồng cho đơn giản (không cần mutex), hoặc đa luồng với **một mutex** bọc toàn bộ xử lý một lệnh. Hết hạn xét "lười": ở đầu **mỗi** lệnh gọi `expire_holds()` quét các bản ghi `HOLD` có `expire <= time(NULL)`, đổi sang `EXPIRED` và trả ghế. Muốn dọn cả khi không ai gửi lệnh thì đặt timeout cho `select`.
+  - |-
+    PNR: sinh 6 ký tự bằng `rand()` (nhớ `srand(time(NULL))`), kiểm tra không trùng với **mọi** PNR từng cấp. "Hạn" in bằng `localtime` + `printf("%02d:%02d:%02d")`. Thẻ: Luhn từ phải sang trái; hạn `MM/YY` so với `localtime` (tháng hiện tại vẫn hợp lệ). Thứ tự kiểm tra của `PAY`: đăng nhập → cú pháp → tồn tại → của đúng tài khoản → đã trả → hết hạn → thanh toán. Khi client rời đi, trả ghế của các bản ghi `HOLD` do **phiên** đó tạo (vé đã trả giữ nguyên). Nên `signal(SIGPIPE, SIG_IGN)`.
+
+fly-log:
+  - |-
+    Có ba việc: (1) biết **địa chỉ của client**, (2) ghi **một dòng log mỗi sự kiện**, (3) đúng **thứ tự và thời điểm** (log trước khi gửi, flush ngay).
+  - |-
+    `accept(ls, (struct sockaddr *)&ca, &len)` cho địa chỉ client; `inet_ntoa(ca.sin_addr)` và `ntohs(ca.sin_port)` (như `udp_receiver.c`) ghép thành `"ip:cổng"`, lưu trong struct của client. Mở tệp log bằng `fopen(path, "a")` **một lần** ở đầu `main`; một hàm `log_event(addr, kind, text)` dùng `time` + `localtime` + `strftime` rồi `fprintf` + `fflush`.
+  - |-
+    Hàm `reply` phải gọi `log_event(..., "SEND", ...)` **trước** `send`. `RECV` ghi theo từng dòng đủ `\n` (sau khi bỏ `\r`), không theo lần `recv`. `DISCONNECT` ghi ở một chỗ duy nhất (hàm đóng client) nên đủ cho cả `QUIT`, đóng và RST. Phần dở dang khi client rời đi thì bỏ, không ghi.
+
+chat-proto:
+  - |-
+    Đây là `chat-select` cộng hai việc: **tên (nick)** của từng client và **tìm đúng một client theo tên** để gửi riêng. Mọi thứ khác (ghép dòng, phát tin) đã có.
+  - |-
+    Tách lệnh ở **dấu cách đầu tiên**: `strchr(line, ' ')`, đặt `'\0'` tại đó; phần sau là tham số nguyên văn. `PMSG` tách tiếp ở dấu cách thứ hai. Hàm `find_nick(nick)` duyệt mảng client giống `get_nickname` trong `pthread_chatroom.c`, bỏ qua ô trống (`fd < 0`) và client chưa JOIN.
+  - |-
+    Thứ tự kiểm tra: `JOIN` đã vào rồi (`203`) → quy cách tên (`201`) → trùng (`200`). `MSG`/`PMSG`: cú pháp (`999`) → đã JOIN (`203`) → người nhận (`202`; gửi cho chính mình cũng là `202`). Khi client rời đi nhớ đánh dấu ô trống **và** xóa cờ đã JOIN để giải phóng tên. Nếu dùng luồng: bọc mọi lần duyệt danh sách bằng mutex, và truyền cho luồng một con trỏ cấp phát riêng.
+
+fly-compare:
+  - |-
+    Hai bước: **lọc** (như flight-filter) rồi **sắp xếp** với tiêu chí chọn lúc chạy. Hãy tạo một mảng "dòng kết quả" gồm con trỏ tới chuyến, số phút bay và tổng tiền để sắp xếp.
+  - |-
+    `qsort(rows, k, sizeof rows[0], cmp)` với ba hàm `cmp` (lab05, con trỏ hàm); chọn hàm bằng `strcmp(tieu_chi, ...)`. Số phút bay: `đến − đi`, nếu `≤ 0` thì `+ 1440`. So **số** bằng số (không `strcmp` trên chuỗi giá), tổng tiền dùng `long long`.
+  - |-
+    `qsort` không ổn định nên mọi trường hợp hòa phải có khóa phụ cuối cùng là `strcmp(mã chuyến)`. `BEST`: sắp theo (hãng, mã) rồi duyệt từng nhóm cùng hãng, giữ chuyến rẻ nhất / nhanh nhất bằng so sánh **chặt** (`<`) để khi hòa lấy mã nhỏ hơn (vì nhóm đã theo mã tăng dần).
+
+fly-print-client:
+  - |-
+    Hội thoại lock-step: chờ dòng của server rồi mới gửi lệnh kế. Bài khó ở phần cuối: **sau dòng `120 FILE n` là `n` byte nhị phân**, và lần `recv` đọc dòng đó có thể đã kéo theo một phần (hoặc cả) nội dung.
+  - |-
+    Viết `read_line()` dùng bộ đệm `static` có `rlen`/`rpos` giữ giữa các lần gọi (đọc một ký tự từ bộ đệm, bộ đệm cạn thì `recv`). Sau khi parse `n`, **ghi trước phần còn trong bộ đệm** (`rb + rpos`), rồi `recv` tiếp cho đủ `n`. Ghi bằng `fwrite` (không `fputs`/`strlen`, vì có byte `0x00`).
+  - |-
+    Không cấp phát `n` byte: đọc từng khối 64 KB và ghi thẳng. Ghi vào `<tệp>.tmp` rồi `rename` khi nhận đủ, như vậy lỗi giữa chừng không để lại tệp dở và không xóa tệp cũ. Kiểm tra `n` bằng cách duyệt từng ký tự chữ số (không `atoi`), tối đa 7 chữ số và ≤ 5 000 000. Lỗi: in `ERROR <dòng>`, gửi `QUIT`, thoát mã 1.
+
+fly-eticket:
+  - |-
+    Server làm **hai vai**: server với client của bạn, và **client** của máy chủ SMTP. Viết riêng một hàm `smtp_send(email, message)` trả 1/0, rồi `ISSUE` chỉ là: sinh số vé → ghi `tickets.txt` → gọi `smtp_send` → lưu `.eml` → đẩy tin → trả lời.
+  - |-
+    Mỗi lệnh SMTP kết thúc `\r\n`; sau mỗi lệnh đọc phản hồi **nhiều dòng**: các dòng `250-...` rồi dòng `250 ...` (ký tự thứ 4 là dấu cách). Chờ có giới hạn thời gian: trước mỗi `recv` gọi `select` với `struct timeval tv = {2, 0}` trên socket SMTP; hết giờ hoặc mã sai thì gửi `QUIT`, đóng, báo `MAIL_FAILED`. Thư kết thúc bằng một dòng chỉ có dấu chấm.
+  - |-
+    Số vé: `sprintf(ticket, "%s%010ld", mã_hãng, serial)`; `serial` khởi tạo bằng số dòng của `tickets.txt` + 1 và tăng sau mỗi vé. `mkdir("outbox", 0777)` rồi `mkdir("outbox/<user>", 0777)` (không sao nếu đã có). Đẩy `300 TICKET ...` cho **các phiên khác** cùng tài khoản trước khi trả lời phiên đang `ISSUE`. Nên `signal(SIGPIPE, SIG_IGN)`: cả client đã đóng lẫn máy chủ SMTP đóng giữa chừng đều có thể làm `send` gây `SIGPIPE`.
+
+fly-manage:
+  - |-
+    Mọi phép tính thời gian quy về **một số nguyên: số phút kể từ một mốc**. Khi đã có `phút_khởi_hành − phút_hiện_tại`, các luật 72 giờ, 24 giờ, 3 giờ chỉ còn là so sánh số nguyên.
+  - |-
+    Đổi `"YYYY-MM-DD"` + `"HH:MM"` ra phút bằng `sscanf` rồi `mktime` (đặt `tm_isdst = -1`), hoặc tự tính ngày từ năm/tháng/ngày (cẩn thận năm nhuận, tháng 1–2). Hoàn tiền: `giá * pct / 100` với số nguyên (chia nguyên làm tròn xuống). `CHANGE`: kiểm tra **đúng thứ tự** trong đề trước khi thay đổi bất cứ thứ gì (ghế, ví, vé), để lỗi giữa chừng không để lại trạng thái dở.
+  - |-
+    `PRINT`: dựng nội dung trong một bộ đệm bằng `snprintf` và lấy **giá trị trả về** làm `n`; gửi `120 FILE n\n` rồi đúng `n` byte (không dùng `strlen` nếu nội dung có thể chứa `0x00`). Biên: `≥` hay `>` ở mốc đúng 72 giờ / 24 giờ / 3 giờ, và `left <= 0` là đã khởi hành.
+
+fly-notify:
+  - |-
+    Có hai khái niệm tách biệt: **phiên** (một kết nối) và **tài khoản** (có thể nhiều phiên). Thông báo gắn với tài khoản: gửi cho mọi phiên đang online của nó, và nếu không có phiên nào thì xếp vào **hàng đợi của tài khoản**.
+  - |-
+    Mỗi tài khoản có một hàng đợi (mảng `char (*q)[128]` + `nq` + `cap`, `realloc` khi đầy). Khi `LOGIN` thành công: trả `100 OK <user>` **trước**, rồi nếu đây là phiên online đầu tiên của tài khoản thì gửi toàn bộ hàng đợi và đặt `nq = 0`. Sự kiện: duyệt các tài khoản có vé `PAID` trên chuyến (mỗi tài khoản **một lần**, dù có nhiều vé).
+  - |-
+    Quyền admin lưu trong struct client và **xóa khi client rời đi và khi ô được dùng lại**. Kiểm tra theo thứ tự: admin (`203`) → cú pháp/định dạng (`201`) → chuyến có không (`202`) → đã hủy (`209`). Gửi thông báo cho khách trước khi trả `100 OK <k>` cho admin. `signal(SIGPIPE, SIG_IGN)`: sự kiện có thể đẩy vào phiên vừa đóng.
+
+fly-client:
+  - |-
+    Vòng lặp chính đừng gọi hàm đọc bàn phím trần: viết hai hàm **`user_line()`** (chờ người dùng, vừa chờ vừa in thông báo) và **`response_line()`** (chờ phản hồi, bỏ qua và in thông báo). Mọi chỗ cần dữ liệu đều đi qua hai hàm này.
+  - |-
+    `select` trên `{STDIN_FILENO, sock}`. Đọc stdin bằng `read(0, ...)` vào bộ đệm riêng rồi tự tách dòng; **không** trộn `fgets`/`scanf` với `select` (dữ liệu nằm trong bộ đệm của `FILE` nên `select` không báo, client treo). Bộ đệm socket cũng tách dòng riêng: một lần `recv` có thể chứa nhiều dòng hoặc nửa dòng.
+  - |-
+    Dòng `301 NOTIFY x` bất kỳ lúc nào thì in `[THONG BAO] x`, kể cả giữa các dòng của phản hồi nhiều dòng. Với `BOOK` thành công cần `sscanf` lấy PNR rồi hỏi thanh toán; mọi lệnh gửi nguyên văn giá trị người dùng gõ. EOF của stdin → `QUIT` rồi `exit(0)`; `recv` trả `<= 0` → in `Mat ket noi`, thoát mã 1.
+
+fly-web:
+  - |-
+    Làm theo đúng khung `http_server.c` (đọc đến `\r\n\r\n` → `sscanf` method/path → định tuyến → gửi header + thân → `close`), rồi thêm: kiểm tra chặt dòng đầu, giải mã query, `POST` đọc đủ `Content-Length`, và trang HTML dựng bằng bộ đệm lớn.
+  - |-
+    Thứ tự kiểm tra: dòng đầu đủ 3 phần đúng một dấu cách và phiên bản `HTTP/1.0|1.1` (`400`) → method `GET|POST` (`405`) → đường dẫn (`404`) → với POST: `Content-Length` hợp lệ `0..4096` (`400`) → tham số (`400`). Tách query ở `&` rồi `=`, **sau đó** mới giải mã từng giá trị (`%XX` hex hoa/thường; `+` thành dấu cách; `%` hỏng là lỗi). Khóa lặp lấy lần đầu.
+  - |-
+    `Content-Length` đúng bằng độ dài thân: đếm bằng giá trị trả về của `snprintf`. Mỗi kết nối một luồng với tham số `malloc` riêng và `pthread_detach`; `signal(SIGPIPE, SIG_IGN)` vì client có thể đóng trước khi nhận hết. Nhớ `<strings.h>` cho `strncasecmp` khi so tên header không phân biệt hoa thường.

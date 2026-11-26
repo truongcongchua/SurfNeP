@@ -446,3 +446,134 @@
     - ["2>&1"]
     - ["popen"]
   why: "`2>&1` chuyển stderr vào stdout; `popen(cmd, \"r\")` chạy lệnh và cho đọc đầu ra của nó."
+
+# ---------- Chương 4: thiết kế giao thức ----------
+- id: pd-mcq-stateless
+  type: mcq
+  concept: protocol-design
+  q: "HTTP được gọi là giao thức **stateless** (§4.2.1). Điều đó nghĩa là gì?"
+  options:
+    - "Server không bao giờ lưu dữ liệu gì"
+    - "Mỗi request độc lập: server không nhớ những gì đã xảy ra ở request trước"
+    - "Kết nối TCP bị đóng sau mỗi byte"
+    - "Client không cần gửi header"
+  answer: 1
+  why: "Stateless = không có trạng thái phiên giữa các request. Giao thức chat/đặt vé của bài tập lớn thì **theo phiên** (nhớ đã đăng nhập chưa), nên server phải lưu trạng thái cho từng kết nối."
+
+- id: pd-mcq-count-first
+  type: mcq
+  concept: protocol-design
+  q: "Server trả `110 FLIGHTS 3` rồi mới đến 3 dòng chuyến bay. Lý do chính của việc đếm trước là gì?"
+  options:
+    - "Để `send` chạy nhanh hơn"
+    - "TCP là luồng byte, client không đoán được phản hồi dài bao nhiêu nên cần biết khi nào hết dữ liệu"
+    - "Để client không cần gọi `recv`"
+    - "Vì mã `110` bắt buộc phải kèm một con số"
+  answer: 1
+  why: "Không có ranh giới thông điệp trong TCP. Đếm trước số dòng (hoặc số byte) là cách chắc nhất để client biết phản hồi kết thúc ở đâu."
+
+- id: pd-mcq-strtok
+  type: mcq
+  concept: protocol-design
+  q: "Đề yêu cầu các thành phần cách nhau bởi **đúng một dấu cách** và `LOGIN  an 1234` (hai dấu cách) là sai. Vì sao không dùng `strtok(line, \" \")` để tách?"
+  options:
+    - "`strtok` không tách được dấu cách"
+    - "`strtok` coi nhiều dấu cách liền nhau là một, nên làm mất thành phần rỗng và nhận nhầm lệnh sai là đúng"
+    - "`strtok` chỉ dùng được với `\\n`"
+    - "`strtok` làm tràn bộ đệm"
+  answer: 1
+  why: "Cần tách thủ công (`strchr(p, ' ')`) để đếm đúng số thành phần, kể cả thành phần rỗng."
+
+- id: pd-mcq-leap
+  type: mcq
+  concept: protocol-design
+  q: "Trong các ngày sau, ngày nào **không** có thật?"
+  options: ["`2000-02-29`", "`2024-02-29`", "`2100-02-29`", "`2026-12-31`"]
+  answer: 2
+  why: "Năm nhuận: chia hết cho 4 và không chia hết cho 100, trừ khi chia hết cho 400. 2100 chia hết cho 100 nhưng không chia hết cho 400 nên không nhuận; 2000 thì nhuận."
+
+- id: pd-mcq-luhn
+  type: mcq
+  concept: protocol-design
+  q: "Thuật toán Luhn kiểm tra số thẻ: từ phải sang trái, chữ số ở vị trí thứ hai, thứ tư... được xử lý thế nào?"
+  options:
+    - "Cộng thẳng vào tổng"
+    - "Nhân đôi, nếu kết quả > 9 thì trừ 9, rồi cộng vào tổng; số thẻ hợp lệ khi tổng chia hết cho 10"
+    - "Bỏ qua"
+    - "Nhân ba rồi lấy dư cho 7"
+  answer: 1
+  why: "Các chữ số còn lại cộng thẳng. Đây chỉ là vòng lặp C bình thường, không liên quan tới lập trình mạng."
+
+- id: pd-mcq-recv-once
+  type: mcq
+  concept: protocol-design
+  q: "Trong `4-Chap4/pthread_chatroom.c`, luồng gọi `recv` một lần rồi so `strncmp(buffer, \"JOIN \", 5)` coi cả bộ đệm là một lệnh. Sai ở đâu?"
+  options:
+    - "`recv` luôn trả đúng một dòng nên không sai"
+    - "TCP là luồng byte: một `recv` có thể chứa nửa lệnh hoặc nhiều lệnh dính nhau, cần ghép dòng theo `\\n`"
+    - "`strncmp` không so được chuỗi"
+    - "Phải dùng `read` thay cho `recv`"
+  answer: 1
+  why: "Cùng lỗi \"một recv = một lệnh\" của mọi bài TCP; phải giữ bộ đệm dòng riêng cho từng client và xử lý từng dòng đủ `\\n`."
+
+- id: pd-order-pay
+  type: order
+  concept: protocol-design
+  q: "Sắp xếp **thứ tự kiểm tra lỗi** của lệnh `PAY <PNR> WALLET` (bài fly-book):"
+  items:
+    - "Đã đăng nhập chưa (`204`)"
+    - "Số thành phần / kiểu thanh toán (`201`)"
+    - "PNR có tồn tại không (`202`)"
+    - "PNR có phải của tài khoản này không (`203`)"
+    - "Đã thanh toán chưa (`209`)"
+    - "Đã hết hạn chưa (`208`)"
+    - "Số dư có đủ không (`206`)"
+  why: "Client chỉ thấy một mã lỗi nên đề phải quy định thứ tự; kiểm tra sớm những điều kiện về **danh tính và trạng thái** trước điều kiện về **tiền**."
+
+- id: pd-mcq-sigpipe
+  type: mcq
+  concept: ngoai-code-mau
+  q: "Server `send` cho một client vừa rớt mạng, không làm gì thêm. Điều gì xảy ra theo mặc định?"
+  options:
+    - "`send` trả `0` và server chạy tiếp"
+    - "Hệ điều hành gửi `SIGPIPE` và **giết cả server**"
+    - "`send` bị chặn mãi"
+    - "Client được tự động kết nối lại"
+  answer: 1
+  why: "Cách tránh: `signal(SIGPIPE, SIG_IGN)` một lần ở đầu `main`, hoặc cờ `MSG_NOSIGNAL` cho từng lần `send`. Sau đó `send` chỉ trả `-1` (`EPIPE`)."
+
+- id: hs-mcq-end-of-header
+  type: mcq
+  concept: http-server
+  q: "Server đọc một HTTP request từ socket. Làm sao biết đã nhận đủ phần header?"
+  options:
+    - "`recv` một lần là đủ"
+    - "Đọc cho đến khi bộ đệm chứa chuỗi `\\r\\n\\r\\n` (dòng trống)"
+    - "Đọc cho đến khi gặp ký tự `\\0`"
+    - "Đọc đúng 1024 byte"
+  answer: 1
+  why: "HTTP không có độ dài cố định cho header; dòng trống `\\r\\n\\r\\n` đánh dấu hết header. Vì TCP là luồng byte nên phải lặp `recv` đến khi thấy chuỗi đó."
+
+- id: hs-mcq-content-length
+  type: mcq
+  concept: http-server
+  q: "Một request `POST` có header `Content-Length: 50`. Sau dòng trống server phải làm gì?"
+  options:
+    - "Đọc đến khi gặp `\\n`"
+    - "Đọc **đúng 50 byte** thân (một phần có thể đã nằm trong lần `recv` trước), rồi xử lý"
+    - "Bỏ qua thân vì POST không có thân"
+    - "Đọc đến khi client đóng kết nối"
+  answer: 1
+  why: "`Content-Length` cho biết độ dài thân; thân có thể đến cùng hoặc sau header nên phải trừ đi phần đã nhận rồi `recv` tiếp cho đủ."
+
+- id: hs-mcq-thread-arg
+  type: mcq
+  concept: http-server
+  q: "Vòng `accept` gọi `pthread_create(&t, NULL, serve, &c)` với `c` là biến cục bộ của vòng lặp. Lỗi gì xảy ra?"
+  options:
+    - "Không có lỗi: `c` luôn còn sống"
+    - "Vòng sau ghi đè `c` trước khi luồng cũ kịp đọc, nên hai luồng có thể dùng cùng một socket"
+    - "`pthread_create` từ chối con trỏ tới biến cục bộ"
+    - "Luồng không bao giờ chạy"
+  answer: 1
+  why: "Truyền con trỏ tới biến cục bộ của vòng lặp là đua dữ liệu. Cấp phát riêng một `int` cho mỗi luồng (`malloc`), luồng đọc xong rồi `free`."

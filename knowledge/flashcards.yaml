@@ -86,3 +86,24 @@
 - {id: ta-2, concept: telnet-auth, q: "Cách chạy lệnh shell và lấy cả stdout lẫn stderr?", a: "`popen(\"cmd 2>&1\", \"r\")` + `fread`, hoặc `system(\"cmd > file 2>&1\")` rồi đọc tệp."}
 - {id: ta-3, concept: telnet-auth, q: "Phản hồi độ dài thay đổi nên đóng khung thế nào?", a: "`OUTPUT <n>\\n` rồi đúng `n` byte kết quả để client biết khi nào dừng đọc."}
 - {id: ta-4, concept: telnet-auth, q: "`system()` ảnh hưởng thế nào đến server `select` và server `fork`?", a: "Chặn tiến trình gọi: `select` thì cả server đứng; `fork` thì chỉ tiến trình con đó."}
+
+# ---- protocol-design ----
+- {id: pd-1, concept: protocol-design, q: "Sáu câu hỏi khi thiết kế giao thức tự định nghĩa (§4.3)?", a: "Text hay binary · server bị động hay chủ động · xử lý từng yêu cầu hay nhiều · có theo phiên không · xác thực thế nào · có bảo mật không."}
+- {id: pd-2, concept: protocol-design, q: "Ba cách để client biết một phản hồi nhiều dòng đã hết?", a: "(1) Đếm trước số dòng/byte (`110 FLIGHTS 3`). (2) Dòng kết thúc đặc biệt (như `.` của POP3). (3) Đóng kết nối (chỉ phục vụ được một yêu cầu)."}
+- {id: pd-3, concept: protocol-design, q: "Vì sao không dùng `strtok` để tách lệnh khi dấu cách thừa là lỗi?", a: "`strtok` gộp nhiều dấu cách thành một và làm mất thành phần rỗng. Tách bằng `strchr(p, ' ')`, rồi kiểm tra số thành phần trước nội dung."}
+- {id: pd-4, concept: protocol-design, q: "Quy tắc năm nhuận?", a: "Chia hết cho 4 **và** không chia hết cho 100, trừ khi chia hết cho 400. 1900 và 2100 không nhuận; 2000 và 2024 nhuận."}
+- {id: pd-5, concept: protocol-design, q: "Cách giữ chỗ có hạn mà không cần luồng riêng?", a: "Lưu `hết_hạn = time(NULL) + T`; ở đầu mỗi lệnh quét các bản ghi `HOLD` đã quá hạn và trả ghế (xét \"lười\"). Thêm timeout cho `select` nếu muốn dọn cả khi không ai gửi lệnh."}
+- {id: pd-6, concept: protocol-design, q: "Dữ liệu dùng chung (ghế, ví) thì dùng kỹ thuật phục vụ nào?", a: "`select` một luồng (không cần khóa) hoặc đa luồng với mutex. **Không dùng `fork`** vì mỗi tiến trình con có bản sao dữ liệu riêng."}
+- {id: pd-7, concept: protocol-design, q: "HTTP request gồm những phần nào (§4.2.1)?", a: "Dòng đầu `METHOD URI VERSION`, các header (có thể không có), một **dòng trống** `\\r\\n\\r\\n`, rồi thân (tùy chọn). Response tương tự với dòng trạng thái `HTTP/1.1 200 OK`."}
+
+# ---- ngoai-code-mau ----
+- {id: nc-1, concept: ngoai-code-mau, q: "Vì sao server đẩy dữ liệu cho client cần `signal(SIGPIPE, SIG_IGN)`?", a: "`send` vào kết nối đã đóng làm hệ điều hành gửi `SIGPIPE`, mặc định giết tiến trình. Bỏ qua tín hiệu thì `send` chỉ trả `-1` (`EPIPE`)."}
+- {id: nc-2, concept: ngoai-code-mau, q: "`MSG_NOSIGNAL` khác `SIG_IGN` thế nào?", a: "`MSG_NOSIGNAL` là cờ của **từng lần** `send`; `signal(SIGPIPE, SIG_IGN)` áp dụng cho cả tiến trình, viết một lần ở đầu `main`."}
+- {id: nc-3, concept: ngoai-code-mau, q: "`poll` hơn `select` ở điểm nào?", a: "Không phải dựng lại `fd_set` mỗi vòng, không giới hạn `FD_SETSIZE` (1024). Với vài chục client thì `select` vẫn đủ."}
+
+# ---- http-server ----
+- {id: hs-1, concept: http-server, q: "Cấu trúc một HTTP request (§4.2.1)?", a: "Dòng đầu `METHOD URI VERSION`, các header, **dòng trống** `\\r\\n\\r\\n`, thân (tùy chọn). Response: dòng trạng thái `HTTP/1.1 200 OK`, header, dòng trống, thân."}
+- {id: hs-2, concept: http-server, q: "Hai việc phải làm để đọc đủ một request POST?", a: "(1) Lặp `recv` đến khi thấy `\\r\\n\\r\\n`. (2) Đọc `Content-Length` rồi `recv` thêm cho đủ ngần ấy byte thân (trừ phần đã có sẵn)."}
+- {id: hs-3, concept: http-server, q: "`Content-Length` trong response phải bằng gì?", a: "Đúng số byte của thân (giá trị trả về của `snprintf`). Sai một byte là trình duyệt/bộ chấm đọc thiếu hoặc treo."}
+- {id: hs-4, concept: http-server, q: "Thứ tự giải mã query `a=1%26b&c=2`?", a: "Tách ở `&` trước, rồi tách ở `=`, **rồi mới** giải mã từng giá trị; nếu giải mã trước thì `%26` (ký tự `&` thật trong giá trị) bị tách nhầm."}
+- {id: hs-5, concept: http-server, q: "Các mã trạng thái nên trả: lỗi khuôn request, method lạ, không có đường dẫn?", a: "`400 Bad Request`, `405 Method Not Allowed`, `404 Not Found` (nhóm 4xx = lỗi của client)."}
