@@ -1,0 +1,11 @@
+id: tcp-send-file
+title: Server gửi tệp cho từng client
+difficulty: easy
+chapter: 2
+topics: [TCP, File I/O]
+prerequisites: [tcp-hello-loop]
+ref: "Lecture notes §2.3; code mẫu 2-Chap2/html.c (fread → send); khởi động cho tcp-greeting-log"
+type: server
+args: ["{port}", "data.txt"]
+test_timeout: 6
+concepts: [tcp-lifecycle, file-io]

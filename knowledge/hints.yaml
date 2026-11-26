@@ -82,6 +82,22 @@ tcp-client-stdin:
   - |-
     Gửi **đúng** số byte `read` trả về (đừng dùng `fgets` + `strlen`: dữ liệu có thể chứa `0x00`). `connect` thất bại: in lỗi ra `stderr` bằng `perror`, `exit(1)`. Nếu stdout bị đệm thì không liên quan, nhưng đừng in gì lên stdout làm lẫn dữ liệu.
 
+tcp-send-file:
+  - |-
+    Đây là nửa "gửi câu chào" của `tcp-greeting-log`: mỗi client kết nối thì bạn đọc một tệp rồi đẩy nó xuống socket. Câu hỏi: `fread` cho bạn biết gì sau mỗi lần gọi, và bạn phải `send` bao nhiêu byte?
+  - |-
+    Mỗi client: `fopen(argv[2], "rb")`, vòng `fread(buffer, 1, sizeof(buffer), f)` + `send(client, buffer, n, 0)` đến khi `fread` trả `0`, `fclose`, `close(client)` (như `html.c`).
+  - |-
+    Gửi **đúng `n` byte** `fread` trả về (không `sizeof(buffer)`, không `strlen`: tệp có thể chứa `0x00`). Mở lại tệp **mỗi lần** có client mới và nhớ `fclose` + `close(client)` mỗi lần, kẻo hết 256 fd sau 250 client.
+
+tcp-append-log:
+  - |-
+    Đây là nửa "ghi log" của `tcp-greeting-log`: đọc dữ liệu từ socket như `tcp-echo`, nhưng thay vì `send` lại thì ghi vào tệp. Hai câu hỏi: mở tệp bằng chế độ nào để không mất dữ liệu client trước, và khi nào dữ liệu thật sự nằm trong tệp?
+  - |-
+    Mỗi client: `fopen(argv[2], "ab")`, vòng `recv` + `fwrite(buffer, 1, n, log)` đến khi `recv <= 0`, rồi `fclose(log)` và `close(client)`.
+  - |-
+    `"ab"` là append (còn `"wb"` cắt cụt tệp). Ghi đúng `n` byte `recv` trả về (không `strlen`, không `sizeof(buffer)`). `fclose` đẩy dữ liệu xuống tệp ngay; quên nó thì dữ liệu kẹt trong bộ đệm và fd rò rỉ.
+
 tcp-greeting-log:
   - |-
     Mỗi client có hai pha: gửi lời chào (đọc tệp), rồi nhận dữ liệu và ghi vào tệp log. Cả hai đều là bài toán **tệp**, không chỉ socket.

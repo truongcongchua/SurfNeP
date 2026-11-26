@@ -35,5 +35,10 @@ $ ./tcp_server 9000 greeting.txt log.txt
 Client 1 kết nối, nhận câu chào, gửi `abc\n` rồi đóng. Client 2 gửi `xyz\n` rồi đóng.
 Khi đó `log.txt` chứa `abc\nxyz\n`.
 
+## Bài khởi động
+Bài này ghép hai nửa; làm trước nếu thấy khó:
+- `tcp-send-file`: nửa 1, đọc toàn bộ tệp và gửi cho client (`fread` → `send`).
+- `tcp-append-log`: nửa 2, nhận dữ liệu và ghi nối tiếp vào tệp log (`recv` → `fwrite`, mở `"ab"`).
+
 ## Kiến thức nền
 Đọc/ghi tệp: `fopen` chế độ `"rb"`/`"ab"` (lab07); gửi tệp bằng vòng `fread` → `send` như `html.c`.

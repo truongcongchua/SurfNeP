@@ -1,0 +1,18 @@
+- id: file-strlen
+  why: "Đọc tệp bằng fgets + strlen: hỏng khi có byte 0x00"
+  replace: [["            while ((bytes_read = fread(buffer, 1, sizeof(buffer), f)) > 0) {\n                send(client, buffer, bytes_read, 0);\n            }", "            while (fgets(buffer, sizeof(buffer), f) != NULL) {\n                send(client, buffer, strlen(buffer), 0);\n            }\n            (void)bytes_read;"], ["#include <stdlib.h>", "#include <stdlib.h>\n#include <string.h>"]]
+- id: first-block-only
+  why: "Chỉ gửi khối 4096 byte đầu của tệp"
+  replace: [["            while ((bytes_read = fread(buffer, 1, sizeof(buffer), f)) > 0) {", "            if ((bytes_read = fread(buffer, 1, sizeof(buffer), f)) > 0) {"]]
+- id: send-whole-buffer
+  why: "Gửi sizeof(buffer) byte thay vì số byte đọc được: thừa byte rác"
+  replace: [["send(client, buffer, bytes_read, 0)", "send(client, buffer, sizeof(buffer), 0)"]]
+- id: no-fclose
+  why: "Quên fclose tệp: rò rỉ fd mỗi client"
+  replace: [["            }\n            fclose(f);", "            }"]]
+- id: no-close-client
+  why: "Quên close(client): client không thấy EOF và rò rỉ fd"
+  replace: [["        close(client);\n", ""]]
+- id: read-once
+  why: "Mở tệp một lần rồi dùng lại: không thấy tệp thay đổi"
+  replace: [["    while (0 == 0) {\n        int client = accept(listener, NULL, NULL);\n        if (client == -1) continue;\n        FILE *f = fopen(argv[2], \"rb\");", "    FILE *cache = NULL;\n    while (0 == 0) {\n        int client = accept(listener, NULL, NULL);\n        if (client == -1) continue;\n        FILE *f = cache ? cache : fopen(argv[2], \"rb\");\n        if (cache) rewind(f);\n        cache = f;"], ["            fclose(f);\n", ""]]

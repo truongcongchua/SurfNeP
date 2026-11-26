@@ -25,6 +25,8 @@ sections:
   - title: "Ghi tệp và log"
     intro: "Ghi dữ liệu client gửi vào tệp. (§2.5)"
     problems:
+      - {id: tcp-send-file, title: "Server gửi tệp cho từng client", difficulty: easy, ready: true}
+      - {id: tcp-append-log, title: "Server ghi nối tiếp dữ liệu client vào tệp", difficulty: easy, ready: true}
       - {id: tcp-greeting-log, title: "Server chào hỏi và ghi log", difficulty: medium, ready: true}
 
   - title: "So sánh với UDP và HTTP"
