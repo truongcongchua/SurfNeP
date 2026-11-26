@@ -1,0 +1,88 @@
+# Bản sai sinh tự động từ solution.c (xem docs/TEST-DESIGN.md). Mỗi bản phải bị ít nhất một test giết.
+- id: seats-strict
+  why: "Đúng bằng số ghế yêu cầu bị loại (> thay vì >=)"
+  replace: [["&& seats >= pax)", "&& seats > pax)"]]
+- id: ignore-pax
+  why: "Chỉ cần còn ghế, không xét số khách"
+  replace: [["&& seats >= pax)", "&& seats >= 1)"]]
+- id: price-not-multiplied
+  why: "Quên nhân giá với số khách"
+  replace: [["x->code, x->airline, x->dep, x->arr, price * pax);", "x->code, x->airline, x->dep, x->arr, price);"]]
+- id: bus-uses-eco-price
+  why: "Hạng BUS vẫn in giá ECO"
+  replace: [["long long price = bus ? x->bus_price : x->eco_price;", "long long price = x->eco_price;"]]
+- id: bus-uses-eco-seats
+  why: "Hạng BUS kiểm tra ghế ECO"
+  replace: [["int seats = bus ? fl[i].bus_seats : fl[i].eco_seats;", "int seats = fl[i].eco_seats;"]]
+- id: return-same-direction
+  why: "Chiều về không đổi chỗ đi/đến"
+  replace: [["\"111 RETURN\", tok[2], tok[1], tok[6]", "\"111 RETURN\", tok[1], tok[2], tok[6]"]]
+- id: return-uses-outbound-date
+  why: "Chiều về dùng ngày đi"
+  replace: [["\"111 RETURN\", tok[2], tok[1], tok[6]", "\"111 RETURN\", tok[2], tok[1], tok[3]"]]
+- id: no-return-section
+  why: "Bỏ qua phần chiều về"
+  replace: [["if (nt == 7) o +=", "if (nt == 8) o +="]]
+- id: ignore-date
+  why: "Không so ngày"
+  replace: [[" && !strcmp(fl[i].date, date)", ""]]
+- id: quit-with-args
+  why: "QUIT kèm tham số vẫn đóng kết nối"
+  replace: [["        if (nt != 1) { reply_str(c->fd, \"201 INVALID\\n\"); return 1; }\n", ""]]
+- id: quit-not-closed
+  why: "QUIT trả 100 OK nhưng không đóng kết nối"
+  replace: [["        reply_str(c->fd, \"100 OK\\n\");\n        return 0;", "        reply_str(c->fd, \"100 OK\\n\");\n        return 1;"]]
+- id: lowercase-command
+  why: "Tên lệnh SEARCH không phân biệt hoa thường (so 3 ký tự đầu)"
+  replace: [["strcmp(tok[0], \"SEARCH\") == 0", "strncmp(tok[0], \"SEA\", 3) == 0"]]
+- id: cr-kept
+  why: "Không bỏ '\\r' cuối dòng"
+  replace: [["    if (n && line[n - 1] == '\\r') line[--n] = 0;\n", ""]]
+- id: leap-every-4
+  why: "Năm nhuận chỉ xét chia hết cho 4"
+  replace: [["return (y % 4 == 0 && y % 100 != 0) || y % 400 == 0;", "return y % 4 == 0;"]]
+- id: feb-always-29
+  why: "Tháng 2 luôn có 29 ngày"
+  replace: [["dim[m - 1] + (m == 2 && leap(y))", "dim[m - 1] + (m == 2)"]]
+- id: day-zero
+  why: "Ngày 00 hợp lệ"
+  replace: [["m < 1 || m > 12 || d < 1", "m < 1 || m > 12"]]
+- id: year-range
+  why: "Năm 2101 được chấp nhận"
+  replace: [["y > 2100", "y > 2101"]]
+- id: return-date-strict
+  why: "Ngày về bằng ngày đi bị loại"
+  replace: [["strcmp(t[6], t[3]) < 0", "strcmp(t[6], t[3]) <= 0"]]
+- id: return-date-any
+  why: "Không so ngày về với ngày đi"
+  replace: [[" || strcmp(t[6], t[3]) < 0", ""]]
+- id: same-airport
+  why: "Cho phép đi và đến cùng một sân bay"
+  replace: [[" || strcmp(t[1], t[2]) == 0", ""]]
+- id: pax-zero
+  why: "Số khách 0 hợp lệ"
+  replace: [["t[4][0] < '1'", "t[4][0] < '0'"]]
+- id: pax-two-digits
+  why: "Số khách nhiều chữ số hợp lệ"
+  replace: [["strlen(t[4]) != 1 || ", ""]]
+- id: class-prefix
+  why: "Chỉ so 3 ký tự đầu của hạng"
+  replace: [["strcmp(t[5], \"ECO\") != 0 && strcmp(t[5], \"BUS\") != 0", "strncmp(t[5], \"ECO\", 3) != 0 && strncmp(t[5], \"BUS\", 3) != 0"]]
+- id: table-too-small
+  why: "Chỉ nạp tối đa 20 chuyến"
+  replace: [["#define MAX_FLIGHTS 1000", "#define MAX_FLIGHTS 20"]]
+- id: few-clients
+  why: "Chỉ phục vụ tối đa 4 client cùng lúc"
+  replace: [["#define MAX_CLIENTS 64", "#define MAX_CLIENTS 4"]]
+- id: fd-leak
+  why: "Không đóng socket khi client rời đi"
+  replace: [["static void drop(Client *c) { close(c->fd); c->fd = -1;", "static void drop(Client *c) { c->fd = -1;"]]
+- id: drop-partial-line
+  why: "Bỏ phần lệnh dở dang thay vì giữ cho lần recv sau"
+  replace: [["            c->len -= (size_t)(start - c->buf);\n            memmove(c->buf, start, c->len);", "            c->len = 0;"]]
+- id: small-buffer
+  why: "Bộ đệm dòng chỉ 64 byte"
+  replace: [["#define BUF_SIZE 2048", "#define BUF_SIZE 64"]]
+- id: blank-line-ignored
+  why: "Dòng trống bị bỏ qua thay vì trả 999"
+  replace: [["    reply_str(c->fd, \"999 UNKNOWN ERROR\\n\");\n    return 1;\n}", "    if (n > 0) reply_str(c->fd, \"999 UNKNOWN ERROR\\n\");\n    return 1;\n}"]]

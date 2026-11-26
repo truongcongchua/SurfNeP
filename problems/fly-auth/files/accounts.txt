@@ -1,0 +1,4 @@
+an 1234
+binh abcd
+chi p@ssw0rd
+dung x1y2z3

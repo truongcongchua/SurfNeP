@@ -1,0 +1,11 @@
+id: fly-manage
+title: Quản lý vé đã đặt (xem, hủy, đổi, in)
+difficulty: hard
+chapter: 4
+topics: [TCP, Protocol Design, Shared State, Time Arithmetic, Stream Framing]
+prerequisites: [fly-auth, length-prefix]
+ref: "Lecture notes §4.3; length-prefix (gửi nội dung có độ dài); BTL đặt vé máy bay (quản lý vé đã đặt: xem, hủy, đổi, in, 3 điểm)"
+type: server
+args: ["{port}", "2026-12-01", "08:00"]
+test_timeout: 8
+concepts: [protocol-design, length-prefix-struct, client-management]

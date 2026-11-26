@@ -1,0 +1,12 @@
+id: mock-flight-tcp
+title: "Thi thử 3: Đặt vé máy bay qua TCP"
+difficulty: hard
+chapter: 3
+topics: [TCP, Stream Framing, Protocol Design, Client Limit, Shared State]
+prerequisites: [kv-max-n]
+ref: "Đề thi thử giữa kỳ — làm trong 90 phút, test ẩn"
+type: server
+args: ["{port}", "5"]
+test_timeout: 8
+hide_details: true
+exam_minutes: 90

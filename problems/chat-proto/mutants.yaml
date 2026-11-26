@@ -1,0 +1,67 @@
+# Bản sai sinh tự động từ solution.c (xem docs/TEST-DESIGN.md). Mỗi bản phải bị ít nhất một test giết.
+- id: msg-echoes-to-sender
+  why: "MSG cũng gửi lại cho người gửi"
+  replace: [["clients[i].joined && &clients[i] != c) reply(clients[i].fd, out);", "clients[i].joined) reply(clients[i].fd, out);"]]
+- id: msg-to-unjoined
+  why: "MSG gửi cả cho client chưa JOIN"
+  replace: [["if (clients[i].fd >= 0 && clients[i].joined && &clients[i] != c) reply", "if (clients[i].fd >= 0 && &clients[i] != c) reply"]]
+- id: pmsg-self-allowed
+  why: "PMSG cho chính mình được chấp nhận"
+  replace: [["if (!to || to == c) {", "if (!to) {"]]
+- id: pmsg-empty-text-allowed
+  why: "PMSG với text rỗng được chấp nhận"
+  replace: [["if (!text || !*text) {", "if (!text) {"]]
+- id: msg-unjoined-allowed
+  why: "MSG không kiểm tra đã JOIN"
+  replace: [["        if (!c->joined) { reply(c->fd, \"203 DENIED\\n\"); return 1; }\n        snprintf(out, sizeof out, \"[%s]: %s\\n\"", "        snprintf(out, sizeof out, \"[%s]: %s\\n\""]]
+- id: pmsg-unjoined-allowed
+  why: "PMSG không kiểm tra đã JOIN"
+  replace: [["        if (!c->joined) { reply(c->fd, \"203 DENIED\\n\"); return 1; }\n        Client *to", "        Client *to"]]
+- id: join-twice-allowed
+  why: "JOIN lần hai được phép đổi tên"
+  replace: [["        if (c->joined) reply(c->fd, \"203 DENIED\\n\");\n        else if (!valid_nick(arg))", "        if (!valid_nick(arg))"]]
+- id: nick-in-use-missing
+  why: "Không kiểm tra tên đã có người dùng"
+  replace: [["        else if (find_nick(arg)) reply(c->fd, \"200 NICKNAME IN USE\\n\");\n", ""]]
+- id: nick-max-33
+  why: "Tên 33 ký tự hợp lệ (buffer 40 nên không tràn)"
+  replace: [["if (n < 1 || n > 32) return 0;", "if (n < 1 || n > 33) return 0;"]]
+- id: nick-empty-ok
+  why: "Tên rỗng hợp lệ"
+  replace: [["if (n < 1 || n > 32) return 0;", "if (n > 32) return 0;"]]
+- id: nick-uppercase-ok
+  why: "Tên chứa chữ hoa hợp lệ"
+  replace: [["(s[i] >= 'a' && s[i] <= 'z')", "(s[i] >= 'A' && s[i] <= 'z')"]]
+- id: ghost-nick-after-leave
+  why: "Tên của client đã rời đi vẫn còn bị giữ"
+  replace: [["if (clients[i].fd >= 0 && clients[i].joined && strcmp(clients[i].nick, nick) == 0)", "if (clients[i].joined && strcmp(clients[i].nick, nick) == 0)"], ["    c->len = 0;\n    c->joined = 0;\n}", "    c->len = 0;\n}"]]
+- id: msg-format-no-colon
+  why: "Thiếu dấu hai chấm ở tin broadcast"
+  replace: [["\"[%s]: %s\\n\", c->nick, arg", "\"[%s] %s\\n\", c->nick, arg"]]
+- id: private-format-public
+  why: "Tin riêng không có nhãn (private)"
+  replace: [["\"[%s] (private): %s\\n\"", "\"[%s]: %s\\n\""]]
+- id: quit-with-args
+  why: "QUIT kèm tham số vẫn đóng kết nối"
+  replace: [["!strcmp(line, \"QUIT\") && !arg", "!strcmp(line, \"QUIT\")"]]
+- id: command-prefix
+  why: "Chỉ so ba ký tự đầu của MSG"
+  replace: [["!strcmp(line, \"MSG\") && arg && *arg", "!strncmp(line, \"MSG\", 3) && arg && *arg"]]
+- id: text-first-word-only
+  why: "Tin chỉ lấy từ đầu tiên của text"
+  replace: [["        snprintf(out, sizeof out, \"[%s]: %s\\n\", c->nick, arg);", "        arg[strcspn(arg, \" \")] = 0;\n        snprintf(out, sizeof out, \"[%s]: %s\\n\", c->nick, arg);"]]
+- id: cr-kept
+  why: "Không bỏ '\\r' cuối dòng"
+  replace: [["    if (n && line[n - 1] == '\\r') line[--n] = 0;\n", ""]]
+- id: drop-partial-line
+  why: "Bỏ phần lệnh dở dang thay vì giữ cho lần recv sau"
+  replace: [["            c->len -= (size_t)(start - c->buf);\n            memmove(c->buf, start, c->len);", "            c->len = 0;"]]
+- id: few-clients
+  why: "Mảng client chỉ có 8 chỗ"
+  replace: [["#define MAX_CLIENTS 64", "#define MAX_CLIENTS 8"]]
+- id: fd-leak
+  why: "Không đóng socket khi client rời đi"
+  replace: [["static void drop(Client *c) {\n    close(c->fd);", "static void drop(Client *c) {"]]
+- id: blank-ignored
+  why: "Dòng trống/lệnh lạ không có phản hồi"
+  replace: [["    reply(c->fd, \"999 UNKNOWN ERROR\\n\");\n    return 1;\n}\n\nint main", "    if (n) reply(c->fd, \"999 UNKNOWN ERROR\\n\");\n    return 1;\n}\n\nint main"]]

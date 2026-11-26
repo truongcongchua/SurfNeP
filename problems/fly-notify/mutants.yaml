@@ -1,0 +1,91 @@
+# Bản sai sinh từ solution.c (xem docs/TEST-DESIGN.md). Mỗi bản phải bị ít nhất một test giết.
+- id: queue-not-delivered
+  why: "Giữ hàng đợi nhưng không giao khi đăng nhập"
+  replace: [["                for (int k = 0; k < acc[a].nq; k++) reply(c->fd, acc[a].q[k]);\n                acc[a].nq = 0;", "                (void)0;"]]
+- id: queue-not-cleared
+  why: "Giao hàng đợi nhưng không xóa (đăng nhập lại nhận lại)"
+  replace: [["                acc[a].nq = 0;\n", ""]]
+- id: queue-reversed
+  why: "Giao hàng đợi theo thứ tự ngược"
+  replace: [["for (int k = 0; k < acc[a].nq; k++) reply(c->fd, acc[a].q[k]);", "for (int k = acc[a].nq - 1; k >= 0; k--) reply(c->fd, acc[a].q[k]);"]]
+- id: queue-before-ok
+  why: "Giao hàng đợi trước dòng 100 OK của LOGIN"
+  replace: [["            c->acct = a;\n            snprintf(out, sizeof out, \"100 OK %s\\n\", acc[a].user);\n            reply(c->fd, out);\n            if (!online) {\n                for (int k = 0; k < acc[a].nq; k++) reply(c->fd, acc[a].q[k]);\n                acc[a].nq = 0;\n            }", "            c->acct = a;\n            if (!online) {\n                for (int k = 0; k < acc[a].nq; k++) reply(c->fd, acc[a].q[k]);\n                acc[a].nq = 0;\n            }\n            snprintf(out, sizeof out, \"100 OK %s\\n\", acc[a].user);\n            reply(c->fd, out);"]]
+- id: queued-even-when-online
+  why: "Khi có phiên online vẫn xếp hàng thêm (đăng nhập sau nhận trùng)"
+  replace: [["        if (!online) {\n            Account *x = &acc[a];", "        if (1) {\n            Account *x = &acc[a];"]]
+- id: only-first-session
+  why: "Chỉ gửi cho phiên đầu tiên của tài khoản"
+  replace: [["if (clients[i].fd >= 0 && clients[i].acct == a) { reply(clients[i].fd, msg); online = 1; }", "if (clients[i].fd >= 0 && clients[i].acct == a && !online) { reply(clients[i].fd, msg); online = 1; }"]]
+- id: duplicate-per-ticket
+  why: "Gửi một dòng cho mỗi vé thay vì mỗi khách"
+  replace: [["        int holds = 0;\n        for (int t = 0; t < ntk && !holds; t++)\n            if (tk[t].acct == a && tk[t].flight == f) holds = 1;\n        if (!holds) continue;\n        count++;", "        int holds = 0;\n        for (int t = 0; t < ntk; t++)\n            if (tk[t].acct == a && tk[t].flight == f) { holds++; count++; for (int i = 1; i < holds; i++) { for (int q = 0; q < MAX_CLIENTS; q++) if (clients[q].fd >= 0 && clients[q].acct == a) reply(clients[q].fd, msg); } }\n        if (!holds) continue;"]]
+- id: notify-everyone-logged-in
+  why: "Thông báo gửi cho mọi khách đã đăng nhập"
+  replace: [["        if (!holds) continue;\n        count++;", "        if (!holds) { for (int i = 0; i < MAX_CLIENTS; i++) if (clients[i].fd >= 0 && clients[i].acct == a) reply(clients[i].fd, msg); continue; }\n        count++;"]]
+- id: cancelled-tickets-counted
+  why: "Tính cả vé CANCELLED"
+  replace: [["        if (strcmp(status, \"PAID\")) continue;\n", ""]]
+- id: ok-before-notify
+  why: "Trả 100 OK cho admin trước khi gửi thông báo"
+  replace: [["        int k = notify(f, msg);\n        snprintf(out, sizeof out, \"100 OK %d\\n\", k);\n        reply(c->fd, out);", "        snprintf(out, sizeof out, \"100 OK %d\\n\", 0);\n        reply(c->fd, out);\n        usleep(150000);\n        notify(f, msg);"]]
+- id: count-online-only
+  why: "k chỉ đếm khách đang online"
+  replace: [["        count++;\n        int online = 0;\n        for (int i = 0; i < MAX_CLIENTS; i++)\n            if (clients[i].fd >= 0 && clients[i].acct == a) { reply(clients[i].fd, msg); online = 1; }", "        int online = 0;\n        for (int i = 0; i < MAX_CLIENTS; i++)\n            if (clients[i].fd >= 0 && clients[i].acct == a) { reply(clients[i].fd, msg); online = 1; }\n        if (online) count++;"]]
+- id: admin-not-checked
+  why: "Lệnh admin không kiểm tra quyền"
+  replace: [["        if (!c->admin) { reply(c->fd, \"203 DENIED\\n\"); return 1; }\n", ""]]
+- id: admin-key-prefix
+  why: "Khóa admin chỉ so tiền tố"
+  replace: [["else if (strcmp(tok[1], admin_key)) reply(c->fd, \"203 DENIED\\n\");", "else if (strncmp(tok[1], admin_key, 5)) reply(c->fd, \"203 DENIED\\n\");"]]
+- id: admin-sticky-after-quit-slot
+  why: "Quyền admin không bị xóa khi client rời đi (ô được dùng lại)"
+  replace: [["static void drop(Client *c) { close(c->fd); c->fd = -1; c->len = 0; c->acct = -1; c->admin = 0; }", "static void drop(Client *c) { close(c->fd); c->fd = -1; c->len = 0; c->acct = -1; }"], ["clients[i].acct = -1; clients[i].admin = 0; placed = 1;", "clients[i].acct = -1; placed = 1;"]]
+- id: minutes-leading-zero
+  why: "Số 0 đứng đầu hợp lệ"
+  replace: [["int ok = l >= 1 && l <= 4 && tok[2][0] != '0';", "int ok = l >= 1 && l <= 4;"]]
+- id: minutes-1441
+  why: "1441 phút hợp lệ"
+  replace: [["minutes > 1440)", "minutes > 1441)"]]
+- id: time-24h-valid
+  why: "Giờ 24:00 hợp lệ"
+  replace: [["return h <= 23 && m <= 59;", "return h <= 24 && m <= 59;"]]
+- id: time-60min-valid
+  why: "Phút 60 hợp lệ"
+  replace: [["return h <= 23 && m <= 59;", "return h <= 23 && m <= 60;"]]
+- id: date-not-validated
+  why: "RESCHEDULE không kiểm tra ngày"
+  replace: [["if (kind == 1 && (!valid_date(tok[2]) || !valid_time(tok[3])", "if (kind == 1 && (!valid_time(tok[3])"]]
+- id: leap-every-4
+  why: "Năm nhuận chỉ xét chia hết cho 4"
+  replace: [["return (y % 4 == 0 && y % 100 != 0) || y % 400 == 0;", "return y % 4 == 0;"]]
+- id: cancelled-flight-editable
+  why: "Chuyến đã hủy vẫn nhận lệnh"
+  replace: [["        if (x->status == CANCELLED) { reply(c->fd, \"209 ALREADY CANCELLED\\n\"); return 1; }\n", ""]]
+- id: status-after-delay-wrong
+  why: "STATUS DELAYED in sai số phút"
+  replace: [["\"100 OK DELAYED %d\\n\", x->delay", "\"100 OK DELAYED %d\\n\", x->delay + 1"]]
+- id: reschedule-status-not-updated
+  why: "RESCHEDULE không cập nhật STATUS"
+  replace: [["            x->status = RESCHEDULED;\n            snprintf(x->date, sizeof x->date, \"%s\", tok[2]);\n            snprintf(x->dep, sizeof x->dep, \"%s\", tok[3]);\n            snprintf(x->arr, sizeof x->arr, \"%s\", tok[4]);", "            snprintf(x->date, sizeof x->date, \"%s\", tok[2]);"]]
+- id: notify-format-different
+  why: "Dòng thông báo sai định dạng (301 NOTIFY CANCELLED)"
+  replace: [["\"301 NOTIFY CANCEL %s\\n\"", "\"301 NOTIFY CANCELLED %s\\n\""]]
+- id: login-twice-allowed
+  why: "Phiên đã đăng nhập vẫn LOGIN lại được"
+  replace: [["        else if (c->acct >= 0) reply(c->fd, \"207 ALREADY LOGGED IN\\n\");\n", ""]]
+- id: sigpipe-default
+  why: "Không bỏ qua SIGPIPE: server chết khi gửi vào kết nối đã đóng"
+  replace: [["    signal(SIGPIPE, SIG_IGN);\n", ""]]
+- id: cr-kept
+  why: "Không bỏ '\\r' cuối dòng"
+  replace: [["    if (n && line[n - 1] == '\\r') line[--n] = 0;\n", ""]]
+- id: drop-partial-line
+  why: "Bỏ phần lệnh dở dang thay vì giữ cho lần recv sau"
+  replace: [["            c->len -= (size_t)(start - c->buf);\n            memmove(c->buf, start, c->len);", "            c->len = 0;"]]
+- id: few-clients
+  why: "Mảng client chỉ có 8 chỗ"
+  replace: [["#define MAX_CLIENTS 64", "#define MAX_CLIENTS 8"]]
+- id: fd-leak
+  why: "Không đóng socket khi client rời đi"
+  replace: [["static void drop(Client *c) { close(c->fd); c->fd = -1;", "static void drop(Client *c) { c->fd = -1;"]]

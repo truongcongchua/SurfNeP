@@ -1,0 +1,11 @@
+id: fly-notify
+title: Thông báo thay đổi chuyến bay (trễ, đổi lịch, hủy)
+difficulty: hard
+chapter: 4
+topics: [TCP, Protocol Design, Server-Initiated Messages, Shared State, Authorization]
+prerequisites: [chat-proto, fly-auth]
+ref: "Lecture notes §4.3 (server chủ động gửi, OP/KICK: lệnh của chủ phòng); BTL đặt vé máy bay (thông báo thay đổi lịch trình, hủy chuyến, trễ chuyến, 3 điểm)"
+type: server
+args: ["{port}", "admin-2026"]
+test_timeout: 10
+concepts: [protocol-design, client-management, ngoai-code-mau]

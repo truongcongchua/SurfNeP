@@ -1,0 +1,79 @@
+# Bản sai sinh tự động từ solution.c (xem docs/TEST-DESIGN.md). Mỗi bản phải bị ít nhất một test giết.
+- id: seats-not-decremented
+  why: "BOOK không trừ ghế"
+  replace: [["            fl[f].seats--;\n", ""]]
+- id: money-not-deducted
+  why: "BOOK không trừ ví"
+  replace: [["            acc[c->acct].balance -= fl[f].price;\n", ""]]
+- id: no-money-strict
+  why: "Số dư đúng bằng giá bị coi là thiếu"
+  replace: [["acc[c->acct].balance < fl[f].price", "acc[c->acct].balance <= fl[f].price"]]
+- id: no-money-check-missing
+  why: "Không kiểm tra số dư"
+  replace: [["        else if (acc[c->acct].balance < fl[f].price) reply(c->fd, \"NO_MONEY\\n\");\n", ""]]
+- id: no-seats-check-missing
+  why: "Không kiểm tra hết ghế"
+  replace: [["        else if (fl[f].seats < 1) reply(c->fd, \"NO_SEATS\\n\");\n", ""]]
+- id: search-shows-full-flights
+  why: "SEARCH liệt kê cả chuyến hết ghế ECO"
+  replace: [["!strcmp(fl[i].date, tok[3]) && fl[i].seats >= 1)", "!strcmp(fl[i].date, tok[3]))"]]
+- id: search-extra-args
+  why: "SEARCH thừa tham số vẫn được trả lời"
+  replace: [["!strcmp(cmd, \"SEARCH\") && nt == 4", "!strcmp(cmd, \"SEARCH\") && nt >= 4"]]
+- id: cancel-no-refund
+  why: "CANCEL không hoàn tiền"
+  replace: [["            acc[c->acct].balance += f->price;\n", ""]]
+- id: cancel-no-seat-return
+  why: "CANCEL không trả ghế"
+  replace: [["            f->seats++;\n", ""]]
+- id: cancel-not-owner-check
+  why: "CANCEL không kiểm tra chủ vé"
+  replace: [["        else if (tk[id - 1].acct != c->acct) reply(c->fd, \"NOT_YOURS\\n\");\n", ""]]
+- id: cancel-keeps-ticket
+  why: "CANCEL không xóa vé"
+  replace: [["            tk[id - 1].alive = 0;\n", ""]]
+- id: refund-wrong-amount
+  why: "Hoàn thiếu 1 đồng"
+  replace: [["snprintf(out, sizeof out, \"REFUNDED %lld\\n\", f->price);", "snprintf(out, sizeof out, \"REFUNDED %lld\\n\", f->price - 1);"]]
+- id: mytickets-all-accounts
+  why: "MYTICKETS liệt kê vé của mọi tài khoản"
+  replace: [["if (tk[i].alive && tk[i].acct == c->acct && o < sizeof body - 100)", "if (tk[i].alive && o < sizeof body - 100)"]]
+- id: ticket-id-format
+  why: "id vé không đệm số 0"
+  replace: [["\"TICKET T%04d\\n\"", "\"TICKET T%d\\n\""]]
+- id: failed-login-logs-out
+  why: "LOGIN sai làm mất trạng thái đăng nhập cũ"
+  replace: [["if (a == nacc) reply(c->fd, \"FAIL\\n\");", "if (a == nacc) { c->acct = -1; reply(c->fd, \"FAIL\\n\"); }"]]
+- id: login-no-password
+  why: "LOGIN không kiểm tra mật khẩu"
+  replace: [[" && !strcmp(acc[a].pass, tok[2])", ""]]
+- id: mytickets-no-login-check
+  why: "MYTICKETS không đòi đăng nhập"
+  replace: [["(!strcmp(cmd, \"BOOK\") || !strcmp(cmd, \"MYTICKETS\") || !strcmp(cmd, \"CANCEL\")", "(!strcmp(cmd, \"BOOK\") || !strcmp(cmd, \"CANCEL\")"]]
+- id: quit-with-args
+  why: "QUIT kèm tham số vẫn đóng kết nối"
+  replace: [["!strcmp(cmd, \"QUIT\") && nt == 1", "!strcmp(cmd, \"QUIT\")"]]
+- id: slot-reuse-inherits-login
+  why: "Kết nối mới dùng lại chỗ cũ vẫn còn đăng nhập"
+  replace: [["                        clients[i].acct = -1;\n                        nclients++;", "                        nclients++;"], ["    c->acct = -1;\n    nclients--;", "    nclients--;"]]
+- id: limit-off-by-one
+  why: "So sánh > N thay vì >= N"
+  replace: [["if (fd >= 0 && nclients >= limit) {", "if (fd >= 0 && nclients > limit) {"]]
+- id: full-not-closed
+  why: "Gửi FULL nhưng không đóng kết nối"
+  replace: [["                reply(fd, \"FULL\\n\");\n                close(fd);", "                reply(fd, \"FULL\\n\");"]]
+- id: cr-kept
+  why: "Không bỏ '\\r' cuối dòng"
+  replace: [["    if (n && line[n - 1] == '\\r') line[--n] = 0;\n", ""]]
+- id: drop-partial-line
+  why: "Bỏ phần lệnh dở dang thay vì giữ cho lần recv sau"
+  replace: [["            c->len -= (size_t)(start - c->buf);\n            memmove(c->buf, start, c->len);", "            c->len = 0;"]]
+- id: few-clients
+  why: "Mảng client chỉ có 8 chỗ"
+  replace: [["#define MAX_CLIENTS 64", "#define MAX_CLIENTS 8"]]
+- id: fd-leak
+  why: "Không đóng socket khi client rời đi"
+  replace: [["static void drop(Client *c) {\n    close(c->fd);", "static void drop(Client *c) {"]]
+- id: ticket-table-small
+  why: "Chỉ lưu tối đa 100 vé"
+  replace: [["#define MAX_TICKETS 10000", "#define MAX_TICKETS 100"]]

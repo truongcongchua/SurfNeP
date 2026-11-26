@@ -1,0 +1,109 @@
+# Bản sai sinh tự động từ solution.c (xem docs/TEST-DESIGN.md). Mỗi bản phải bị ít nhất một test giết.
+- id: refund-72h-strict
+  why: "Đúng 72 giờ chỉ được 70%"
+  replace: [["int pct = left >= 72 * 60 ? 90 : left >= 24 * 60 ? 70 : 30;", "int pct = left > 72 * 60 ? 90 : left >= 24 * 60 ? 70 : 30;"]]
+- id: refund-24h-strict
+  why: "Đúng 24 giờ chỉ được 30%"
+  replace: [["int pct = left >= 72 * 60 ? 90 : left >= 24 * 60 ? 70 : 30;", "int pct = left >= 72 * 60 ? 90 : left > 24 * 60 ? 70 : 30;"]]
+- id: refund-wrong-tier
+  why: "Mức hoàn 30% thành 20%"
+  replace: [["int pct = left >= 72 * 60 ? 90 : left >= 24 * 60 ? 70 : 30;", "int pct = left >= 72 * 60 ? 90 : left >= 24 * 60 ? 70 : 20;"]]
+- id: refund-rounds-up
+  why: "Hoàn tiền làm tròn lên thay vì xuống"
+  replace: [["long long refund = tk[i].price * pct / 100;", "long long refund = (tk[i].price * pct + 99) / 100;"]]
+- id: refund-ignores-price-paid
+  why: "Hoàn theo giá chuyến thay vì giá đã trả"
+  replace: [["long long refund = tk[i].price * pct / 100;", "long long refund = f->price[tk[i].cls] * pct / 100;"]]
+- id: cancel-departed-allowed
+  why: "Cho hủy cả vé đã khởi hành (left <= 0 vẫn hoàn 30%)"
+  replace: [["        if (left <= 0) { reply(c->fd, \"210 TOO LATE\\n\"); return 1; }\n        int pct", "        int pct"]]
+- id: cancel-at-departure-allowed
+  why: "Còn đúng 0 phút vẫn được hủy"
+  replace: [["if (left <= 0) { reply(c->fd, \"210 TOO LATE\\n\"); return 1; }\n        int pct", "if (left < 0) { reply(c->fd, \"210 TOO LATE\\n\"); return 1; }\n        int pct"]]
+- id: cancel-no-seat-return
+  why: "Hủy không trả ghế"
+  replace: [["        f->seats[tk[i].cls]++;\n        tk[i].cancelled = 1;", "        tk[i].cancelled = 1;"]]
+- id: cancel-seat-wrong-class
+  why: "Hủy trả ghế vào hạng ECO"
+  replace: [["        f->seats[tk[i].cls]++;\n        tk[i].cancelled = 1;", "        f->seats[0]++;\n        tk[i].cancelled = 1;"]]
+- id: cancel-twice
+  why: "Hủy hai lần đều hoàn tiền"
+  replace: [["        if (tk[i].cancelled) { reply(c->fd, \"209 ALREADY CANCELLED\\n\"); return 1; }\n        if (left <= 0)", "        if (left <= 0)"]]
+- id: cancel-no-refund-credit
+  why: "Không cộng tiền hoàn vào ví"
+  replace: [["        acc[c->acct].balance += refund;\n", ""]]
+- id: owner-not-checked
+  why: "Không kiểm tra chủ vé"
+  replace: [["    if (tk[i].acct != c->acct) { reply(c->fd, \"203 DENIED\\n\"); return -1; }\n", ""]]
+- id: change-fee-missing
+  why: "Không tính phí đổi"
+  replace: [["long long delta = nw->price[tk[i].cls] - tk[i].price + CHANGE_FEE;", "long long delta = nw->price[tk[i].cls] - tk[i].price;"]]
+- id: change-price-not-updated
+  why: "Đổi chuyến nhưng giá đã trả giữ nguyên"
+  replace: [["        tk[i].price = nw->price[tk[i].cls];\n", ""]]
+- id: change-uses-eco-price
+  why: "Chênh lệch luôn tính theo giá ECO"
+  replace: [["long long delta = nw->price[tk[i].cls] - tk[i].price + CHANGE_FEE;", "long long delta = nw->price[0] - tk[i].price + CHANGE_FEE;"]]
+- id: change-negative-not-refunded
+  why: "Chênh lệch âm không được hoàn"
+  replace: [["        acc[c->acct].balance -= delta;\n        old->seats", "        if (delta > 0) acc[c->acct].balance -= delta;\n        old->seats"]]
+- id: change-balance-strict
+  why: "Số dư đúng bằng chênh lệch bị từ chối"
+  replace: [["if (delta > acc[c->acct].balance)", "if (delta >= acc[c->acct].balance)"]]
+- id: change-3h-strict
+  why: "Đúng 3 giờ trước giờ bay không đổi được"
+  replace: [["if (minutes_left(old) < 180)", "if (minutes_left(old) <= 180)"]]
+- id: change-3h-loose
+  why: "Cho đổi khi còn 179 phút"
+  replace: [["if (minutes_left(old) < 180)", "if (minutes_left(old) < 179)"]]
+- id: change-no-route-check
+  why: "Không kiểm tra cùng chặng"
+  replace: [["        if (strcmp(nw->from, old->from) || strcmp(nw->to, old->to)) { reply(c->fd, \"211 DIFFERENT ROUTE\\n\"); return 1; }\n", ""]]
+- id: change-new-flight-departed-ok
+  why: "Cho đổi sang chuyến đã khởi hành"
+  replace: [["        if (minutes_left(nw) <= 0) { reply(c->fd, \"210 TOO LATE\\n\"); return 1; }\n", ""]]
+- id: change-no-seat-check
+  why: "Không kiểm tra còn ghế ở chuyến mới"
+  replace: [["        if (nw->seats[tk[i].cls] < 1) { reply(c->fd, \"205 NO SEATS\\n\"); return 1; }\n", ""]]
+- id: change-old-seat-not-returned
+  why: "Đổi không trả ghế chuyến cũ"
+  replace: [["        old->seats[tk[i].cls]++;\n        nw->seats[tk[i].cls]--;", "        nw->seats[tk[i].cls]--;"]]
+- id: change-new-seat-not-taken
+  why: "Đổi không trừ ghế chuyến mới"
+  replace: [["        old->seats[tk[i].cls]++;\n        nw->seats[tk[i].cls]--;", "        old->seats[tk[i].cls]++;"]]
+- id: change-cancelled-ticket
+  why: "Cho đổi vé đã hủy"
+  replace: [["        if (tk[i].cancelled) { reply(c->fd, \"209 ALREADY CANCELLED\\n\"); return 1; }\n        if (!strcmp(tok[2], old->code))", "        if (!strcmp(tok[2], old->code))"]]
+- id: change-same-flight-allowed
+  why: "Đổi sang chính chuyến đang giữ vẫn được"
+  replace: [["        if (!strcmp(tok[2], old->code)) { reply(c->fd, \"201 INVALID\\n\"); return 1; }\n", ""]]
+- id: print-length-off
+  why: "Độ dài trong 120 FILE lệch 1"
+  replace: [["snprintf(out, sizeof out, \"120 FILE %d\\n\", bl);", "snprintf(out, sizeof out, \"120 FILE %d\\n\", bl + 1);"]]
+- id: print-no-time
+  why: "PRINT thiếu dòng In luc"
+  replace: [["Trang thai: %s\\nIn luc: %s %s\\n\"", "Trang thai: %s\\n\""], ["tk[i].cancelled ? \"CANCELLED\" : \"PAID\", now_date, now_time);\n        snprintf(out, sizeof out, \"120 FILE", "tk[i].cancelled ? \"CANCELLED\" : \"PAID\");\n        snprintf(out, sizeof out, \"120 FILE"]]
+- id: print-body-as-string-len
+  why: "Độ dài tính bằng strlen sau khi ghi dòng đầu (cắt tại byte 0)"
+  replace: [["        send(c->fd, body, (size_t)bl, 0);", "        send(c->fd, body, strlen(body) - 1, 0);"]]
+- id: mytickets-all-users
+  why: "MYTICKETS liệt kê vé của mọi người"
+  replace: [["if (tk[i].acct == c->acct && o < sizeof body - 200)", "if (o < sizeof body - 200)"]]
+- id: mytickets-hides-cancelled
+  why: "MYTICKETS không liệt kê vé đã hủy"
+  replace: [["if (tk[i].acct == c->acct && o < sizeof body - 200)", "if (tk[i].acct == c->acct && !tk[i].cancelled && o < sizeof body - 200)"]]
+- id: time-days-per-month-wrong
+  why: "Đổi ngày ra phút sai tháng (bỏ hiệu chỉnh tháng 1–2)"
+  replace: [["    y -= m <= 2;\n", ""]]
+- id: time-ignores-year
+  why: "Khoảng cách ngày không tính năm (mỗi năm 365 ngày, bỏ năm nhuận)"
+  replace: [["long long doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;", "long long doe = yoe * 365 + doy;"]]
+- id: login-required-skipped
+  why: "BALANCE không đòi đăng nhập đúng chỗ"
+  replace: [["    if (c->acct < 0) { reply(c->fd, \"204 LOGIN FIRST\\n\"); return 1; }\n\n    if (!strcmp(cmd, \"BALANCE\")) {", "    if (c->acct < 0 && strcmp(cmd, \"BALANCE\")) { reply(c->fd, \"204 LOGIN FIRST\\n\"); return 1; }\n    if (c->acct < 0) c->acct = 0;\n\n    if (!strcmp(cmd, \"BALANCE\")) {"]]
+- id: cr-kept
+  why: "Không bỏ '\\r' cuối dòng"
+  replace: [["    if (n && line[n - 1] == '\\r') line[--n] = 0;\n", ""]]
+- id: drop-partial-line
+  why: "Bỏ phần lệnh dở dang thay vì giữ cho lần recv sau"
+  replace: [["            c->len -= (size_t)(start - c->buf);\n            memmove(c->buf, start, c->len);", "            c->len = 0;"]]

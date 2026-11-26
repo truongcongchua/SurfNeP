@@ -1,0 +1,67 @@
+# Bản sai sinh tự động từ solution.c (xem docs/TEST-DESIGN.md). Mỗi bản phải bị ít nhất một test giết.
+- id: wrong-key-accepted
+  why: "Không kiểm tra khóa"
+  replace: [["        if (strcmp(tok[1], key) != 0) { snprintf(out, cap, \"DENIED\\n\"); return; }\n", ""]]
+- id: key-prefix
+  why: "Chỉ so sánh 3 ký tự đầu của khóa"
+  replace: [["if (strcmp(tok[1], key) != 0)", "if (strncmp(tok[1], key, 3) != 0)"]]
+- id: key-checked-before-syntax
+  why: "Sai khóa nhưng sai cú pháp phải là ERROR, không phải DENIED"
+  replace: [["        if (state < 0) { snprintf(out, cap, \"ERROR\\n\"); return; }\n        if (strcmp(tok[1], key) != 0) { snprintf(out, cap, \"DENIED\\n\"); return; }", "        if (strcmp(tok[1], key) != 0) { snprintf(out, cap, \"DENIED\\n\"); return; }\n        if (state < 0) { snprintf(out, cap, \"ERROR\\n\"); return; }"]]
+- id: exists-checked-before-key
+  why: "Kiểm tra tồn tại trước khóa (sai khóa + chuyến lạ phải là DENIED)"
+  replace: [["        if (strcmp(tok[1], key) != 0) { snprintf(out, cap, \"DENIED\\n\"); return; }\n        Entry *e = find(tok[2], tok[3]);\n        if (!e) { snprintf(out, cap, \"NOT_FOUND\\n\"); return; }", "        Entry *e = find(tok[2], tok[3]);\n        if (!e) { snprintf(out, cap, \"NOT_FOUND\\n\"); return; }\n        if (strcmp(tok[1], key) != 0) { snprintf(out, cap, \"DENIED\\n\"); return; }"]]
+- id: ignore-date
+  why: "Tìm chuyến chỉ theo mã, bỏ qua ngày"
+  replace: [["if (strcmp(tab[i].code, code) == 0 && strcmp(tab[i].date, date) == 0) return &tab[i];", "if (strcmp(tab[i].code, code) == 0) return &tab[i];"]]
+- id: minutes-upper-off
+  why: "1440 phút bị loại"
+  replace: [["return v >= 1 && v <= 1440 ? v : -1;", "return v >= 1 && v < 1440 ? v : -1;"]]
+- id: minutes-upper-wide
+  why: "1441 phút được chấp nhận"
+  replace: [["return v >= 1 && v <= 1440 ? v : -1;", "return v >= 1 && v <= 1441 ? v : -1;"]]
+- id: minutes-leading-zero
+  why: "Số 0 đứng đầu được chấp nhận"
+  replace: [["if (n < 1 || n > 4 || s[0] == '0') return -1;", "if (n < 1 || n > 4) return -1;"]]
+- id: delayed-without-minutes
+  why: "STATUS DELAYED không in số phút"
+  replace: [["snprintf(out, cap, \"DELAYED %d\\n\", e->minutes);", "snprintf(out, cap, \"DELAYED\\n\");"]]
+- id: set-on-time-keeps-delay
+  why: "ON_TIME không xóa số phút trễ cũ (in ra DELAYED)"
+  replace: [["        e->state = state;\n        e->minutes = minutes;", "        if (state != 0) e->state = state;\n        e->minutes = minutes;"]]
+- id: cr-kept
+  why: "Không bỏ '\\r' cuối datagram"
+  replace: [["            if (n && buf[n - 1] == '\\r') buf[--n] = 0;\n", ""]]
+- id: lf-kept
+  why: "Không bỏ '\\n' cuối datagram"
+  replace: [["            if (n && buf[n - 1] == '\\n') buf[--n] = 0;\n", ""]]
+- id: strip-all-newlines
+  why: "Bỏ mọi '\\n' và '\\r' ở cuối thay vì chỉ một cặp"
+  replace: [["            if (n && buf[n - 1] == '\\n') buf[--n] = 0;\n            if (n && buf[n - 1] == '\\r') buf[--n] = 0;\n", "            while (n && (buf[n - 1] == '\\n' || buf[n - 1] == '\\r')) buf[--n] = 0;\n"]]
+- id: length-limit-1001
+  why: "Datagram 1001 byte vẫn được xử lý"
+  replace: [["if (n > MAXLEN) {", "if (n > MAXLEN + 1) {"]]
+- id: length-limit-999
+  why: "Datagram đúng 1000 byte bị loại"
+  replace: [["if (n > MAXLEN) {", "if (n >= MAXLEN) {"]]
+- id: small-recv-buffer
+  why: "Bộ đệm nhận nhỏ (200 byte) cắt datagram dài rồi coi như hợp lệ"
+  replace: [["ssize_t n = recvfrom(s, buf, sizeof buf - 1, 0,", "ssize_t n = recvfrom(s, buf, 200, 0,"]]
+- id: extra-tokens-status
+  why: "STATUS thừa tham số vẫn được trả lời"
+  replace: [["if (strcmp(tok[0], \"STATUS\") == 0 && nt == 3) {", "if (strcmp(tok[0], \"STATUS\") == 0 && nt >= 3) {"]]
+- id: command-prefix
+  why: "Chỉ so 3 ký tự đầu của SET"
+  replace: [["strcmp(tok[0], \"SET\") == 0 &&", "strncmp(tok[0], \"SET\", 3) == 0 &&"]]
+- id: empty-datagram-ignored
+  why: "Datagram rỗng không được trả lời"
+  replace: [["        if (n < 0) continue;\n", "        if (n <= 0) continue;\n"]]
+- id: reply-to-fixed-port
+  why: "Trả lời cổng khác cổng gửi"
+  replace: [["sendto(s, out, strlen(out), 0, (struct sockaddr *)&from, flen);", "from.sin_port = htons(ntohs(from.sin_port) + 1);\n        sendto(s, out, strlen(out), 0, (struct sockaddr *)&from, flen);"]]
+- id: not-found-wrong-text
+  why: "NOT_FOUND viết thành NOTFOUND"
+  replace: [["snprintf(out, cap, \"NOT_FOUND\\n\");\n        else if (e->state == 0)", "snprintf(out, cap, \"NOTFOUND\\n\");\n        else if (e->state == 0)"]]
+- id: table-small
+  why: "Chỉ nạp 20 chuyến"
+  replace: [["#define MAX_FLIGHTS 1000", "#define MAX_FLIGHTS 20"]]

@@ -1,0 +1,11 @@
+id: chat-proto
+title: Chat server theo giao thức §4.3
+difficulty: medium
+chapter: 4
+topics: [TCP, Protocol Design, Multithreading, select, Shared State]
+prerequisites: [chat-select]
+ref: "Lecture notes §4.3 và Bài tập 4.1; code mẫu 4-Chap4/pthread_chatroom.c"
+type: server
+args: ["{port}"]
+test_timeout: 6
+concepts: [protocol-design, client-management]

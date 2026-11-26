@@ -1,0 +1,11 @@
+id: fly-search
+title: Tìm chuyến bay qua mạng
+difficulty: medium
+chapter: 4
+topics: [TCP, Stream Framing, Protocol Design, select]
+prerequisites: [fly-parse, flight-filter]
+ref: "Lecture notes §4.3; BTL đặt vé máy bay (tìm kiếm chuyến bay, 2 điểm)"
+type: server
+args: ["{port}"]
+test_timeout: 8
+concepts: [protocol-design, select-poll, tcp-stream]

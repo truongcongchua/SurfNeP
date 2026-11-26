@@ -1,0 +1,11 @@
+id: fly-book
+title: Đặt vé và thanh toán
+difficulty: hard
+chapter: 3
+topics: [TCP, Stream Framing, Protocol Design, Shared State, Client Limit, select, Multithreading]
+prerequisites: [fly-auth, fly-search, kv-max-n]
+ref: "Lecture notes §3.4–3.5, §4.3; BTL đặt vé máy bay (đặt vé và thanh toán trực tuyến, 3 điểm)"
+type: server
+args: ["{port}", "20", "2"]
+test_timeout: 8
+concepts: [client-management, select-poll, threads-mutex, protocol-design]

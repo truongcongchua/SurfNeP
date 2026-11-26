@@ -1,0 +1,11 @@
+id: fly-eticket
+title: Phát hành vé điện tử (email SMTP và thông báo)
+difficulty: medium
+chapter: 4
+topics: [TCP, Client, Protocol Design, File I/O, Server-Initiated Messages]
+prerequisites: [fly-auth, tcp-client-stdin]
+ref: "Lecture notes §4.2.3 (POP3: lệnh – mã trả lời), §4.3 (thông điệp server chủ động); BTL đặt vé máy bay (nhận mã vé điện tử qua email hoặc tin nhắn, 2 điểm)"
+type: server
+args: ["{port}", "127.0.0.1", "2525"]
+test_timeout: 12
+concepts: [protocol-design, ngoai-code-mau, client-management]

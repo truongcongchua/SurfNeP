@@ -1,0 +1,11 @@
+id: fly-auth
+title: Đăng ký, đăng nhập và tối đa N client
+difficulty: medium
+chapter: 4
+topics: [TCP, Protocol Design, Authentication, Client Limit, File I/O]
+prerequisites: [fly-parse, echo-max-n]
+ref: "Lecture notes §4.3 (giao thức theo phiên, xác thực); BTL đặt vé máy bay (đăng ký, đăng nhập, 2 điểm)"
+type: server
+args: ["{port}", "10"]
+test_timeout: 8
+concepts: [protocol-design, client-management, select-poll]

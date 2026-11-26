@@ -1,0 +1,11 @@
+id: fly-log
+title: Server ghi log mọi message
+difficulty: easy
+chapter: 4
+topics: [TCP, File I/O, Logging, select]
+prerequisites: [tcp-greeting-log]
+ref: "Lab07 (ghi tệp), udp_receiver.c (inet_ntoa, ntohs); BTL đặt vé máy bay (ghi log message, 1 điểm)"
+type: server
+args: ["{port}", "server.log"]
+test_timeout: 6
+concepts: [file-io, tcp-stream]

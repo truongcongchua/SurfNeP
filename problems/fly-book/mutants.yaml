@@ -1,0 +1,118 @@
+# Bản sai sinh tự động từ solution.c (xem docs/TEST-DESIGN.md). Mỗi bản phải bị ít nhất một test giết.
+- id: hold-keeps-seats
+  why: "BOOK không trừ ghế (chỉ trừ khi thanh toán không bao giờ xảy ra)"
+  replace: [["                fl[f].seats[cls] -= pax;\n", ""]]
+- id: seats-strict
+  why: "Đặt đúng bằng số ghế còn lại bị từ chối"
+  replace: [["fl[f].seats[cls] < pax || nbk", "fl[f].seats[cls] <= pax || nbk"]]
+- id: class-swapped
+  why: "Hạng ECO/BUS đảo nhau"
+  replace: [["int cls = !strcmp(tok[3], \"BUS\");", "int cls = !strcmp(tok[3], \"ECO\");"]]
+- id: amount-not-multiplied
+  why: "Số tiền quên nhân với số khách"
+  replace: [["b->amount = fl[f].price[cls] * pax;", "b->amount = fl[f].price[cls];"]]
+- id: date-not-validated
+  why: "Không kiểm tra ngày của BOOK"
+  replace: [["nt != 5 || !valid_date(tok[2]) || (strcmp", "nt != 5 || (strcmp"]]
+- id: deadline-drift
+  why: "Hạn giữ chỗ in ra lệch 60 giây"
+  replace: [["struct tm *t = localtime(&b->expire);", "time_t shown = b->expire + 60;\n                struct tm *t = localtime(&shown);"]]
+- id: pnr-small-space
+  why: "PNR chỉ có 2 ký tự khác nhau và không kiểm tra trùng"
+  replace: [["int r = rand() % 36;", "int r = rand() % 2;"], ["} while (pnr_used(pnr));", "} while (0);"]]
+- id: hold-never-expires
+  why: "Chỗ giữ không bao giờ hết hạn"
+  replace: [["bk[i].state == HOLD && bk[i].expire <= now", "bk[i].state == HOLD && bk[i].expire <= 0"]]
+- id: expire-keeps-seats
+  why: "Hết hạn nhưng không trả ghế"
+  replace: [["            fl[bk[i].flight].seats[bk[i].cls] += bk[i].pax;\n            bk[i].state = EXPIRED;", "            bk[i].state = EXPIRED;"]]
+- id: expire-too-early
+  why: "Hết hạn sớm một nửa (T/2)"
+  replace: [["b->expire = time(NULL) + hold_secs;", "b->expire = time(NULL) + hold_secs / 2;"]]
+- id: expire-too-late
+  why: "Hết hạn muộn thêm 3 giây"
+  replace: [["b->expire = time(NULL) + hold_secs;", "b->expire = time(NULL) + hold_secs + 3;"]]
+- id: session-hold-kept-after-disconnect
+  why: "Phiên rời đi không trả các chỗ giữ chưa thanh toán"
+  replace: [["    release_session(c->sid);\n    close(c->fd);", "    close(c->fd);"]]
+- id: session-release-takes-paid
+  why: "Phiên rời đi trả luôn cả ghế của vé đã thanh toán"
+  replace: [["if (bk[i].state == HOLD && bk[i].sid == sid) {", "if ((bk[i].state == HOLD || bk[i].state == PAID) && bk[i].sid == sid) {"]]
+- id: release-keeps-hold
+  why: "RELEASE trả ghế nhưng PNR vẫn còn (RELEASE lần hai trả ghế thêm)"
+  replace: [["                bk[i].state = GONE;\n                reply(c->fd, \"100 OK\\n\");", "                reply(c->fd, \"100 OK\\n\");"]]
+- id: release-no-seats
+  why: "RELEASE không trả ghế"
+  replace: [["            else if (!pay) {\n                fl[bk[i].flight].seats[bk[i].cls] += bk[i].pax;\n", "            else if (!pay) {\n"]]
+- id: owner-not-checked
+  why: "PAY/RELEASE không kiểm tra chủ của PNR"
+  replace: [["            else if (bk[i].acct != c->acct) reply(c->fd, \"203 DENIED\\n\");\n", ""]]
+- id: paid-check-missing
+  why: "PAY lần hai không bị chặn (trừ tiền hai lần)"
+  replace: [["            else if (bk[i].state == PAID) reply(c->fd, \"209 ALREADY PAID\\n\");\n", ""]]
+- id: expired-check-missing
+  why: "PAY chỗ đã hết hạn vẫn thành công"
+  replace: [["            else if (bk[i].state == EXPIRED) reply(c->fd, \"208 EXPIRED\\n\");\n", ""]]
+- id: wallet-not-deducted
+  why: "PAY WALLET không trừ ví"
+  replace: [["                if (wallet) acc[c->acct].balance -= bk[i].amount;\n", ""]]
+- id: wallet-no-check
+  why: "PAY WALLET không kiểm tra số dư"
+  replace: [["wallet ? acc[c->acct].balance < bk[i].amount : !card_ok", "wallet ? 0 : !card_ok"]]
+- id: wallet-strict
+  why: "Số dư đúng bằng số tiền bị coi là thiếu"
+  replace: [["acc[c->acct].balance < bk[i].amount", "acc[c->acct].balance <= bk[i].amount"]]
+- id: card-no-luhn
+  why: "Không kiểm tra Luhn"
+  replace: [["    return sum % 10 == 0;", "    return 1;"]]
+- id: card-expiry-ignored
+  why: "Không kiểm tra hạn thẻ"
+  replace: [["    return 2000 + yy > cy || (2000 + yy == cy && mm >= cm);", "    return 1;"]]
+- id: card-expiry-current-month-rejected
+  why: "Tháng hiện tại bị coi là hết hạn"
+  replace: [["mm >= cm)", "mm > cm)"]]
+- id: card-month-13
+  why: "Tháng 13 hợp lệ"
+  replace: [["if (mm < 1 || mm > 12) return 0;", "if (mm < 1 || mm > 13) return 0;"]]
+- id: card-month-0
+  why: "Tháng 00 hợp lệ"
+  replace: [["if (mm < 1 || mm > 12) return 0;", "if (mm > 12) return 0;"]]
+- id: cvv-4-digits
+  why: "CVV 4 chữ số hợp lệ"
+  replace: [["if (strlen(cvv) != 3 ||", "if (strlen(cvv) < 3 ||"]]
+- id: expiry-format-loose
+  why: "Không kiểm tra dấu '/' của MM/YY"
+  replace: [["strlen(exp) != 5 || exp[2] != '/' ||", "strlen(exp) != 5 ||"]]
+- id: login-no-password
+  why: "LOGIN không kiểm tra mật khẩu"
+  replace: [["if (!strcmp(acc[a].user, tok[1]) && !strcmp(acc[a].pass, tok[2])) break;", "if (!strcmp(acc[a].user, tok[1])) break;"]]
+- id: login-twice
+  why: "Phiên đã đăng nhập vẫn LOGIN lại được"
+  replace: [["        else if (c->acct >= 0) reply(c->fd, \"207 ALREADY LOGGED IN\\n\");\n", ""]]
+- id: slot-reuse-inherits-login
+  why: "Kết nối mới dùng lại chỗ cũ vẫn còn đăng nhập"
+  replace: [["                        clients[i].acct = -1;\n                        clients[i].sid = next_sid++;", "                        clients[i].sid = next_sid++;"], ["    c->acct = -1;\n    nclients--;", "    nclients--;"]]
+- id: login-required-skipped-for-balance
+  why: "BALANCE không yêu cầu đăng nhập đúng chỗ (đọc ví của tài khoản 0)"
+  replace: [["        if (c->acct < 0) { reply(c->fd, \"204 LOGIN FIRST\\n\"); return 1; }\n        if (!strcmp(cmd, \"BALANCE\")) {", "        if (c->acct < 0 && strcmp(cmd, \"BALANCE\")) { reply(c->fd, \"204 LOGIN FIRST\\n\"); return 1; }\n        if (!strcmp(cmd, \"BALANCE\")) {\n            if (c->acct < 0) c->acct = 0;"]]
+- id: limit-off-by-one
+  why: "So sánh > N thay vì >= N"
+  replace: [["if (fd >= 0 && nclients >= limit) {", "if (fd >= 0 && nclients > limit) {"]]
+- id: full-not-closed
+  why: "Gửi 500 FULL nhưng không đóng kết nối"
+  replace: [["                reply(fd, \"500 FULL\\n\");\n                close(fd);", "                reply(fd, \"500 FULL\\n\");"]]
+- id: cr-kept
+  why: "Không bỏ '\\r' cuối dòng"
+  replace: [["    if (n && line[n - 1] == '\\r') line[--n] = 0;\n", ""]]
+- id: drop-partial-line
+  why: "Bỏ phần lệnh dở dang thay vì giữ cho lần recv sau"
+  replace: [["            c->len -= (size_t)(start - c->buf);\n            memmove(c->buf, start, c->len);", "            c->len = 0;"]]
+- id: few-clients
+  why: "Mảng client chỉ có 8 chỗ"
+  replace: [["#define MAX_CLIENTS 64", "#define MAX_CLIENTS 8"]]
+- id: fd-leak
+  why: "Không đóng socket khi client rời đi"
+  replace: [["    release_session(c->sid);\n    close(c->fd);", "    release_session(c->sid);"]]
+- id: bookings-table-small
+  why: "Chỉ lưu tối đa 200 booking (hết chỗ sau 200 lần đặt dù ghế còn)"
+  replace: [["#define MAX_BOOKINGS 20000", "#define MAX_BOOKINGS 200"]]

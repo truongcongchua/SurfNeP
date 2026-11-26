@@ -1,0 +1,12 @@
+id: fly-status-udp
+title: Tra cứu trạng thái chuyến bay qua UDP
+difficulty: medium
+chapter: 2
+topics: [UDP, Protocol Design, Shared State]
+prerequisites: [udp-calc]
+ref: "Lecture notes §2.4 (UDP); BTL đặt vé máy bay (thông báo thay đổi chuyến bay, tính năng nâng cao)"
+type: server
+protocol: udp
+args: ["{port}", "fly2026"]
+test_timeout: 5
+concepts: [udp-basics]

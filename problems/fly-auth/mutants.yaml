@@ -1,0 +1,91 @@
+# Bản sai sinh tự động từ solution.c (xem docs/TEST-DESIGN.md). Mỗi bản phải bị ít nhất một test giết.
+- id: register-not-persisted
+  why: "REGISTER chỉ ghi vào bộ nhớ, không ghi accounts.txt"
+  replace: [["            if (f) { fprintf(f, \"%s %s\\n\", tok[1], tok[2]); fclose(f); }\n", "            if (f) fclose(f);\n"]]
+- id: register-no-newline
+  why: "Dòng ghi vào tệp thiếu ký tự xuống dòng"
+  replace: [["fprintf(f, \"%s %s\\n\", tok[1], tok[2])", "fprintf(f, \"%s %s\", tok[1], tok[2])"]]
+- id: register-overwrites-file
+  why: "Mở tệp bằng chế độ \"w\" nên mất các tài khoản cũ"
+  replace: [["fopen(\"accounts.txt\", \"a\")", "fopen(\"accounts.txt\", \"w\")"]]
+- id: register-duplicates
+  why: "Cho phép đăng ký trùng tên"
+  replace: [["find_user(tok[1]) >= 0 || nacc >= MAX_ACCOUNTS", "nacc >= MAX_ACCOUNTS"]]
+- id: register-logs-in
+  why: "REGISTER tự đăng nhập"
+  replace: [["            nacc++;\n            reply(c->fd, \"100 OK\\n\");", "            c->acct = nacc++;\n            reply(c->fd, \"100 OK\\n\");"]]
+- id: login-ignores-password
+  why: "Không kiểm tra mật khẩu"
+  replace: [[" || strcmp(acc[a].pass, tok[2]) != 0", ""]]
+- id: login-multi-session
+  why: "Cho một tài khoản đăng nhập ở nhiều phiên"
+  replace: [["        else if (in_use(a)) reply(c->fd, \"207 ALREADY LOGGED IN\\n\");\n", ""]]
+- id: login-twice-same-session
+  why: "Phiên đã đăng nhập vẫn LOGIN được lần nữa"
+  replace: [["        else if (c->acct >= 0) reply(c->fd, \"207 ALREADY LOGGED IN\\n\");\n", ""]]
+- id: login-wrong-code
+  why: "Sai mật khẩu trả 201 thay vì 203"
+  replace: [["reply(c->fd, \"203 DENIED\\n\");", "reply(c->fd, \"201 INVALID\\n\");"]]
+- id: logout-keeps-account
+  why: "LOGOUT trả 100 OK nhưng không đăng xuất"
+  replace: [["else { c->acct = -1; reply(c->fd, \"100 OK\\n\"); }", "else reply(c->fd, \"100 OK\\n\");"]]
+- id: disconnect-keeps-account
+  why: "Phiên rời đi không trả tài khoản"
+  replace: [["static int in_use(int a) {\n    for (int i = 0; i < MAX_CLIENTS; i++)\n        if (clients[i].fd >= 0 && clients[i].acct == a) return 1;", "static int in_use(int a) {\n    for (int i = 0; i < MAX_CLIENTS; i++)\n        if (clients[i].acct == a) return 1;"], ["    c->acct = -1;\n    nclients--;", "    nclients--;"]]
+- id: slot-reuse-inherits-login
+  why: "Kết nối mới dùng lại chỗ của phiên cũ vẫn còn trạng thái đăng nhập"
+  replace: [["    c->acct = -1;\n    nclients--;", "    nclients--;"], ["                        clients[i].acct = -1;\n                        nclients++;", "                        nclients++;"]]
+- id: whoami-ignores-args
+  why: "WHOAMI kèm tham số vẫn được chấp nhận"
+  replace: [["\"WHOAMI\") == 0) {\n        if (nt != 1) reply(c->fd, \"201 INVALID\\n\");", "\"WHOAMI\") == 0) {\n        if (0) reply(c->fd, \"201 INVALID\\n\");"]]
+- id: quit-with-args
+  why: "QUIT kèm tham số vẫn đóng kết nối"
+  replace: [["        if (nt != 1) { reply(c->fd, \"201 INVALID\\n\"); return 1; }\n", ""]]
+- id: quit-not-closed
+  why: "QUIT trả 100 OK nhưng không đóng kết nối"
+  replace: [["        reply(c->fd, \"100 OK\\n\");\n        return 0;", "        reply(c->fd, \"100 OK\\n\");\n        return 1;"]]
+- id: limit-off-by-one
+  why: "So sánh > N thay vì >= N"
+  replace: [["if (fd >= 0 && nclients >= limit) {", "if (fd >= 0 && nclients > limit) {"]]
+- id: full-not-closed
+  why: "Gửi 500 FULL nhưng không đóng kết nối"
+  replace: [["                reply(fd, \"500 FULL\\n\");\n                close(fd);", "                reply(fd, \"500 FULL\\n\");"]]
+- id: pass-min-3
+  why: "Mật khẩu 3 ký tự hợp lệ"
+  replace: [["if (n < 4 || n > 32) return 0;", "if (n < 3 || n > 32) return 0;"]]
+- id: pass-max-33
+  why: "Mật khẩu 33 ký tự hợp lệ"
+  replace: [["if (n < 4 || n > 32) return 0;", "if (n < 4 || n > 33) return 0;"]]
+- id: pass-allow-control
+  why: "Mật khẩu chứa ký tự điều khiển hợp lệ"
+  replace: [["(unsigned char)s[i] < 0x21", "(unsigned char)s[i] < 0x01"]]
+- id: pass-allow-del
+  why: "Mật khẩu chứa DEL hợp lệ"
+  replace: [["(unsigned char)s[i] > 0x7E", "(unsigned char)s[i] > 0x7F"]]
+- id: user-max-33
+  why: "Tên 33 ký tự hợp lệ (cần buffer lớn hơn 40 để không tràn)"
+  replace: [["if (n < 1 || n > 32) return 0;", "if (n < 1 || n > 33) return 0;"]]
+- id: user-uppercase
+  why: "Tên chứa chữ hoa hợp lệ"
+  replace: [["(s[i] >= 'a' && s[i] <= 'z')", "(s[i] >= 'A' && s[i] <= 'z')"]]
+- id: user-empty
+  why: "Tên rỗng hợp lệ"
+  replace: [["if (n < 1 || n > 32) return 0;", "if (n > 32) return 0;"]]
+- id: cr-kept
+  why: "Không bỏ '\\r' cuối dòng"
+  replace: [["    if (n && line[n - 1] == '\\r') line[--n] = 0;\n", ""]]
+- id: drop-partial-line
+  why: "Bỏ phần lệnh dở dang thay vì giữ cho lần recv sau"
+  replace: [["            c->len -= (size_t)(start - c->buf);\n            memmove(c->buf, start, c->len);", "            c->len = 0;"]]
+- id: few-clients
+  why: "Mảng client chỉ có 8 chỗ"
+  replace: [["#define MAX_CLIENTS 64", "#define MAX_CLIENTS 8"]]
+- id: fd-leak
+  why: "Không đóng socket khi client rời đi"
+  replace: [["static void drop(Client *c) {\n    close(c->fd);", "static void drop(Client *c) {"]]
+- id: account-table-small
+  why: "Tối đa 100 tài khoản"
+  replace: [["#define MAX_ACCOUNTS 1000", "#define MAX_ACCOUNTS 100"]]
+- id: blank-line-ignored
+  why: "Lệnh lạ/dòng trống không có phản hồi"
+  replace: [["        reply(c->fd, \"999 UNKNOWN ERROR\\n\");\n    }\n    return 1;", "        if (n > 0) reply(c->fd, \"999 UNKNOWN ERROR\\n\");\n    }\n    return 1;"]]

@@ -1,0 +1,61 @@
+# Bản sai sinh tự động từ solution.c (xem docs/TEST-DESIGN.md). Mỗi bản phải bị ít nhất một test giết.
+- id: no-flush
+  why: "Không fflush sau mỗi dòng log"
+  replace: [["    fflush(logf);\n", ""]]
+- id: send-logged-after
+  why: "Gửi phản hồi rồi mới ghi SEND"
+  replace: [["    log_event(c->addr, \"SEND\", line);\n    char out[128];\n    int n = snprintf(out, sizeof out, \"%s\\n\", line);\n    send(c->fd, out, (size_t)n, 0);", "    char out[128];\n    int n = snprintf(out, sizeof out, \"%s\\n\", line);\n    send(c->fd, out, (size_t)n, 0);\n    usleep(60000);\n    log_event(c->addr, \"SEND\", line);"]]
+- id: truncates-log
+  why: "Mở log bằng \"w\" làm mất nội dung cũ"
+  replace: [["fopen(argv[2], \"a\")", "fopen(argv[2], \"w\")"]]
+- id: port-network-order
+  why: "Quên ntohs: cổng in theo thứ tự byte của mạng"
+  replace: [["ntohs(ca.sin_port)", "ca.sin_port"]]
+- id: no-connect-log
+  why: "Không ghi CONNECT"
+  replace: [["                        log_event(clients[i].addr, \"CONNECT\", NULL);\n", ""]]
+- id: no-disconnect-log
+  why: "Không ghi DISCONNECT"
+  replace: [["    log_event(c->addr, \"DISCONNECT\", NULL);\n", ""]]
+- id: no-recv-log
+  why: "Không ghi RECV"
+  replace: [["    log_event(c->addr, \"RECV\", line);\n", ""]]
+- id: cr-kept
+  why: "Không bỏ '\\r' cuối dòng khỏi lệnh (và log)"
+  replace: [["    if (n && line[n - 1] == '\\r') line[--n] = 0;\n", ""]]
+- id: strip-all-cr
+  why: "Bỏ mọi '\\r' ở cuối thay vì một"
+  replace: [["    if (n && line[n - 1] == '\\r') line[--n] = 0;\n", "    while (n && line[n - 1] == '\\r') line[--n] = 0;\n"]]
+- id: timestamp-utc-format
+  why: "Dấu thời gian dùng định dạng ngày/tháng/năm"
+  replace: [["\"%Y-%m-%d %H:%M:%S\"", "\"%d/%m/%Y %H:%M:%S\""]]
+- id: timestamp-gmt
+  why: "Dấu thời gian lệch 1 giờ (múi giờ sai)"
+  replace: [["localtime(&now)", "localtime(&(time_t){now + 3600})"]]
+- id: no-timestamp-brackets
+  why: "Thiếu dấu ngoặc vuông quanh thời gian"
+  replace: [["\"[%s] %s %s \\\"%s\\\"\\n\"", "\"%s %s %s \\\"%s\\\"\\n\""]]
+- id: recv-per-recv-call
+  why: "Ghi RECV theo từng lần recv thay vì từng dòng"
+  replace: [["            c->buf[c->len] = 0;\n            char *start = c->buf, *nl;", "            c->buf[c->len] = 0;\n            if (!strchr(c->buf, '\\n')) log_event(c->addr, \"RECV\", c->buf);\n            char *start = c->buf, *nl;"]]
+- id: partial-line-flushed-at-close
+  why: "Phần dở dang khi client rời đi vẫn bị ghi thành RECV"
+  replace: [["static void drop(Client *c) {\n", "static void drop(Client *c) {\n    if (c->len) { c->buf[c->len] = 0; log_event(c->addr, \"RECV\", c->buf); }\n"]]
+- id: no-send-log-for-999
+  why: "Không ghi SEND cho phản hồi 999"
+  replace: [["        reply(c, \"999 UNKNOWN ERROR\");", "        send(c->fd, \"999 UNKNOWN ERROR\\n\", 18, 0);"]]
+- id: quote-missing
+  why: "Nội dung RECV không đặt trong dấu nháy"
+  replace: [["\"[%s] %s %s \\\"%s\\\"\\n\", ts, kind, addr, text", "\"[%s] %s %s %s\\n\", ts, kind, addr, text"]]
+- id: few-clients
+  why: "Mảng client chỉ có 8 chỗ"
+  replace: [["#define MAX_CLIENTS 64", "#define MAX_CLIENTS 8"]]
+- id: fd-leak
+  why: "Không đóng socket khi client rời đi"
+  replace: [["    log_event(c->addr, \"DISCONNECT\", NULL);\n    close(c->fd);", "    log_event(c->addr, \"DISCONNECT\", NULL);"]]
+- id: quit-not-closed
+  why: "QUIT trả 100 OK nhưng không đóng kết nối"
+  replace: [["        reply(c, \"100 OK\");\n        return 0;", "        reply(c, \"100 OK\");\n        return 1;"]]
+- id: drop-partial-line
+  why: "Bỏ phần lệnh dở dang thay vì giữ cho lần recv sau"
+  replace: [["            c->len -= (size_t)(start - c->buf);\n            memmove(c->buf, start, c->len);", "            c->len = 0;"]]

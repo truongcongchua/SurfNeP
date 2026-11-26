@@ -1,0 +1,106 @@
+# Bản sai sinh từ solution.c (xem docs/TEST-DESIGN.md). Mỗi bản phải bị ít nhất một test giết.
+- id: content-length-off-by-one
+  why: "Content-Length lớn hơn thân thật 1 byte"
+  replace: [["Connection: close\\r\\n\\r\\n\", code, reason, type, len);", "Connection: close\\r\\n\\r\\n\", code, reason, type, len + 1);"]]
+- id: header-order-swapped
+  why: "Content-Length đứng trước Content-Type"
+  replace: [["Content-Type: %s\\r\\nContent-Length: %zu\\r\\nConnection: close\\r\\n\\r\\n\", code, reason, type, len);", "Content-Length: %zu\\r\\nContent-Type: %s\\r\\nConnection: close\\r\\n\\r\\n\", code, reason, len, type);"]]
+- id: connection-header-missing
+  why: "Thiếu Connection: close"
+  replace: [["Content-Length: %zu\\r\\nConnection: close\\r\\n\\r\\n\"", "Content-Length: %zu\\r\\n\\r\\n\""]]
+- id: html-served-as-plain
+  why: "HTML trả với Content-Type text/plain"
+  replace: [["respond(fd, 200, \"OK\", \"text/html; charset=utf-8\", body, len);", "respond(fd, 200, \"OK\", \"text/plain; charset=utf-8\", body, len);"]]
+- id: error-body-no-newline
+  why: "Thân lỗi thiếu ký tự xuống dòng"
+  replace: [["int n = snprintf(body, sizeof body, \"%s\\n\", reason);", "int n = snprintf(body, sizeof body, \"%s\", reason);"]]
+- id: version-not-checked
+  why: "Không kiểm tra phiên bản HTTP"
+  replace: [["    if (strcmp(version, \"HTTP/1.1\") && strcmp(version, \"HTTP/1.0\")) { error(fd, 400, \"Bad Request\"); goto done; }\n", ""]]
+- id: method-not-checked
+  why: "Không trả 405 cho method lạ"
+  replace: [["    if (strcmp(method, \"GET\") && strcmp(method, \"POST\")) { error(fd, 405, \"Method Not Allowed\"); goto done; }\n", ""]]
+- id: post-any-path
+  why: "POST tới đường dẫn khác vẫn xử lý như /search"
+  replace: [["        if (strcmp(target, \"/search\")) { error(fd, 404, \"Not Found\"); goto done; }\n", ""]]
+- id: single-space-not-checked
+  why: "Hai dấu cách ở dòng đầu vẫn được chấp nhận"
+  replace: [["        if (buf[a] != ' ' || buf[a + 1 + b] != ' ' || buf[a + 1] == ' ') { error(fd, 400, \"Bad Request\"); goto done; }", "        (void)a; (void)b;"]]
+- id: content-length-limit-high
+  why: "Cho phép Content-Length lớn hơn 4096"
+  replace: [["if (clen < 0 || clen > 4096)", "if (clen < 0 || clen > 4100)"]]
+- id: content-length-case-sensitive
+  why: "Tên header Content-Length phân biệt hoa thường"
+  replace: [["!strncasecmp(line, \"Content-Length:\", 15)", "!strncmp(line, \"Content-Length:\", 15)"]]
+- id: post-body-not-read-fully
+  why: "Chỉ dùng phần thân đã có trong lần recv đầu"
+  replace: [["        while ((long)have < clen) {", "        while (0 && (long)have < clen) {"]]
+- id: post-extra-body-used
+  why: "Dùng cả dữ liệu thừa sau Content-Length"
+  replace: [["        if ((long)have > clen) have = (size_t)clen;\n", ""]]
+- id: query-first-wins-broken
+  why: "Khóa lặp lấy lần cuối"
+  replace: [["if (!strcmp(k, keys[i]) && !val[i]) val[i] = v;", "if (!strcmp(k, keys[i])) val[i] = v;"]]
+- id: percent-not-decoded
+  why: "Không giải mã %XX"
+  replace: [["        else if (*r == '%') {\n            if (hexv(r[1]) < 0 || hexv(r[2]) < 0) return 0;\n            *w++ = (char)(hexv(r[1]) * 16 + hexv(r[2]));\n            r += 2;\n        } else *w++ = *r;", "        else *w++ = *r;"]]
+- id: bad-percent-accepted
+  why: "% hỏng không bị từ chối"
+  replace: [["            if (hexv(r[1]) < 0 || hexv(r[2]) < 0) return 0;\n", "            if (hexv(r[1]) < 0 || hexv(r[2]) < 0) { *w++ = *r; continue; }\n"]]
+- id: hex-lowercase-rejected
+  why: "Chữ số hex thường (%2d) bị từ chối"
+  replace: [["    if (c >= 'a' && c <= 'f') return c - 'a' + 10;\n", ""]]
+- id: pax-two-digits
+  why: "Số khách nhiều chữ số hợp lệ"
+  replace: [["strlen(val[3]) != 1 || val[3][0] < '1'", "val[3][0] < '1'"]]
+- id: same-airport-allowed
+  why: "Đi và đến cùng một sân bay hợp lệ"
+  replace: [[" || !strcmp(val[0], val[1]) ||", " ||"]]
+- id: date-not-validated
+  why: "Không kiểm tra ngày"
+  replace: [["        !valid_date(val[2]) || strlen(val[3])", "        strlen(val[3])"]]
+- id: leap-every-4
+  why: "Năm nhuận chỉ xét chia hết cho 4"
+  replace: [["return (y % 4 == 0 && y % 100 != 0) || y % 400 == 0;", "return y % 4 == 0;"]]
+- id: class-lowercase-ok
+  why: "Hạng so sánh không phân biệt hoa thường"
+  replace: [["(strcmp(val[4], \"ECO\") && strcmp(val[4], \"BUS\"))", "(strcasecmp(val[4], \"ECO\") && strcasecmp(val[4], \"BUS\"))"], ["bus = !strcmp(val[4], \"BUS\");", "bus = !strcasecmp(val[4], \"BUS\");"]]
+- id: seats-strict
+  why: "Đúng bằng số khách bị loại"
+  replace: [["fl[i].seats[bus] >= pax) idx[k++] = i;", "fl[i].seats[bus] > pax) idx[k++] = i;"]]
+- id: total-not-multiplied
+  why: "Tổng tiền không nhân số khách"
+  replace: [["x->price[bus] * pax);", "x->price[bus]);"]]
+- id: bus-uses-eco-price
+  why: "Hạng BUS dùng giá ECO"
+  replace: [["x->price[bus] * pax);", "x->price[0] * pax);"]]
+- id: header-row-missing
+  why: "Thiếu dòng tiêu đề bảng"
+  replace: [["    o += (size_t)snprintf(out + o, cap - o, \"<tr><th>Ma</th><th>Hang</th><th>Gio di</th><th>Gio den</th><th>Tong tien</th></tr>\\n\");\n", ""]]
+- id: count-heading-wrong
+  why: "Tiêu đề đếm sai số chuyến (k+1)"
+  replace: [["\"<html><body><h1>Co %d chuyen</h1>\\n<h2>%s -&gt; %s %s</h2>\\n<table>\\n\", k,", "\"<html><body><h1>Co %d chuyen</h1>\\n<h2>%s -&gt; %s %s</h2>\\n<table>\\n\", k + 1,"]]
+- id: rows-reversed
+  why: "Các chuyến in theo thứ tự ngược"
+  replace: [["    for (int j = 0; j < k; j++) {\n        Flight *x = &fl[idx[j]];\n        o +=", "    for (int j = k - 1; j >= 0; j--) {\n        Flight *x = &fl[idx[j]];\n        o +="]]
+- id: flight-unknown-is-400
+  why: "Chuyến không có trả 400 thay vì 404"
+  replace: [["    error(fd, 404, \"Not Found\");\n}\n\nstatic void *serve", "    error(fd, 400, \"Bad Request\");\n}\n\nstatic void *serve"]]
+- id: flight-page-arrow-unescaped
+  why: "Trang chi tiết dùng '->' thay vì '-&gt;'"
+  replace: [["<p>%s -&gt; %s %s %s-%s</p>", "<p>%s -> %s %s %s-%s</p>"]]
+- id: index-without-form
+  why: "Trang chủ thiếu ô nhập class"
+  replace: [["Hang: <input name=\\\"class\\\">", "Hang: <input name=\\\"hang\\\">"]]
+- id: header-limit-large
+  why: "Header quá 8 KB không bị từ chối"
+  replace: [["        if (len >= HEAD_MAX) { error(fd, 400, \"Bad Request\"); goto done; }\n", "        if (len >= HEAD_MAX) goto done;\n"]]
+- id: shared-fd-race
+  why: "Truyền địa chỉ biến dùng chung cho luồng (đua dữ liệu)"
+  replace: [["    int fd = *(int *)arg;\n    free(arg);", "    int fd = *(int *)arg;"], ["        int *arg = malloc(sizeof *arg);\n        *arg = fd;", "        static int shared;\n        shared = fd;\n        int *arg = &shared;"], ["if (pthread_create(&t, NULL, serve, arg) != 0) { close(fd); free(arg); continue; }", "if (pthread_create(&t, NULL, serve, arg) != 0) { close(fd); continue; }"]]
+- id: fd-leak
+  why: "Không đóng socket sau khi trả lời"
+  replace: [["done:\n    close(fd);", "done:\n    (void)0;"]]
+- id: no-sigpipe-ignore
+  why: "Không bỏ qua SIGPIPE (server chết khi client đóng giữa chừng)"
+  replace: [["    signal(SIGPIPE, SIG_IGN);\n", ""]]

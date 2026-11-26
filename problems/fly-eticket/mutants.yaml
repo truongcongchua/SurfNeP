@@ -1,0 +1,94 @@
+# Bản sai sinh tự động từ solution.c (xem docs/TEST-DESIGN.md). Mỗi bản phải bị ít nhất một test giết.
+- id: lf-instead-of-crlf
+  why: "Lệnh SMTP kết thúc bằng \\n thay vì \\r\\n"
+  replace: [["int n = snprintf(buf, sizeof buf, \"%s\\r\\n\", cmd);", "int n = snprintf(buf, sizeof buf, \"%s\\n\", cmd);"]]
+- id: helo-wrong-name
+  why: "HELO với tên miền khác"
+  replace: [["smtp_cmd(s, \"HELO fly.local\", \"250\")", "smtp_cmd(s, \"HELO localhost\", \"250\")"]]
+- id: mail-from-wrong
+  why: "MAIL FROM sai địa chỉ"
+  replace: [["\"MAIL FROM:<noreply@fly.local>\"", "\"MAIL FROM:<admin@fly.local>\""]]
+- id: rcpt-fixed-address
+  why: "RCPT TO luôn tới một địa chỉ cố định"
+  replace: [["snprintf(cmd, sizeof cmd, \"RCPT TO:<%s>\", email);", "snprintf(cmd, sizeof cmd, \"RCPT TO:<%s>\", \"an@example.com\");"]]
+- id: single-line-reply-only
+  why: "Chỉ đọc một dòng phản hồi (không xử lý 250-)"
+  replace: [["        if (line[3] == ' ') return 1;\n        if (line[3] != '-') return 0;", "        return 1;"]]
+- id: reply-code-ignored
+  why: "Không kiểm tra mã phản hồi"
+  replace: [["        if (strlen(line) < 4 || strncmp(line, code, 3) != 0) return 0;\n", ""]]
+- id: no-timeout
+  why: "Chờ SMTP không có timeout (select bị thay bằng recv thẳng)"
+  replace: [["            struct timeval tv = {2, 0};\n            if (select(s + 1, &rd, NULL, NULL, &tv) <= 0) return 0;", "            struct timeval tv = {600, 0};\n            if (select(s + 1, &rd, NULL, NULL, &tv) <= 0) return 0;"]]
+- id: timeout-too-short
+  why: "Timeout chỉ 0 giây"
+  replace: [["struct timeval tv = {2, 0};", "struct timeval tv = {0, 100000};"]]
+- id: message-wrong-subject
+  why: "Subject sai"
+  replace: [["Subject: Ve dien tu %s\\r\\n", "Subject: Ve may bay %s\\r\\n"]]
+- id: message-lf-only
+  why: "Thư dùng \\n thay vì \\r\\n"
+  replace: [["\"From: noreply@fly.local\\r\\nTo: %s\\r\\nSubject: Ve dien tu %s\\r\\n\\r\\nTicket: %s\\r\\nFlight: %s %s %s\\r\\nPassenger: %s\\r\\n\"", "\"From: noreply@fly.local\\nTo: %s\\nSubject: Ve dien tu %s\\n\\nTicket: %s\\nFlight: %s %s %s\\nPassenger: %s\\n\""]]
+- id: no-data-terminator
+  why: "Không gửi dòng '.' kết thúc thư"
+  replace: [["        ok = smtp_cmd(s, \".\", \"250\");", "        ok = 1;"]]
+- id: eml-not-saved
+  why: "Không lưu bản sao .eml"
+  replace: [["    if (f) { fwrite(msg, 1, (size_t)ml, f); fclose(f); }", "    if (f) fclose(f);"]]
+- id: eml-only-on-success
+  why: "Chỉ lưu .eml khi gửi mail thành công"
+  replace: [["    f = fopen(path, \"wb\");\n    if (f) { fwrite(msg, 1, (size_t)ml, f); fclose(f); }", "    f = mailed ? fopen(path, \"wb\") : NULL;\n    if (f) { fwrite(msg, 1, (size_t)ml, f); fclose(f); }"]]
+- id: no-ticket-file-append
+  why: "Không ghi tickets.txt"
+  replace: [["        fprintf(f, \"%s %s %s %s %s %s\\n\", ticket, acc[c->acct].user, flight, date, cls, pax);", "        fprintf(f, \"\");"]]
+- id: ticket-file-overwritten
+  why: "Mở tickets.txt chế độ ghi đè"
+  replace: [["fopen(\"tickets.txt\", \"a\")", "fopen(\"tickets.txt\", \"w\")"]]
+- id: serial-restarts-at-1
+  why: "Số thứ tự không tính các vé đã có sẵn"
+  replace: [["    next_serial = lines + 1;", "    next_serial = 1;"]]
+- id: serial-zero-based
+  why: "Số thứ tự bắt đầu sai (lines thay vì lines + 1)"
+  replace: [["    next_serial = lines + 1;", "    next_serial = lines;"]]
+- id: airline-code-wrong
+  why: "Mã hãng VJ sai"
+  replace: [["!strncmp(flight, \"VJ\", 2) ? \"978\"", "!strncmp(flight, \"VJ\", 2) ? \"979\""]]
+- id: unknown-airline-code
+  why: "Hãng lạ nhận mã 738 thay vì 000"
+  replace: [["? \"550\" : \"000\";", "? \"550\" : \"738\";"]]
+- id: serial-not-padded
+  why: "Số thứ tự không đệm 10 chữ số"
+  replace: [["\"%s%010ld\"", "\"%s%ld\""]]
+- id: push-to-issuer
+  why: "Tin nhắn cũng gửi lại cho phiên đang ISSUE"
+  replace: [["if (clients[i].fd >= 0 && &clients[i] != c && clients[i].acct == c->acct) reply(clients[i].fd, out);", "if (clients[i].fd >= 0 && clients[i].acct == c->acct) reply(clients[i].fd, out);"]]
+- id: push-to-everyone
+  why: "Tin nhắn gửi cho mọi phiên đã đăng nhập"
+  replace: [["&clients[i] != c && clients[i].acct == c->acct) reply", "&clients[i] != c && clients[i].acct >= 0) reply"]]
+- id: push-after-reply
+  why: "Trả lời phiên ISSUE trước khi đẩy tin"
+  replace: [["    snprintf(out, sizeof out, \"300 TICKET %s\\n\", ticket);\n    for (int i = 0; i < MAX_CLIENTS; i++)\n        if (clients[i].fd >= 0 && &clients[i] != c && clients[i].acct == c->acct) reply(clients[i].fd, out);\n    snprintf(out, sizeof out, mailed ? \"100 OK %s\\n\" : \"100 OK %s MAIL_FAILED\\n\", ticket);\n    reply(c->fd, out);", "    snprintf(out, sizeof out, mailed ? \"100 OK %s\\n\" : \"100 OK %s MAIL_FAILED\\n\", ticket);\n    reply(c->fd, out);\n    usleep(150000);\n    snprintf(out, sizeof out, \"300 TICKET %s\\n\", ticket);\n    for (int i = 0; i < MAX_CLIENTS; i++)\n        if (clients[i].fd >= 0 && &clients[i] != c && clients[i].acct == c->acct) reply(clients[i].fd, out);"]]
+- id: mail-failed-marker-missing
+  why: "Không báo MAIL_FAILED"
+  replace: [["mailed ? \"100 OK %s\\n\" : \"100 OK %s MAIL_FAILED\\n\"", "\"100 OK %s\\n\""]]
+- id: failure-skips-ticket
+  why: "Gửi mail thất bại thì không phát hành vé (không ghi tệp, không đẩy)"
+  replace: [["    int mailed = smtp_send(acc[c->acct].email, msg, (size_t)ml);\n", "    int mailed = smtp_send(acc[c->acct].email, msg, (size_t)ml);\n    if (!mailed) { next_serial--; reply(c->fd, \"100 OK 0000000000000 MAIL_FAILED\\n\"); return; }\n"]]
+- id: sigpipe-default
+  why: "Không bỏ qua SIGPIPE: server chết khi gửi vào kết nối đã đóng"
+  replace: [["    signal(SIGPIPE, SIG_IGN);\n", ""]]
+- id: login-multi-session-blocked
+  why: "Một tài khoản chỉ đăng nhập một phiên"
+  replace: [["            if (a == nacc) reply(c->fd, \"203 DENIED\\n\");\n            else {", "            if (a == nacc) reply(c->fd, \"203 DENIED\\n\");\n            else if (({ int used = 0; for (int q = 0; q < MAX_CLIENTS; q++) if (clients[q].fd >= 0 && clients[q].acct == a) used = 1; used; })) reply(c->fd, \"207 ALREADY LOGGED IN\\n\");\n            else {"]]
+- id: date-not-validated
+  why: "Không kiểm tra ngày"
+  replace: [["!valid_flight(tok[1]) || !valid_date(tok[2]) ||", "!valid_flight(tok[1]) ||"]]
+- id: name-too-long
+  why: "Hành khách tối đa 41 ký tự"
+  replace: [["if (n < 1 || n > 40) return 0;", "if (n < 1 || n > 41) return 0;"]]
+- id: cr-kept
+  why: "Không bỏ '\\r' cuối dòng"
+  replace: [["    if (n && line[n - 1] == '\\r') line[--n] = 0;\n    char *tok[MAXTOK + 1];\n    int nt = 0;\n    for (char *p = line;;) {\n        if (nt < MAXTOK) tok[nt] = p;\n        nt++;\n        char *sp = strchr(p, ' ');\n        if (!sp) break;\n        *sp = 0;\n        p = sp + 1;\n    }\n    if (nt > MAXTOK) nt = MAXTOK + 1;\n    char out[128];", "    char *tok[MAXTOK + 1];\n    int nt = 0;\n    for (char *p = line;;) {\n        if (nt < MAXTOK) tok[nt] = p;\n        nt++;\n        char *sp = strchr(p, ' ');\n        if (!sp) break;\n        *sp = 0;\n        p = sp + 1;\n    }\n    if (nt > MAXTOK) nt = MAXTOK + 1;\n    char out[128];"]]
+- id: drop-partial-line
+  why: "Bỏ phần lệnh dở dang thay vì giữ cho lần recv sau"
+  replace: [["            c->len -= (size_t)(start - c->buf);\n            memmove(c->buf, start, c->len);", "            c->len = 0;"]]

@@ -1,0 +1,11 @@
+id: fly-web
+title: Giao diện web tìm chuyến bay (HTTP)
+difficulty: hard
+chapter: 4
+topics: [TCP, HTTP, Multithreading, String Parsing, Protocol Design]
+prerequisites: [looping-server, fly-search]
+ref: "Lecture notes §4.2.1 (HTTP request/response); code mẫu 4-Chap4/http_server.c; BTL đặt vé máy bay (tính năng nâng cao: giao diện web)"
+type: server
+args: ["{port}"]
+test_timeout: 8
+concepts: [http-server, protocol-design, tcp-stream]
