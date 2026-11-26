@@ -4,7 +4,7 @@ difficulty: easy
 chapter: 2
 topics: [TCP, File I/O]
 prerequisites: [tcp-hello-loop]
-ref: "Lecture notes §2.3; code mẫu 2-Chap2/html.c (fread → send); khởi động cho tcp-greeting-log"
+ref: "Lecture notes §2.3; code mẫu lab08 (open, read) + tcp_server.c (send); khởi động cho tcp-greeting-log"
 type: server
 args: ["{port}", "data.txt"]
 test_timeout: 6

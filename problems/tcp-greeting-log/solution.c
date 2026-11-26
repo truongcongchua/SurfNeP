@@ -1,7 +1,7 @@
-// Lời giải mẫu: server lặp như tcp_server.c; gửi tệp bằng fread/send như html.c.
+// Lời giải mẫu: server lặp như tcp_server.c; đọc câu chào bằng open/read, ghi log bằng open(O_APPEND)/write (lab08).
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -32,24 +32,24 @@ int main(int argc, char *argv[]) {
         int client = accept(listener, NULL, NULL);
         if (client == -1) continue;
 
-        // 1. Gửi câu chào: đọc lại tệp mỗi lần, gửi đúng số byte fread trả về (có thể có 0x00).
-        FILE *f = fopen(argv[2], "rb");
-        if (f != NULL) {
-            size_t bytes_read;
-            while ((bytes_read = fread(buffer, 1, sizeof(buffer), f)) > 0) {
+        // 1. Gửi câu chào: mở lại tệp mỗi lần, gửi đúng số byte read trả về (có thể có 0x00).
+        int gfd = open(argv[2], O_RDONLY);
+        if (gfd != -1) {
+            int bytes_read;
+            while ((bytes_read = read(gfd, buffer, sizeof(buffer))) > 0) {
                 send(client, buffer, bytes_read, 0);
             }
-            fclose(f);
+            close(gfd);
         }
 
-        // 2. Ghi nối tiếp ("ab") mọi dữ liệu client gửi vào tệp log.
-        FILE *log = fopen(argv[3], "ab");
+        // 2. Ghi nối tiếp (O_APPEND) mọi dữ liệu client gửi vào tệp log; write đưa dữ liệu vào tệp ngay.
+        int lfd = open(argv[3], O_WRONLY | O_CREAT | O_APPEND, 0644);
         while (0 == 0) {
             int bytes_received = recv(client, buffer, sizeof(buffer), 0);
             if (bytes_received <= 0) break;
-            if (log != NULL) fwrite(buffer, 1, bytes_received, log);
+            if (lfd != -1) write(lfd, buffer, bytes_received);
         }
-        if (log != NULL) fclose(log);  // fclose đẩy dữ liệu xuống tệp ngay
+        if (lfd != -1) close(lfd);
         close(client);
     }
 }

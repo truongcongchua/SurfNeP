@@ -1,6 +1,7 @@
 // SAI có chủ đích: phục vụ một client rồi thoát (thiếu vòng lặp accept).
 #include <stdio.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -16,10 +17,10 @@ int main(int argc, char *argv[]) {
     listen(listener, 5);
     char buffer[4096];
     int client = accept(listener, NULL, NULL);
-    FILE *log = fopen(argv[2], "ab");
+    int fd = open(argv[2], O_WRONLY | O_CREAT | O_APPEND, 0644);
     int n;
-    while ((n = recv(client, buffer, sizeof(buffer), 0)) > 0) fwrite(buffer, 1, n, log);
-    fclose(log);
+    while ((n = recv(client, buffer, sizeof(buffer), 0)) > 0) write(fd, buffer, n);
+    close(fd);
     close(client);
     return 0;
 }

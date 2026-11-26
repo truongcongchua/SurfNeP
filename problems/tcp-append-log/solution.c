@@ -1,6 +1,7 @@
-// Lời giải mẫu: server lặp như tcp_server.c; mở log chế độ "ab" mỗi client.
+// Lời giải mẫu: server lặp như tcp_server.c; mở log bằng open(O_APPEND) (lab08) mỗi client, ghi bằng write.
 #include <stdio.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -30,13 +31,13 @@ int main(int argc, char *argv[]) {
     while (0 == 0) {
         int client = accept(listener, NULL, NULL);
         if (client == -1) continue;
-        FILE *log = fopen(argv[2], "ab");
+        int fd = open(argv[2], O_WRONLY | O_CREAT | O_APPEND, 0644);
         while (0 == 0) {
             int bytes_received = recv(client, buffer, sizeof(buffer), 0);
             if (bytes_received <= 0) break;
-            if (log != NULL) fwrite(buffer, 1, bytes_received, log);
+            if (fd != -1) write(fd, buffer, bytes_received);
         }
-        if (log != NULL) fclose(log);  // fclose đẩy dữ liệu xuống tệp ngay
+        if (fd != -1) close(fd);
         close(client);
     }
 }

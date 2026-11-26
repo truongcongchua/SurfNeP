@@ -4,7 +4,7 @@ difficulty: easy
 chapter: 2
 topics: [TCP, File I/O]
 prerequisites: [tcp-echo]
-ref: "Lecture notes §2.3, §2.5; code mẫu 2-Chap2/tcp_server.c (recv) + lab07 (fopen \"ab\"); khởi động cho tcp-greeting-log"
+ref: "Lecture notes §2.3, §2.5; code mẫu 2-Chap2/tcp_server.c (recv) + lab08 (open, write, O_APPEND); khởi động cho tcp-greeting-log"
 type: server
 args: ["{port}", "log.txt"]
 test_timeout: 6

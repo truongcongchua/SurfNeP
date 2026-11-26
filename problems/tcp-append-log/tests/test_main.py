@@ -108,7 +108,7 @@ def test_large_upload(ctx):
 @group("stress")
 @timeout(25)
 def test_300_clients_fd_leak(ctx):
-    """300 client lần lượt (quên fclose hoặc close là hết 256 fd)"""
+    """300 client lần lượt (quên close tệp hoặc close(client) là hết 256 fd)"""
     want = b""
     for i in range(300):
         line = b"%d\n" % i

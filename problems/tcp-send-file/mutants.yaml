@@ -1,18 +1,18 @@
 - id: file-strlen
-  why: "Đọc tệp bằng fgets + strlen: hỏng khi có byte 0x00"
-  replace: [["            while ((bytes_read = fread(buffer, 1, sizeof(buffer), f)) > 0) {\n                send(client, buffer, bytes_read, 0);\n            }", "            while (fgets(buffer, sizeof(buffer), f) != NULL) {\n                send(client, buffer, strlen(buffer), 0);\n            }\n            (void)bytes_read;"], ["#include <stdlib.h>", "#include <stdlib.h>\n#include <string.h>"]]
+  why: "Gửi theo strlen của bộ đệm: hỏng khi có byte 0x00"
+  replace: [["                send(client, buffer, bytes_read, 0);", "                buffer[bytes_read < 4096 ? bytes_read : 4095] = 0;\n                send(client, buffer, strlen(buffer), 0);"], ["#include <stdlib.h>", "#include <stdlib.h>\n#include <string.h>"]]
 - id: first-block-only
   why: "Chỉ gửi khối 4096 byte đầu của tệp"
-  replace: [["            while ((bytes_read = fread(buffer, 1, sizeof(buffer), f)) > 0) {", "            if ((bytes_read = fread(buffer, 1, sizeof(buffer), f)) > 0) {"]]
+  replace: [["            while ((bytes_read = read(fd, buffer, sizeof(buffer))) > 0) {", "            if ((bytes_read = read(fd, buffer, sizeof(buffer))) > 0) {"]]
 - id: send-whole-buffer
   why: "Gửi sizeof(buffer) byte thay vì số byte đọc được: thừa byte rác"
   replace: [["send(client, buffer, bytes_read, 0)", "send(client, buffer, sizeof(buffer), 0)"]]
-- id: no-fclose
-  why: "Quên fclose tệp: rò rỉ fd mỗi client"
-  replace: [["            }\n            fclose(f);", "            }"]]
+- id: no-close-file
+  why: "Quên close(fd) của tệp: rò rỉ fd mỗi client"
+  replace: [["            close(fd);\n", ""]]
 - id: no-close-client
   why: "Quên close(client): client không thấy EOF và rò rỉ fd"
   replace: [["        close(client);\n", ""]]
 - id: read-once
-  why: "Mở tệp một lần rồi dùng lại: không thấy tệp thay đổi"
-  replace: [["    while (0 == 0) {\n        int client = accept(listener, NULL, NULL);\n        if (client == -1) continue;\n        FILE *f = fopen(argv[2], \"rb\");", "    FILE *cache = NULL;\n    while (0 == 0) {\n        int client = accept(listener, NULL, NULL);\n        if (client == -1) continue;\n        FILE *f = cache ? cache : fopen(argv[2], \"rb\");\n        if (cache) rewind(f);\n        cache = f;"], ["            fclose(f);\n", ""]]
+  why: "Mở tệp một lần rồi dùng lại fd cũ: không thấy tệp thay đổi"
+  replace: [["        int fd = open(argv[2], O_RDONLY);", "        static int cache = -1;\n        if (cache == -1) cache = open(argv[2], O_RDONLY);\n        int fd = cache;\n        if (fd != -1) lseek(fd, 0, SEEK_SET);"], ["            close(fd);\n", ""]]

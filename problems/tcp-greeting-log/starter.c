@@ -1,4 +1,4 @@
-// TODO: tự #include các thư viện cần dùng (gợi ý: stdio, stdlib, string, unistd, arpa/inet, sys/socket)
+// TODO: tự #include các thư viện cần dùng (gợi ý: stdio, stdlib, fcntl, unistd, arpa/inet, sys/socket)
 
 int main(int argc, char *argv[]) {
     if (argc != 4) {
@@ -6,7 +6,8 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     // TODO: socket -> bind -> listen
-    // TODO: với mỗi client: fopen(argv[2], "rb") + vòng fread/send (như html.c), fclose;
-    //       rồi fopen(argv[3], "ab"), vòng recv/fwrite tới khi recv <= 0, fclose, close(client)
+    // TODO: với mỗi client: open(argv[2], O_RDONLY) + vòng read/send tới khi read <= 0, close(fd);
+    //       rồi open(argv[3], O_WRONLY | O_CREAT | O_APPEND, 0644), vòng recv/write tới khi recv <= 0,
+    //       close(fd), close(client)
     return 0;
 }

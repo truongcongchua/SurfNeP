@@ -1,5 +1,6 @@
-// SAI có chủ đích: mở log bằng "w" mỗi client -> ghi đè dữ liệu client trước.
+// SAI có chủ đích: mở log bằng O_TRUNC mỗi client -> ghi đè dữ liệu client trước.
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -18,14 +19,14 @@ int main(int argc, char *argv[]) {
     for (;;) {
         int c = accept(ls, NULL, NULL);
         char buf[4096];
-        FILE *g = fopen(argv[2], "rb");
-        size_t k;
-        while ((k = fread(buf, 1, sizeof buf, g)) > 0) send(c, buf, k, 0);
-        fclose(g);
-        FILE *log = fopen(argv[3], "w");
+        int g = open(argv[2], O_RDONLY);
+        ssize_t k;
+        while ((k = read(g, buf, sizeof buf)) > 0) send(c, buf, k, 0);
+        close(g);
+        int log = open(argv[3], O_WRONLY | O_CREAT | O_TRUNC, 0644);
         ssize_t n;
-        while ((n = recv(c, buf, sizeof buf, 0)) > 0) fwrite(buf, 1, (size_t)n, log);
-        fclose(log);
+        while ((n = recv(c, buf, sizeof buf, 0)) > 0) write(log, buf, (size_t)n);
+        close(log);
         close(c);
     }
 }

@@ -90,14 +90,14 @@
   problem: tcp-greeting-log
   file: overwrite_log.c
   concept: file-io
-  lines: [25]
-  near: [27, 28]
+  lines: [26]
+  near: [28, 29]
   verdict: WA
   symptom: "Sau khi 2 client gửi `abc` rồi `xyz`, tệp log chỉ còn `xyz`."
-  title: Mở tệp log bằng chế độ "w"
+  title: Mở tệp log bằng O_TRUNC
   explain: |-
-    `fopen(..., "w")` **cắt cụt** tệp về 0 byte mỗi khi mở, nên dữ liệu của client trước bị xoá. Muốn ghi nối tiếp phải mở chế độ append.
-  fix: "`fopen(argv[3], \"ab\")`"
+    `O_TRUNC` **cắt cụt** tệp về 0 byte mỗi khi mở, nên dữ liệu của client trước bị xoá. Muốn ghi nối tiếp phải mở với `O_APPEND`.
+  fix: "`open(argv[3], O_WRONLY | O_CREAT | O_APPEND, 0644)`"
 
 - id: tcp-recv-line-one-recv
   problem: tcp-recv-line

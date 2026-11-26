@@ -1,21 +1,27 @@
 - id: greeting-strlen
-  why: "Đọc câu chào bằng fgets + strlen: hỏng khi có byte 0x00"
-  replace: [["            while ((bytes_read = fread(buffer, 1, sizeof(buffer), f)) > 0) {\n                send(client, buffer, bytes_read, 0);\n            }", "            while (fgets(buffer, sizeof(buffer), f) != NULL) {\n                send(client, buffer, strlen(buffer), 0);\n            }\n            (void)bytes_read;"]]
+  why: "Gửi câu chào theo strlen của bộ đệm: hỏng khi có byte 0x00"
+  replace: [["                send(client, buffer, bytes_read, 0);", "                buffer[bytes_read < 4096 ? bytes_read : 4095] = 0;\n                send(client, buffer, strlen(buffer), 0);"], ["#include <stdlib.h>", "#include <stdlib.h>\n#include <string.h>"]]
 - id: greeting-first-block-only
   why: "Chỉ gửi khối 4096 byte đầu của câu chào"
-  replace: [["            while ((bytes_read = fread(buffer, 1, sizeof(buffer), f)) > 0) {", "            if ((bytes_read = fread(buffer, 1, sizeof(buffer), f)) > 0) {"]]
-- id: greeting-no-fclose
-  why: "Quên fclose tệp câu chào: rò rỉ fd mỗi client"
-  replace: [["            }\n            fclose(f);", "            }"]]
+  replace: [["            while ((bytes_read = read(gfd, buffer, sizeof(buffer))) > 0) {", "            if ((bytes_read = read(gfd, buffer, sizeof(buffer))) > 0) {"]]
+- id: greeting-no-close
+  why: "Quên close tệp câu chào: rò rỉ fd mỗi client"
+  replace: [["            close(gfd);\n", ""]]
 - id: log-no-close
-  why: "Quên đóng tệp log: rò rỉ fd mỗi client (và dữ liệu nằm lại trong bộ đệm)"
-  replace: [["        if (log != NULL) fclose(log);  // fclose đẩy dữ liệu xuống tệp ngay\n", ""]]
+  why: "Quên close tệp log: rò rỉ fd mỗi client"
+  replace: [["        if (lfd != -1) close(lfd);\n", ""]]
 - id: log-strlen
   why: "Ghi log bằng độ dài chuỗi (dừng ở byte 0x00)"
-  replace: [["if (log != NULL) fwrite(buffer, 1, bytes_received, log);", "if (log != NULL) { buffer[bytes_received < 4096 ? bytes_received : 4095] = 0; fwrite(buffer, 1, strlen(buffer), log); }"]]
+  replace: [["if (lfd != -1) write(lfd, buffer, bytes_received);", "if (lfd != -1) { buffer[bytes_received < 4096 ? bytes_received : 4095] = 0; write(lfd, buffer, strlen(buffer)); }"], ["#include <stdlib.h>", "#include <stdlib.h>\n#include <string.h>"]]
 - id: log-adds-newline
   why: "Ghi thêm '\\n' sau dữ liệu của mỗi client"
-  replace: [["        if (log != NULL) fclose(log);", "        if (log != NULL) { fputc('\\n', log); fclose(log); }"]]
-- id: log-overwrite
-  why: "Mở log bằng \"wb\": ghi đè dữ liệu của client trước"
-  replace: [["fopen(argv[3], \"ab\")", "fopen(argv[3], \"wb\")"]]
+  replace: [["        if (lfd != -1) close(lfd);", "        if (lfd != -1) { write(lfd, \"\\n\", 1); close(lfd); }"]]
+- id: log-truncate
+  why: "Mở log bằng O_TRUNC: ghi đè dữ liệu client trước"
+  replace: [["O_WRONLY | O_CREAT | O_APPEND", "O_WRONLY | O_CREAT | O_TRUNC"]]
+- id: log-no-append
+  why: "Thiếu O_APPEND: mỗi client ghi từ đầu tệp, đè lên dữ liệu cũ"
+  replace: [["O_WRONLY | O_CREAT | O_APPEND", "O_WRONLY | O_CREAT"]]
+- id: log-no-creat
+  why: "Thiếu O_CREAT: log chưa tồn tại thì không ghi được gì"
+  replace: [["O_WRONLY | O_CREAT | O_APPEND", "O_WRONLY | O_APPEND"]]

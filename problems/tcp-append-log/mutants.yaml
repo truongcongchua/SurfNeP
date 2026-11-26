@@ -1,21 +1,27 @@
-- id: no-fclose
-  why: "Quên đóng tệp log: rò rỉ fd mỗi client (và dữ liệu nằm lại trong bộ đệm)"
-  replace: [["        if (log != NULL) fclose(log);  // fclose đẩy dữ liệu xuống tệp ngay\n", ""]]
+- id: no-close-file
+  why: "Quên close(fd) của tệp log: rò rỉ fd mỗi client"
+  replace: [["        if (fd != -1) close(fd);\n", ""]]
 - id: no-close-client
   why: "Quên close(client): rò rỉ fd mỗi client"
   replace: [["        close(client);\n", ""]]
 - id: log-strlen
   why: "Ghi log bằng độ dài chuỗi (dừng ở byte 0x00)"
-  replace: [["if (log != NULL) fwrite(buffer, 1, bytes_received, log);", "if (log != NULL) { buffer[bytes_received < 4096 ? bytes_received : 4095] = 0; fputs(buffer, log); }"]]
+  replace: [["if (fd != -1) write(fd, buffer, bytes_received);", "if (fd != -1) { buffer[bytes_received < 4096 ? bytes_received : 4095] = 0; write(fd, buffer, strlen(buffer)); }"], ["#include <stdlib.h>", "#include <stdlib.h>\n#include <string.h>"]]
 - id: log-whole-buffer
   why: "Ghi sizeof(buffer) byte thay vì số byte nhận được: thừa byte rác"
-  replace: [["fwrite(buffer, 1, bytes_received, log)", "fwrite(buffer, 1, sizeof(buffer), log)"]]
+  replace: [["write(fd, buffer, bytes_received)", "write(fd, buffer, sizeof(buffer))"]]
 - id: log-adds-newline
   why: "Ghi thêm '\\n' sau dữ liệu của mỗi client"
-  replace: [["        if (log != NULL) fclose(log);", "        if (log != NULL) { fputc('\\n', log); fclose(log); }"]]
-- id: log-overwrite
-  why: "Mở log bằng \"wb\": ghi đè dữ liệu client trước"
-  replace: [["fopen(argv[2], \"ab\")", "fopen(argv[2], \"wb\")"]]
+  replace: [["        if (fd != -1) close(fd);", "        if (fd != -1) { write(fd, \"\\n\", 1); close(fd); }"]]
+- id: log-truncate
+  why: "Mở log bằng O_TRUNC: ghi đè dữ liệu client trước"
+  replace: [["O_WRONLY | O_CREAT | O_APPEND", "O_WRONLY | O_CREAT | O_TRUNC"]]
+- id: no-append
+  why: "Thiếu O_APPEND: mỗi client ghi từ đầu tệp, đè lên dữ liệu cũ"
+  replace: [["O_WRONLY | O_CREAT | O_APPEND", "O_WRONLY | O_CREAT"]]
+- id: no-creat
+  why: "Thiếu O_CREAT: tệp chưa tồn tại thì không ghi được gì"
+  replace: [["O_WRONLY | O_CREAT | O_APPEND", "O_WRONLY | O_APPEND"]]
 - id: single-recv
   why: "Chỉ recv một lần mỗi client: mất phần dữ liệu đến sau"
   replace: [["        while (0 == 0) {\n            int bytes_received", "        for (int once = 0; once < 1; once++) {\n            int bytes_received"]]

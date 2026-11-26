@@ -96,7 +96,7 @@ def test_missing_file(ctx):
 @group("stress")
 @timeout(25)
 def test_300_clients_fd_leak(ctx):
-    """300 client lần lượt (quên fclose hoặc close là hết 256 fd)"""
+    """300 client lần lượt (quên close tệp hoặc close(client) là hết 256 fd)"""
     for i in range(300):
         c = fetch(ctx, DATA, f"C{i}")
         ctx.close_quietly(c)
