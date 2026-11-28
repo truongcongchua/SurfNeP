@@ -16,3 +16,4 @@
 - id: max-fd-wrong
   why: "Gọi select(max_fd, ...) thay vì max_fd + 1: không bao giờ thấy dữ liệu từ socket"
   replace: [["select(max_fd + 1, &read_fds, NULL, NULL, NULL)", "select(max_fd, &read_fds, NULL, NULL, NULL)"]]
+- {id: recv-error-exit-1, why: "recv trả -1 (server bị reset) thì thoát mã 1 thay vì 0", replace: [["                break;  // 0: server đóng; -1: lỗi (ví dụ RST)", "                if (bytes_received < 0) exit(1);\n                break;"]]}

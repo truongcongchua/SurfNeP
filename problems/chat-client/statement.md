@@ -13,7 +13,7 @@ Phía **client** của các bài chat: vừa đọc bàn phím để gửi, vừ
   - Có dữ liệu từ stdin → gửi ngay cho server (giữ nguyên từng byte, kể cả `\n`).
   - Có dữ liệu từ server → ghi ngay ra **stdout**, giữ nguyên từng byte. Không được đợi người dùng gõ gì.
 - stdin kết thúc (EOF, `Ctrl+D`, tức `read` trả `0`): đóng kết nối và thoát với mã `0`.
-- Server đóng kết nối (`recv` trả `0` hoặc `-1`): thoát ngay với mã `0`.
+- Server đóng kết nối (`recv` trả `0` hoặc `-1`, kể cả khi bị reset): thoát ngay với mã `0`.
 
 Client này không cần biết giao thức chat: nó chỉ chuyển byte hai chiều. Bạn có thể thử nó với server của bài
 *chat-select* / *thread-chat* của chính mình.

@@ -165,7 +165,9 @@ def test_server_reset(ctx):
     conn.send("truoc khi mat\n")
     cli.expect_stdout("truoc khi mat\n")
     conn.reset()
-    cli.wait(timeout=1.5)
+    code = cli.wait(timeout=1.5)
+    if code != 0:
+        raise Fail(WA, f"client phải thoát mã 0 khi server bị reset (recv trả -1), nhận {code}")
 
 
 @group("robust")
