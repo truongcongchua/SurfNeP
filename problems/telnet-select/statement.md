@@ -34,7 +34,9 @@ OUTPUT <n>\n
   tab, tiền tố như `admin adm` đều là `LOGIN FAIL`). Bỏ `\r` cuối dòng. Mọi dòng trước khi đăng nhập thành công,
   kể cả `exit`, đều là một lần đăng nhập.
 - Một dòng lệnh dài tới 1000 byte và có thể gồm **nhiều lệnh** (`echo a; echo b`, `a | b`): gom kết quả của cả
-  dòng (gợi ý: `system("{ <lệnh>\n} > tệp 2>&1")`). Dòng lệnh rỗng → `OUTPUT 0`. Chỉ đúng dòng `exit` mới thoát.
+  dòng (gợi ý: `system("{ <lệnh>\n} > tệp 2>&1")`). Dòng lệnh rỗng → `OUTPUT 0`. Chỉ đúng dòng `exit` mới thoát
+  (`exit 3`, `exitnow` là lệnh shell bình thường). Đã đăng nhập rồi thì dòng giống tài khoản (`admin admin`) cũng chỉ
+  là một lệnh shell. Nếu `exit` nằm giữa nhiều dòng gửi dính nhau: chạy các lệnh trước nó, trả `BYE`, đóng, bỏ các dòng sau.
 - `n` là **số byte thật** của kết quả: kết quả có thể chứa byte `0x00` (không dùng `strlen`), có thể rỗng, hoặc
   lớn tới vài MB.
 - Lệnh có thể đến từng byte một, hoặc dòng đăng nhập + hàng chục lệnh dính nhau trong một lần gửi.

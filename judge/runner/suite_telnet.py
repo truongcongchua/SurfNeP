@@ -198,7 +198,39 @@ def telnet_suite(fork=False):
             raise Fail(WA, f"'EXIT' phải được chạy như lệnh shell (báo not found), nhận {out!r}")
         expect_output(c, "echo con", "con\n")
 
+    @add
+    @group("edge")
+    @cases("exit 3", "exitnow", "exit;echo x", "exit ", title="Dòng {0!r} không phải đúng 'exit': chạy như lệnh shell")
+    def test_exit_lookalikes_are_commands(ctx, cmd):
+        c = login(ctx)
+        run(c, cmd)
+        expect_output(c, "echo con song", "con song\n")
+
+    @add
+    @group("edge")
+    def test_credentials_after_login_are_commands(ctx):
+        """Đã đăng nhập rồi thì 'admin admin' chỉ là một lệnh shell (không phải LOGIN OK lần nữa)"""
+        c = login(ctx)
+        for line in ("admin admin", "guest nopass"):
+            out = run(c, line)
+            if b"not found" not in out:
+                raise Fail(WA, f"sau khi đăng nhập, {line!r} phải chạy như lệnh shell (báo not found), nhận {out!r}")
+        expect_output(c, "echo con song", "con song\n")
+
     # ---------------- stream ----------------
+    @add
+    @group("stream")
+    def test_exit_mid_batch(ctx):
+        """'exit' nằm giữa khối lệnh dính nhau: chạy lệnh trước, BYE, đóng; bỏ lệnh phía sau"""
+        c = ctx.connect()
+        c.send("admin admin\necho truoc\nexit\necho sau\necho sau2\n")
+        c.expect_line("LOGIN OK")
+        got = read_output(c, 3)
+        if got != b"truoc\n":
+            raise Fail(WA, f"lệnh trước exit: mong đợi b'truoc\\n', nhận {got!r}")
+        c.expect_line("BYE")
+        c.expect_closed(timeout=1.5)
+
     @add
     @group("stream")
     def test_byte_by_byte(ctx):

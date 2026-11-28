@@ -66,3 +66,12 @@
   replace:
   - - while (alive && (nl = strchr(start, '\n'))) {
     - if (alive && (nl = strchr(start, '\n'))) {
+- {id: exit-prefix, why: "So khớp tiền tố: exit 3, exitnow cũng thoát", replace: [["!strcmp(line, \"exit\")", "!strncmp(line, \"exit\", 4)"]]}
+- {id: relogin-as-command, why: "Đã đăng nhập mà vẫn coi dòng giống tài khoản là lần đăng nhập", replace: [["if (!x->logged) {\n        x->logged = check_login(line);", "if (!x->logged || check_login(line)) {\n        x->logged = check_login(line);"]]}
+- id: exit-keeps-processing
+  why: Sau exit vẫn chạy các lệnh dính phía sau rồi mới đóng
+  replace:
+  - - while (alive && (nl = strchr(start, '\n'))) {
+    - while ((nl = strchr(start, '\n'))) {
+  - - '                alive = handle_line(x, start);'
+    - '                alive &= handle_line(x, start);'

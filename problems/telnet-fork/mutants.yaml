@@ -69,3 +69,14 @@
   replace:
   - - while ((nl = strchr(start, '\n'))) {
     - if ((nl = strchr(start, '\n'))) {
+- {id: exit-prefix, why: "So khớp tiền tố: exit 3, exitnow cũng thoát", replace: [["!strcmp(start, \"exit\")", "!strncmp(start, \"exit\", 4)"]]}
+- {id: relogin-as-command, why: "Đã đăng nhập mà vẫn coi dòng giống tài khoản là lần đăng nhập", replace: [["if (!logged) {\n                logged = check_login(start);", "if (!logged || check_login(start)) {\n                logged = check_login(start);"]]}
+- id: exit-keeps-processing
+  why: Sau exit vẫn chạy các lệnh dính phía sau rồi mới đóng
+  replace:
+  - - "    int logged = 0;\n"
+    - "    int logged = 0, quit = 0;\n"
+  - - "                send_str(c, \"BYE\\n\");\n                return;"
+    - "                send_str(c, \"BYE\\n\");\n                quit = 1;"
+  - - "        len -= (size_t)(start - buf);"
+    - "        if (quit) return;\n        len -= (size_t)(start - buf);"
