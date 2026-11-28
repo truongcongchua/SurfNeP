@@ -178,6 +178,22 @@ nonblock-accept:
   - |-
     `recv` trả `-1` là "chưa có dữ liệu", **không phải lỗi** → bỏ qua, thử client tiếp theo; `0` là client đóng → `close` và xoá khỏi mảng. `accept` cũng trả `-1` khi chưa có ai kết nối.
 
+select-two-ports:
+  - |-
+    Một luồng, hai socket nghe: `accept` thẳng ở một cổng sẽ chặn và bỏ đói cổng kia. `select` cho bạn biết cổng nào **đang có người chờ**.
+  - |-
+    Mỗi vòng: `FD_ZERO(&read_fds); FD_SET(listener1, &read_fds); FD_SET(listener2, &read_fds);`, `max_fd` là fd lớn hơn trong hai fd, `select(max_fd + 1, &read_fds, NULL, NULL, NULL)`. Sau đó hai lệnh `if (FD_ISSET(...))` riêng, mỗi lệnh `accept` + `send` + `close(client)`.
+  - |-
+    Không dựng `fd_set` một lần trước vòng lặp: `select` xoá khỏi tập những fd chưa sẵn sàng. Tham số đầu là `max_fd + 1`, không phải 2. Hàm `make_listener(port)` dùng cho cả hai cổng (`port` và `port + 1`). Xem thẻ **Ghép kênh I/O với select**.
+
+select-online-count:
+  - |-
+    Bài này là phần "danh sách client" của `select_server.c`: client vào thì thêm vào mảng, client đóng thì xoá khỏi mảng. Con số cần gửi chính là kích thước mảng.
+  - |-
+    Khi `FD_ISSET(listener)`: `accept`, `client_list[number_of_clients++] = fd`, rồi `sprintf(message, "ONLINE %d\n", number_of_clients)` và `send`. Mỗi vòng dựng lại `fd_set` gồm listener và mọi client trong mảng; client nào sẵn sàng thì `recv` vào bộ đệm và bỏ dữ liệu.
+  - |-
+    `recv` trả `0` (client đóng) hoặc `-1` (lỗi): `close(fd)` **và** xoá khỏi mảng (đưa phần tử cuối vào chỗ trống, `number_of_clients--`, `i--`). Quên xoá thì `n` không bao giờ giảm; quên `close` thì hết 256 fd. Phải `recv` cả khi client chỉ gửi rác, nếu không không bao giờ thấy nó đóng.
+
 select-echo:
   - |-
     Khi `select` trả về, hệ điều hành đã nói cho bạn biết fd nào **chắc chắn không chặn**. Việc của bạn là quản lý danh sách fd và dựng lại tập mỗi vòng.
@@ -217,6 +233,22 @@ telnet-select:
     Dùng cấu trúc client giống `chat-select` (bộ đệm dòng + cờ `logged_in`). Đăng nhập: đọc `accounts.txt` mỗi lần, so `user pass`. Lệnh: `popen(cmd, "r")` (gộp stderr bằng `2>&1`), `fread` hết, gửi `OUTPUT <n>\n` rồi `n` byte. `exit` → `BYE` và đóng.
   - |-
     Cắt `\r` cuối dòng trước khi so sánh. Dòng nào gửi trước khi đăng nhập thành công cũng bị coi là một lần đăng nhập. `n` là số byte **thật** của kết quả (dùng số `fread` trả về, kết quả có thể rỗng hoặc chứa `0x00`). Nhớ `pclose` để không rò rỉ tiến trình con.
+
+thread-args:
+  - |-
+    Mỗi số một luồng; việc khó không phải là phép nhân mà là **làm sao luồng biết nó phải tính số nào**. Hàm luồng chỉ nhận một `void *`.
+  - |-
+    Trong vòng tạo luồng: `int *p = malloc(sizeof *p); *p = i; pthread_create(&tid[i], NULL, worker, p);`. Trong `worker`: `int i = *(int *)arg; free(arg);`. Sau đó một vòng khác `pthread_join(tid[i], NULL)` rồi mới in.
+  - |-
+    Đừng truyền `&i`: vòng `for` tăng `i` trước khi luồng mới chạy, nên nhiều luồng cùng đọc một giá trị `i` và các ô còn lại không ai tính. Đừng `join` ngay trong vòng tạo (các luồng chạy lần lượt). Dùng `long long` cho cả mảng và `printf("%lld\n", ...)` vì bình phương tới `10^18`.
+
+thread-slow-hello:
+  - |-
+    Giống `tcp-hello-loop` nhưng mỗi client có một luồng riêng. `sleep(1)` làm cho cả hai lỗi kinh điển (phục vụ lần lượt, truyền `&client`) lộ ra ngay.
+  - |-
+    Vòng `accept`: `int *p = malloc(sizeof *p); *p = client; pthread_create(&t, NULL, greet, p); pthread_detach(t);`. Hàm luồng: lấy `fd`, `free(p)`, `sleep(1)`, `send(fd, "Hello!\n", 7, 0)`, `close(fd)`. Xem thẻ **Server đa luồng**.
+  - |-
+    Mọi thứ liên quan tới client (kể cả `sleep`) nằm **trong hàm luồng**, luồng chính chỉ `accept` rồi tạo luồng. Gửi đúng 7 byte (không `sizeof("Hello!\n")`, nó là 8). Luồng tự `close(fd)`; không `pthread_join`.
 
 thread-echo:
   - |-

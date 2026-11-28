@@ -1,0 +1,14 @@
+id: thread-slow-hello
+title: Server chào chậm, mỗi client một luồng
+difficulty: easy
+chapter: 3
+topics: [TCP, Multithreading]
+prerequisites: [thread-args, tcp-hello-loop]
+ref: "Lecture notes §3.4 (tr.71); code mẫu 3-Chap3/L4-MultiThreading/pthread_server.c; khởi động cho thread-echo"
+type: server
+args: ["{port}"]
+test_timeout: 10
+constraints:
+  require_any: [pthread_create]
+  forbid: [select, poll, epoll_wait, fork]
+concepts: [threads-mutex]

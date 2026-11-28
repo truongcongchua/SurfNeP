@@ -1,0 +1,14 @@
+id: select-online-count
+title: Đếm client đang kết nối bằng select
+difficulty: easy
+chapter: 3
+topics: [TCP, select]
+prerequisites: [select-two-ports, tcp-hello-loop]
+ref: "Lecture notes §3.5 (tr.84); code mẫu 3-Chap3/L5-IOMultiPlexing/select_server.c; khởi động cho select-echo"
+type: server
+args: ["{port}"]
+test_timeout: 8
+constraints:
+  require_any: [select]
+  forbid: [poll, epoll_wait, fork, pthread_create]
+concepts: [select-poll]

@@ -4,7 +4,7 @@ order: 3
 title: "Kiến trúc server đồng thời"
 subtitle: "Cùng một bài, nhiều cách phục vụ nhiều client"
 description: >
-  9 bài, 4 chủ đề. So sánh trực tiếp non-blocking, fork, pthread, select và poll bằng cùng một giao thức chat và telnet. Bám Chương 3.
+  13 bài, 4 chủ đề. So sánh trực tiếp non-blocking, fork, pthread, select và poll bằng cùng một giao thức chat và telnet. Bám Chương 3.
 suggested_days: 8
 award: "Huy hiệu \"Kiến trúc sư server\""
 
@@ -18,7 +18,11 @@ sections:
     intro: "fork, pthread, select. (§3.3–3.5)"
     problems:
       - {id: fork-echo, title: "Forking echo server", difficulty: medium, ready: true}
+      - {id: thread-args, title: "Mỗi số một luồng", difficulty: easy, ready: true}
+      - {id: thread-slow-hello, title: "Server chào chậm, mỗi client một luồng", difficulty: easy, ready: true}
       - {id: thread-echo, title: "Pthread echo server", difficulty: medium, ready: true}
+      - {id: select-two-ports, title: "Một server, hai cổng, dùng select", difficulty: easy, ready: true}
+      - {id: select-online-count, title: "Đếm client đang kết nối bằng select", difficulty: easy, ready: true}
       - {id: select-echo, title: "Echo server dùng select", difficulty: medium, ready: true}
 
   - title: "Chat: select, pthread"

@@ -1,0 +1,33 @@
+- id: closed-fd-kept
+  why: "Đóng socket nhưng không xoá khỏi danh sách: số client không bao giờ giảm"
+  replace: [["                client_list[i] = client_list[number_of_clients - 1];\n                number_of_clients--;\n                i--;\n", ""]]
+- id: never-close
+  why: "Client đóng thì chỉ bỏ khỏi danh sách, quên close(): rò rỉ fd"
+  replace: [["                close(client_socket);\n                client_list[i] =", "                client_list[i] ="]]
+- id: maxfd-not-updated
+  why: "Không cập nhật max_fd: select chỉ theo dõi socket nghe"
+  replace: [["            if (client_list[i] > max_fd) max_fd = client_list[i];\n", ""]]
+- id: select-nfds-off-by-one
+  why: "select(max_fd, ...) thay vì max_fd + 1: client mới nhất không bao giờ được đọc"
+  replace: [["select(max_fd + 1, &read_fds, NULL, NULL, NULL)", "select(max_fd, &read_fds, NULL, NULL, NULL)"]]
+- id: fd-set-not-rebuilt
+  why: "Không FD_SET các client mỗi vòng: không bao giờ phát hiện client đóng"
+  replace: [["        for (int i = 0; i < number_of_clients; i++) {\n            FD_SET(client_list[i], &read_fds);", "        for (int i = 0; i < number_of_clients; i++) {"]]
+- id: small-client-table
+  why: "Mảng client chỉ 8 phần tử: từ client thứ 9 trở đi bị đóng"
+  replace: [["#define MAX_CLIENTS 512", "#define MAX_CLIENTS 8"]]
+- id: echo-back
+  why: "Gửi trả dữ liệu nhận được (nhầm với echo)"
+  replace: [["            if (bytes_received <= 0) {", "            if (bytes_received > 0) send(client_socket, buffer, bytes_received, 0);\n            if (bytes_received <= 0) {"]]
+- id: greet-before-counting
+  why: "Chào bằng số client trước khi tính client mới (thiếu 1)"
+  replace: [["                number_of_clients++;\n                char message[32];\n                sprintf(message, \"ONLINE %d\\n\", number_of_clients);", "                char message[32];\n                sprintf(message, \"ONLINE %d\\n\", number_of_clients);\n                number_of_clients++;"]]
+- id: greeting-format
+  why: "Thiếu dấu cách sau ONLINE"
+  replace: [["\"ONLINE %d\\n\"", "\"ONLINE%d\\n\""]]
+- id: total-ever-connected
+  why: "Đếm tổng số client từng kết nối thay vì số client hiện có"
+  replace: [["    int number_of_clients = 0;\n", "    int number_of_clients = 0;\n    int ever = 0;\n"], ["                number_of_clients++;\n                char message[32];\n                sprintf(message, \"ONLINE %d\\n\", number_of_clients);", "                number_of_clients++;\n                ever++;\n                char message[32];\n                sprintf(message, \"ONLINE %d\\n\", ever);"]]
+- id: no-recv-on-clients
+  why: "Không đọc client: dữ liệu client gửi làm đầy bộ đệm, EOF không bao giờ được thấy"
+  replace: [["int bytes_received = recv(client_socket, buffer, sizeof(buffer), 0);", "int bytes_received = 1;"]]

@@ -1,0 +1,13 @@
+id: thread-args
+title: Mỗi số một luồng
+difficulty: easy
+chapter: 3
+topics: [Multithreading]
+prerequisites: []
+ref: "Lecture notes §3.4 (tr.71); code mẫu 3-Chap3/L4-MultiThreading/pthread_server.c; khởi động cho thread-echo"
+type: stdio
+test_timeout: 5
+constraints:
+  require_any: [pthread_create]
+  forbid: [fork]
+concepts: [threads-mutex]

@@ -1,0 +1,21 @@
+- id: no-join
+  why: "Không join: in kết quả khi các luồng chưa chắc đã xong"
+  replace: [["        pthread_join(tid[i], NULL);\n", ""]]
+- id: join-only-first
+  why: "Chỉ join luồng đầu tiên"
+  replace: [["    for (int i = 0; i < n; i++) {\n        pthread_join(tid[i], NULL);", "    for (int i = 0; i < n && i < 1; i++) {\n        pthread_join(tid[i], NULL);"]]
+- id: detach-instead-of-join
+  why: "Detach thay cho join: luồng chạy nền, main in luôn"
+  replace: [["pthread_join(tid[i], NULL);", "pthread_detach(tid[i]);"]]
+- id: int-multiplication
+  why: "Nhân bằng int rồi mới gán vào long long: tràn số với |a| > 46340"
+  replace: [["sq[i] = a[i] * a[i];", "sq[i] = (long long)((int)a[i] * (int)a[i]);"]]
+- id: index-off-by-one
+  why: "Luồng i ghi vào ô i + 1 (và đọc a[i]) nên dòng i của kết quả bị lệch"
+  replace: [["sq[i] = a[i] * a[i];", "sq[i + 1] = a[i] * a[i];"]]
+- id: loop-skips-last
+  why: "Chỉ tạo n - 1 luồng"
+  replace: [["    for (int i = 0; i < n; i++) {\n        int *p = malloc(sizeof(int));", "    for (int i = 0; i < n - 1; i++) {\n        int *p = malloc(sizeof(int));"]]
+- id: shared-counter-arg
+  why: "Dùng chung một biến toàn cục làm đối số (mọi luồng đọc cùng một ô)"
+  replace: [["int *p = malloc(sizeof(int));\n        *p = i;\n        pthread_create(&tid[i], NULL, worker, p);", "static int shared;\n        shared = i;\n        pthread_create(&tid[i], NULL, worker, &shared);"], ["    free(arg);\n", ""]]

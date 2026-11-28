@@ -6,6 +6,14 @@ một luồng**, bằng **`select()`**.
 
 **Không được dùng:** `fork`, `pthread`, `poll`, `epoll`. Bộ chấm kiểm tra điều này (verdict `CV`).
 
+## Bài khởi động
+Nếu chưa quen `select`, làm hai bài này trước. Mỗi bài luyện một nửa của bài này và dễ hơn nó:
+
+| Bài | Luyện | Dùng lại ở bài này |
+|---|---|---|
+| `select-two-ports` | Dựng `fd_set` mỗi vòng, `max_fd + 1`, `FD_ISSET` cho từng socket nghe, `accept` không chặn, một luồng phục vụ hai nguồn | Khung vòng lặp `select` |
+| `select-online-count` | Mảng `client_list[]`: thêm khi `accept`, `close` **và** xoá khi `recv <= 0`, đọc dữ liệu client | Quản lý danh sách client. Phần còn lại ở bài này là `send` trả đúng dữ liệu (luồng byte lớn, bộ đệm đầy) |
+
 ## Ràng buộc và bộ chấm kiểm tra
 - Dữ liệu là **luồng byte** bất kỳ (kể cả `0x00`), đến thành mảnh ngẫu nhiên hoặc dính thành khối lớn (tới 1 MB).
 - Client có thể ngừng gửi (`shutdown`) rồi chờ đọc: server phải gửi trả **hết** rồi mới đóng.

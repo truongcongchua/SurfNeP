@@ -1,0 +1,30 @@
+- id: address-of-client
+  why: "Truyền &client_socket: sau 1 giây mọi luồng cùng đọc fd của client cuối cùng"
+  replace: [["        int *arg = malloc(sizeof(int));\n        *arg = client_socket;\n        pthread_t thread;\n        if (pthread_create(&thread, NULL, greet, arg) != 0) {\n            close(client_socket);\n            free(arg);\n            continue;\n        }", "        pthread_t thread;\n        pthread_create(&thread, NULL, greet, &client_socket);"], ["    free(arg);\n", ""]]
+- id: worker-no-close
+  why: "Luồng không close(client): client không thấy server đóng, và rò rỉ fd"
+  replace: [["    close(client_socket);\n    return NULL;", "    return NULL;"]]
+- id: serve-in-main-thread
+  why: "Gọi greet trực tiếp trong luồng chính (không thật sự đồng thời)"
+  replace: [["        pthread_t thread;\n        if (pthread_create(&thread, NULL, greet, arg) != 0) {\n            close(client_socket);\n            free(arg);\n            continue;\n        }\n        pthread_detach(thread);", "        greet(arg);"]]
+- id: join-instead-of-detach
+  why: "pthread_join ngay sau pthread_create: luồng chính chờ client này xong mới accept tiếp"
+  replace: [["pthread_detach(thread);", "pthread_join(thread, NULL);"]]
+- id: sleep-in-main-thread
+  why: "sleep(1) ở luồng chính trước khi tạo luồng: client thứ hai phải chờ client thứ nhất"
+  replace: [["        pthread_t thread;\n", "        sleep(1);\n        pthread_t thread;\n"], ["    sleep(1);\n    send", "    send"]]
+- id: no-sleep
+  why: "Không đợi 1 giây: chào ngay"
+  replace: [["    sleep(1);\n", ""]]
+- id: sleep-two-seconds
+  why: "Đợi 2 giây thay vì 1 giây"
+  replace: [["sleep(1);", "sleep(2);"]]
+- id: send-nul
+  why: "Gửi 8 byte (thừa byte '\\0')"
+  replace: [["send(client_socket, \"Hello!\\n\", 7, 0);", "send(client_socket, \"Hello!\\n\", 8, 0);"]]
+- id: send-twice
+  why: "Gửi lời chào hai lần"
+  replace: [["    send(client_socket, \"Hello!\\n\", 7, 0);\n", "    send(client_socket, \"Hello!\\n\", 7, 0);\n    send(client_socket, \"Hello!\\n\", 7, 0);\n"]]
+- id: exit-when-accept-fails-or-client-leaves
+  why: "Thoát server sau client đầu tiên"
+  replace: [["        pthread_detach(thread);", "        pthread_detach(thread);\n        break;"]]

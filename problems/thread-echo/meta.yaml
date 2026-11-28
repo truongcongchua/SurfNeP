@@ -3,7 +3,7 @@ title: Pthread echo server
 difficulty: medium
 chapter: 3
 topics: [TCP, Multithreading]
-prerequisites: [tcp-echo]
+prerequisites: [tcp-echo, thread-slow-hello]
 ref: "Lecture notes §3.4 (tr.71); code mẫu 3-Chap3/L4-MultiThreading"
 type: server
 args: ["{port}"]

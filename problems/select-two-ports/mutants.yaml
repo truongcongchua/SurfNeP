@@ -1,0 +1,27 @@
+- id: nfds-off-by-one
+  why: "select(max_fd, ...) thay vì max_fd + 1: socket nghe có số fd lớn hơn không bao giờ được xét"
+  replace: [["select(max_fd + 1, &read_fds, NULL, NULL, NULL)", "select(max_fd, &read_fds, NULL, NULL, NULL)"]]
+- id: maxfd-first-only
+  why: "max_fd chỉ lấy theo listener1"
+  replace: [["int max_fd = listener1 > listener2 ? listener1 : listener2;", "int max_fd = listener1;"]]
+- id: second-listener-not-set
+  why: "Quên FD_SET listener2: cổng thứ hai không bao giờ được phục vụ"
+  replace: [["        FD_SET(listener2, &read_fds);\n", ""]]
+- id: fd-set-not-rebuilt
+  why: "Dựng fd_set một lần trước vòng lặp (select ghi đè, vòng sau chỉ còn fd vừa sẵn sàng)"
+  replace: [["    fd_set read_fds;\n    while (1) {\n        // select() ghi đè read_fds nên phải dựng lại mỗi vòng\n        FD_ZERO(&read_fds);\n        FD_SET(listener1, &read_fds);\n        FD_SET(listener2, &read_fds);\n", "    fd_set read_fds;\n    FD_ZERO(&read_fds);\n    FD_SET(listener1, &read_fds);\n    FD_SET(listener2, &read_fds);\n    while (1) {\n"]]
+- id: blocking-accept-on-first
+  why: "Bỏ FD_ISSET cho listener1: accept thẳng (chặn) nên cổng thứ hai bị bỏ đói"
+  replace: [["        if (FD_ISSET(listener1, &read_fds)) {", "        if (1) {"]]
+- id: no-close-client
+  why: "Không close(client) ở cổng thứ hai: client không thấy đóng, rò rỉ fd"
+  replace: [["                send(client, \"TWO\\n\", 4, 0);\n                close(client);", "                send(client, \"TWO\\n\", 4, 0);"]]
+- id: wrong-greeting
+  why: "Cổng thứ hai chào bằng ONE"
+  replace: [["\"TWO\\n\"", "\"ONE\\n\""]]
+- id: second-port-is-same
+  why: "listener2 nghe cùng cổng + 2 thay vì + 1"
+  replace: [["make_listener(port + 1)", "make_listener(port + 2)"]]
+- id: send-nul
+  why: "Gửi thừa byte NUL"
+  replace: [["send(client, \"ONE\\n\", 4, 0);", "send(client, \"ONE\\n\", 5, 0);"]]

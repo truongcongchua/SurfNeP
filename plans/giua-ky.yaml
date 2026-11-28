@@ -6,7 +6,7 @@ order: 0
 title: Giữa kỳ IT4062
 subtitle: Server/client TCP/UDP phục vụ tối đa N client
 description: >
-  37 bài, 10 chủ đề, đi từ địa chỉ socket đến server phục vụ đồng thời tối đa N client,
+  41 bài, 10 chủ đề, đi từ địa chỉ socket đến server phục vụ đồng thời tối đa N client,
   kết thúc bằng 3 đề thi thử tính giờ. Bám lecture notes Chương 2–3.
 exam_date: 2026-12-15
 suggested_days: 16
@@ -64,11 +64,15 @@ sections:
   - title: Đa luồng
     intro: pthread_create/detach, trạng thái dùng chung, mutex. (§3.4)
     problems:
+      - {id: thread-args, title: "Mỗi số một luồng", difficulty: easy, ready: true}
+      - {id: thread-slow-hello, title: "Server chào chậm, mỗi client một luồng", difficulty: easy, ready: true}
       - {id: thread-echo, title: Pthread echo server, difficulty: medium, ready: true}
 
   - title: Ghép kênh select
     intro: fd_set, dựng lại tập fd mỗi vòng, bộ đệm riêng mỗi client. (§3.5)
     problems:
+      - {id: select-two-ports, title: "Một server, hai cổng, dùng select", difficulty: easy, ready: true}
+      - {id: select-online-count, title: "Đếm client đang kết nối bằng select", difficulty: easy, ready: true}
       - {id: select-echo, title: Echo server dùng select, difficulty: medium, ready: true}
       - {id: chat-select, title: Phòng chat đa client với select, difficulty: hard, ready: true}
       - {id: chat-client, title: Chat client dùng select, difficulty: medium, ready: true}
